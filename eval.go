@@ -1,4 +1,4 @@
-// Package evalfilter  allows you to run simple  tests against objects or
+// Package evalfilter allows you to run simple  tests against objects or
 // structs implemented in golang, via the use of user-supplied scripts
 //
 // Since the result of running tests against objects is a boolean/binary
@@ -26,6 +26,30 @@ type Evaluator struct {
 	// Functions contains references to helper functions which
 	// have been made available to the user-script.
 	Functions map[string]interface{}
+
+	// Bytecode operations are stored here
+	Bytecode []interface{}
+}
+
+// Bytecode functions
+
+// IfOperation holds state for the `if` operation
+type IfOperation struct {
+	Left   Token
+	Right  Token
+	Op     Token
+	Return Token
+}
+
+// ReturnOperation holds state for the `return` operation
+type ReturnOperation struct {
+	// Value holds the value of a number to be pushed upon the RPN stack.
+	Value bool
+}
+
+// PrintOperation holds state for the `print` operation.
+type PrintOperation struct {
+	Values []Token
 }
 
 // New returns a new evaluation object, which can be used to apply
@@ -53,11 +77,13 @@ func (e *Evaluator) AddFunction(name string, fun interface{}) {
 	e.Functions[name] = fun
 }
 
-// Run executes the user-supplied script against the specified object.
+// parse is an internal method which reads the script we've been
+// given in our constructor and writes out a series of operations
+// to be carried out to `Bytecode`.
 //
-// This function can be called multiple times, although it is not terribly
-// efficient to do so.
-func (e *Evaluator) Run(obj interface{}) (bool, error) {
+// This is simple because we have no control-flow, and no need to
+// worry about nested-blocks, variables, etc.
+func (e *Evaluator) parse() error {
 
 	//
 	// Create a lexer to process our script.
@@ -69,124 +95,207 @@ func (e *Evaluator) Run(obj interface{}) (bool, error) {
 	//
 	// We're a little fast & loose here.
 	//
-	for {
+	tok := l.NextToken()
+
+	for tok.Type != EOF {
 
 		//
-		// Get the next token.
+		// Return
 		//
-		tok := l.NextToken()
+		switch tok.Type {
 
-		//
-		// Is this a conditional?
-		//
-		if tok.Type == IF {
-
-			//
-			// The general form is:
-			//
-			//  IF ( LEFT TEST RIGHT ) { RETURN YY; }
-			//
-			// e.g. "if ( Count == 3 ) { return true; }"
-			//
-			//
-			var left Token
-			var op Token
-			var right Token
-
-			// skip the (
-			skip := l.NextToken()
-			if skip.Literal != "(" {
-				return false, fmt.Errorf("expected '(' got %v", skip)
+		case IF:
+			err := e.parseIF(l)
+			if err != nil {
+				return err
 			}
 
-			//
-			// Get the first operand.
-			//
-			left = l.NextToken()
+		case RETURN:
 
-			//
-			// Get the operand.
-			//
-			op = l.NextToken()
-
-			//
-			// There are two forms of IF:
-			//
-			//   IF ( left OP right ) ..
-			//
-			// And
-			//
-			//   IF ( function() ) ..
-			//
-			// We tell them apart by looking above.
-			//
-			if op.Literal == ")" {
-
-				//
-				// Because we see ")" we assume we're
-				// the single-form of the IF-statement.
-				//
-				// To avoid making changes we simply
-				// FAKE the other arguments, because
-				// saying "if ( foo() )" is logically
-				// the same as saying:
-				//
-				//  if ( foo() == "true" )
-				//
-
-				//
-				// Fake the operation.
-				//
-				op.Literal = "=="
-
-				//
-				// Fake the right-value.
-				//
-				// NB: This works because we force user-added
-				// functions to return boolean values.
-				//
-				right.Literal = "true"
-
-				//
-				// I feel bad.  But not that bad.
-				//
-				goto block
-			}
-
-			//
-			// OK we're in the three-argument form, so we
-			// get the right operand.
-			//
-			right = l.NextToken()
-
-			// skip the )
-			skip = l.NextToken()
-			if skip.Literal != ")" {
-				return false, fmt.Errorf("expected ')' got %v", skip)
-			}
-
-		block:
-			// skip the {
-			skip = l.NextToken()
-			if skip.Literal != "{" {
-				return false, fmt.Errorf("expected '{' got %v", skip)
-			}
-
-			// The body should only contain a return-statement
-			skip = l.NextToken()
-			if skip.Type != RETURN {
-				return false, fmt.Errorf("expected 'return' got %v", skip)
-			}
-
-			// Return value
+			// Get the value this token returns
 			val := l.NextToken()
 
-			if e.Debug {
-				fmt.Printf("IF %s %s %s Then return %s;\n", left.Literal, op.Literal, right.Literal, val.Literal)
+			// Update our bytecode
+			e.Bytecode = append(e.Bytecode,
+				&ReturnOperation{Value: val.Literal == "true"})
+
+		case PRINT:
+
+			var tmp []Token
+
+			for {
+				//
+				// Keep printing output until we hit
+				// a semi-colon, or the end of the file.
+				//
+				n := l.NextToken()
+				if n.Type == SEMICOLON || n.Type == EOF {
+					break
+				}
+
+				tmp = append(tmp, n)
 			}
 
-			// Run the IF-statement
-			res, err := e.runIf(left, right, op.Literal, val.Literal, obj)
+			e.Bytecode = append(e.Bytecode,
+				&PrintOperation{Values: tmp})
+
+		}
+
+		tok = l.NextToken()
+	}
+
+	return nil
+}
+
+func (e *Evaluator) parseIF(l *Lexer) error {
+
+	//
+	// The general form is:
+	//
+	//  IF ( LEFT TEST RIGHT ) { RETURN YY; }
+	//
+	// e.g. "if ( Count == 3 ) { return true; }"
+	//
+	//
+	var left Token
+	var op Token
+	var right Token
+
+	// skip the (
+	skip := l.NextToken()
+	if skip.Literal != "(" {
+		return fmt.Errorf("expected '(' got %v", skip)
+	}
+
+	//
+	// Get the first operand.
+	//
+	left = l.NextToken()
+
+	//
+	// Get the operand.
+	//
+	op = l.NextToken()
+
+	//
+	// There are two forms of IF:
+	//
+	//   IF ( left OP right ) ..
+	//
+	// And
+	//
+	//   IF ( function() ) ..
+	//
+	// We tell them apart by looking above.
+	//
+	if op.Literal == ")" {
+
+		//
+		// Because we see ")" we assume we're
+		// the single-form of the IF-statement.
+		//
+		// To avoid making changes we simply
+		// FAKE the other arguments, because
+		// saying "if ( foo() )" is logically
+		// the same as saying:
+		//
+		//  if ( foo() == "true" )
+		//
+
+		//
+		// Fake the operation.
+		//
+		op.Literal = "=="
+
+		//
+		// Fake the right-value.
+		//
+		// NB: This works because we force user-added
+		// functions to return boolean values.
+		//
+		right.Literal = "true"
+
+		//
+		// I feel bad.  But not that bad.
+		//
+		goto block
+	}
+
+	//
+	// OK we're in the three-argument form, so we
+	// get the right operand.
+	//
+	right = l.NextToken()
+
+	// skip the )
+	skip = l.NextToken()
+	if skip.Literal != ")" {
+		return fmt.Errorf("expected ')' got %v", skip)
+	}
+
+block:
+	// skip the {
+	skip = l.NextToken()
+	if skip.Literal != "{" {
+		return fmt.Errorf("expected '{' got %v", skip)
+	}
+
+	// The body should only contain a return-statement
+	skip = l.NextToken()
+	if skip.Type != RETURN {
+		return fmt.Errorf("expected 'return' got %v", skip)
+	}
+
+	// Return value
+	val := l.NextToken()
+
+	// skip the }
+	skip = l.NextToken()
+
+	// Skip optional ";" after return
+	if skip.Literal == ";" {
+		skip = l.NextToken()
+	}
+	if skip.Literal != "}" {
+		return fmt.Errorf("expected '}' got %v", skip)
+	}
+
+	e.Bytecode = append(e.Bytecode,
+		&IfOperation{Left: left, Right: right, Op: op, Return: val})
+	return nil
+}
+
+// Run executes the user-supplied script against the specified object.
+//
+// This function can be called multiple times, and doesn't require
+// reparsing the script to complete the operation.
+func (e *Evaluator) Run(obj interface{}) (bool, error) {
+
+	//
+	// Parse - the first time.
+	//
+	if len(e.Bytecode) == 0 {
+		err := e.parse()
+		if err != nil {
+			return false, err
+		}
+	}
+
+	//
+	// Run the bytecode.
+	//
+	for _, op := range e.Bytecode {
+
+		switch v := op.(type) {
+
+		case *IfOperation:
+
+			// Cast for neatness
+			ifo := v
+
+			// Run the iff.
+			res, err := e.runIf(ifo.Left, ifo.Right, ifo.Op.Literal, ifo.Return.Literal, obj)
+
 			// Was there an error?
 			if err != nil {
 				return false, fmt.Errorf("failed to run if-test %s", err)
@@ -201,7 +310,7 @@ func (e *Evaluator) Run(obj interface{}) (bool, error) {
 				}
 
 				// If it matched we return the stated value
-				if val.Literal == "true" {
+				if ifo.Return.Literal == "true" {
 					return true, nil
 				}
 				return false, nil
@@ -213,68 +322,18 @@ func (e *Evaluator) Run(obj interface{}) (bool, error) {
 				fmt.Printf("\tIF-statement did not match.\n")
 			}
 
-			// skip the }
-			skip = l.NextToken()
+		case *ReturnOperation:
+			return op.(*ReturnOperation).Value, nil
+		case *PrintOperation:
+			for _, val := range op.(*PrintOperation).Values {
 
-			// Skip optional ";" after return
-			if skip.Literal == ";" {
-				skip = l.NextToken()
-			}
-			if skip.Literal != "}" {
-				return false, fmt.Errorf("expected '}' got %v", skip)
-			}
-
-		}
-
-		//
-		// Is this a print-statement?
-		//
-		if tok.Type == PRINT {
-
-			for {
-				//
-				// Keep printing output until we hit
-				// a semi-colon, or the end of the file.
-				//
-				n := l.NextToken()
-				if n.Type == SEMICOLON || n.Type == EOF {
-					break
-				}
-
-				//
-				// Expand the token-value, to cope with
-				// field-lookups, function call, etc.
-				val := e.expandToken(n, obj)
-
-				//
-				// Print the value now we've possibly invoked
-				// a function, or found a structure-member
-				//
+				val := e.expandToken(val, obj)
 				fmt.Printf("%v", val)
 			}
 
+		default:
+			fmt.Printf("Unknown bytecode thing")
 		}
-
-		//
-		// Is this a return-statement?
-		//
-		if tok.Type == RETURN {
-			val := l.NextToken()
-
-			if val.Literal == "true" {
-				return true, nil
-			}
-			return false, nil
-
-		}
-
-		//
-		// Here we should have nothing
-		//
-		if tok.Type == "EOF" {
-			break
-		}
-
 	}
 
 	//
@@ -289,6 +348,11 @@ func (e *Evaluator) Run(obj interface{}) (bool, error) {
 // We return "true" if the statement was true, and the return should
 // be executed.  Otherwise we return false.
 func (e *Evaluator) runIf(left Token, right Token, op string, res string, obj interface{}) (bool, error) {
+
+	if e.Debug {
+		fmt.Printf("IF %s %s %s Then return %s;\n", left.Literal, op, right.Literal, res)
+
+	}
 
 	//
 	// Expand the left & right sides of the conditional
