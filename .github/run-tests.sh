@@ -5,7 +5,6 @@ rm go.mod
 
 # Install tools to test our code-quality.
 go get -u golang.org/x/lint/golint
-go get -u golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow
 go get -u honnef.co/go/tools/cmd/staticcheck
 
 # Init the modules
@@ -32,7 +31,7 @@ echo "Completed linter .."
 
 # Run the shadow-checker
 echo "Launching shadowed-variable check .."
-go vet -vettool=$(which shadow) ./...
+go vet ./...
 echo "Completed shadowed-variable check .."
 
 # Run golang tests
