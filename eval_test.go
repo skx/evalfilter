@@ -31,7 +31,7 @@ func TestLess(t *testing.T) {
 
 	for _, tst := range tests {
 
-		obj := NewEvaluator(tst.Input)
+		obj := New(tst.Input)
 
 		ret, err := obj.Run(object)
 		if err != nil {
@@ -70,7 +70,7 @@ func TestMore(t *testing.T) {
 
 	for _, tst := range tests {
 
-		obj := NewEvaluator(tst.Input)
+		obj := New(tst.Input)
 
 		ret, err := obj.Run(object)
 		if err != nil {
@@ -110,7 +110,7 @@ func TestEq(t *testing.T) {
 
 	for _, tst := range tests {
 
-		obj := NewEvaluator(tst.Input)
+		obj := New(tst.Input)
 
 		ret, err := obj.Run(object)
 		if err != nil {
@@ -148,7 +148,7 @@ func TestContains(t *testing.T) {
 
 	for _, tst := range tests {
 
-		obj := NewEvaluator(tst.Input)
+		obj := New(tst.Input)
 
 		ret, err := obj.Run(object)
 		if err != nil {
@@ -186,7 +186,7 @@ func TestFunction(t *testing.T) {
 
 	for _, tst := range tests {
 
-		obj := NewEvaluator(tst.Input)
+		obj := New(tst.Input)
 		obj.AddFunction("True",
 			func() bool {
 				return true
@@ -226,7 +226,7 @@ func TestBool(t *testing.T) {
 
 	for _, tst := range tests {
 
-		obj := NewEvaluator(tst.Input)
+		obj := New(tst.Input)
 
 		ret, err := obj.Run(object)
 		if err != nil {
