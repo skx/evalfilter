@@ -3,7 +3,7 @@
 //
 // Since the result of running tests against objects is a boolean/binary
 // "yes/no" result it is perfectly suited to working as a filter.
-package main
+package evalfilter
 
 import (
 	"fmt"
