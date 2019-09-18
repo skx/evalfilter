@@ -2,25 +2,24 @@ package evalfilter
 
 import (
 	"errors"
-	"strings"
 )
 
 // Lexer holds our object-state.
 type Lexer struct {
-	//current character position
+	// The current character position
 	position int
 
-	//next character position
+	// The next character position
 	readPosition int
 
-	//current character
+	// The current character
 	ch rune
 
-	//rune slice of input string
+	// The input string we're reading from.
 	characters []rune
 }
 
-// NewLexer creates a Lexer instance from string input.
+// NewLexer creates a Lexer instance from the specified string input.
 func NewLexer(input string) *Lexer {
 	l := &Lexer{characters: []rune(input)}
 	l.readChar()
@@ -38,7 +37,8 @@ func (l *Lexer) readChar() {
 	l.readPosition++
 }
 
-// NextToken to read next token, skipping the white space.
+// NextToken will read the next token, skipping any white space, and ignoring
+// comments - which begin with `//`.
 func (l *Lexer) NextToken() Token {
 
 	var tok Token
@@ -68,28 +68,50 @@ func (l *Lexer) NextToken() Token {
 	case rune(';'):
 		tok.Literal = ";"
 		tok.Type = SEMICOLON
+	case rune(','):
+		tok.Literal = ","
+		tok.Type = COMMA
+	case rune('('):
+		tok.Literal = "("
+		tok.Type = LBRACKET
+	case rune(')'):
+		tok.Literal = ")"
+		tok.Type = RBRACKET
 	default:
 		if isDigit(l.ch) {
-			return l.readDecimal()
+			return l.readDecimalNumber()
 		}
+
+		//
+		// Here we have something that could be
+		// a literal, or could be a function-call
+		//
+		// peek at the next token to decide.
+		//
 		tok.Literal = l.readIdentifier()
-		tok.Type = LookupIdentifier(tok.Literal)
+
+		if l.ch == '(' {
+			tok.Type = FUNCALL
+		} else {
+			tok.Type = LookupIdentifier(tok.Literal)
+		}
 		return tok
 	}
 	l.readChar()
 	return tok
 }
 
-// read Identifier
+// read and return the name of an identifier
 func (l *Lexer) readIdentifier() string {
-	position := l.position
+	id := ""
 	for isIdentifier(l.ch) {
+		id += string(l.ch)
 		l.readChar()
 	}
-	return string(l.characters[position:l.position])
+	return id
 }
 
-// skip white space
+// skip white space, consuming input as we go.
 func (l *Lexer) skipWhitespace() {
 	for isWhitespace(l.ch) {
 		l.readChar()
@@ -104,7 +126,7 @@ func (l *Lexer) skipComment() {
 	l.skipWhitespace()
 }
 
-// read string
+// read a quote-terminated string
 func (l *Lexer) readString() (string, error) {
 	out := ""
 
@@ -154,8 +176,8 @@ func (l *Lexer) readString() (string, error) {
 	return out, nil
 }
 
-// read decimal
-func (l *Lexer) readDecimal() Token {
+// read a decimal / floating-point number
+func (l *Lexer) readDecimalNumber() Token {
 
 	//
 	// Read an integer-number.
@@ -175,14 +197,18 @@ func (l *Lexer) readDecimal() Token {
 		fraction := l.readNumber()
 		return Token{Type: NUMBER, Literal: integer + "." + fraction}
 	}
+
+	//
+	// OK just an integer.
+	//
 	return Token{Type: NUMBER, Literal: integer}
 }
 
-// read number
+// read a numeric digit
 func (l *Lexer) readNumber() string {
 	str := ""
 
-	for strings.Contains("0123456789", string(l.ch)) {
+	for isDigit(l.ch) {
 		str += string(l.ch)
 		l.readChar()
 	}
@@ -197,22 +223,27 @@ func (l *Lexer) peekChar() rune {
 	return l.characters[l.readPosition]
 }
 
-// determinate ch is identifier or not
+// determinate whether `ch` is a character permitted in an identifier or not.
 func isIdentifier(ch rune) bool {
-	return !isWhitespace(ch) && !isEmpty(ch) && ch != rune(';')
+	return !isWhitespace(ch) && !isEmpty(ch) && !isSpecial(ch)
 }
 
-// is white space
+// is the character white space?
 func isWhitespace(ch rune) bool {
 	return ch == rune(' ') || ch == rune('\t') || ch == rune('\n') || ch == rune('\r')
 }
 
-// is empty
+// is this a special character?
+func isSpecial(ch rune) bool {
+	return ch == rune(',') || ch == rune(';') || ch == rune('(') || ch == rune(')')
+}
+
+// is this character empty?
 func isEmpty(ch rune) bool {
 	return rune(0) == ch
 }
 
-// is Digit
+// is this character a digit?
 func isDigit(ch rune) bool {
 	return rune('0') <= ch && ch <= rune('9')
 }
