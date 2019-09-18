@@ -650,16 +650,7 @@ func (e *Evaluator) tokenToArgument(tok Token, lexer *Lexer) Argument {
 		tmp = &FunctionArgument{Function: tok.Literal,
 			Arguments: args}
 	case IDENT:
-		//
-		// TODO - handle functions more better.
-		//
-		// Specifically we'll have a function-token.
-		//
-		if strings.HasSuffix(tok.Literal, "()") {
-			tmp = &FunctionArgument{Function: tok.Literal}
-		} else {
-			tmp = &FieldArgument{Field: tok.Literal}
-		}
+        tmp = &FieldArgument{Field: tok.Literal}
 	case STRING:
 		tmp = &StringArgument{Content: tok.Literal}
 	case NUMBER:
