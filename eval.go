@@ -101,7 +101,7 @@ type FunctionArgument struct {
 	Function string
 
 	// Optional arguments to function.
-	Arguments []string
+	Arguments []Argument
 }
 
 // Value returns the result of calling the function we're wrapping.
@@ -112,7 +112,6 @@ func (f *FunctionArgument) Value(self *Evaluator, obj interface{}) interface{} {
 	if ok {
 		out := res.(func() bool)
 		return (out())
-
 	}
 	fmt.Printf("Unknown function: %s\n", f.Function)
 	os.Exit(1)
@@ -163,9 +162,6 @@ func New(input string) *Evaluator {
 
 // AddFunction adds a function to our runtime.
 func (e *Evaluator) AddFunction(name string, fun interface{}) {
-	if !strings.HasSuffix(name, "()") {
-		name += "()"
-	}
 	e.Functions[name] = fun
 }
 
@@ -231,7 +227,7 @@ func (e *Evaluator) parse() error {
 				//
 				// Convert the token to an argument.
 				//
-				obj := e.tokenToArgument(n)
+				obj := e.tokenToArgument(n, l)
 
 				//
 				// Add it to our list.
@@ -287,7 +283,7 @@ func (e *Evaluator) parseIF(l *Lexer) error {
 	// Get the first operand.
 	//
 	t := l.NextToken()
-	left = e.tokenToArgument(t)
+	left = e.tokenToArgument(t, l)
 
 	//
 	// Get the operator.
@@ -344,7 +340,7 @@ func (e *Evaluator) parseIF(l *Lexer) error {
 	// get the right operand.
 	//
 	t = l.NextToken()
-	right = e.tokenToArgument(t)
+	right = e.tokenToArgument(t, l)
 
 	// skip the )
 	skip = l.NextToken()
@@ -605,11 +601,54 @@ func (e *Evaluator) toNumberArg(value interface{}) (float64, error) {
 // TODO: In the future this should parse a function and consume
 // the arguments until we see ")".
 //
-func (e *Evaluator) tokenToArgument(tok Token) Argument {
+func (e *Evaluator) tokenToArgument(tok Token, lexer *Lexer) Argument {
 	var tmp Argument
 
 	switch tok.Type {
 
+	case FUNCALL:
+
+		//
+		// We've got a function.
+		//
+		// There are two cases:
+		//
+		//   Function()
+		//
+		// Or
+		//
+		//   Function( foo, bar , baz .. , bart )
+		//
+		// Either way we handle the parsing the same way, we
+		// consume tokens forever until we hit the trailing `)`.
+		//
+		// If we find commas, which separate arguments, then we
+		// discard them, otherwise we expand the tokens recursively.
+		//
+		// Recursive operations mean we can have a script which
+		// runs `len(len(len(Name)))` if we wish.
+		//
+		var args []Argument
+
+		for {
+			t := lexer.NextToken()
+
+			// Terminate when we find a right bracket
+			if t.Type == RBRACKET {
+				break
+			}
+
+			// Ignore commas - and the opening bracket
+			if t.Type == COMMA || t.Type == LBRACKET {
+				continue
+			}
+
+			// Add tokens
+			args = append(args, e.tokenToArgument(t, lexer))
+
+		}
+		tmp = &FunctionArgument{Function: tok.Literal,
+			Arguments: args}
 	case IDENT:
 		//
 		// TODO - handle functions more better.
