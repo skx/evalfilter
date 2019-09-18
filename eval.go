@@ -31,25 +31,117 @@ type Evaluator struct {
 	Bytecode []interface{}
 }
 
+// Argument is an abstract argument-type.
+//
+// Our `if` operation applies an operator to a pair of operands.  The operands
+// might be field-references, strings, numbers, or the result of function-calls.
+//
+// The differences are abstracted by this interface.
+type Argument interface {
+
+	// Value returns the value of the argument.
+	//
+	// Which might require use of the object.
+	Value(self *Evaluator, obj interface{}) interface{}
+}
+
+// BooleanArgument holds a literal boolean value.
+type BooleanArgument struct {
+	// Content holds the value.
+	Content bool
+}
+
+// Value returns the boolean content we're wrapping.
+func (s *BooleanArgument) Value(self *Evaluator, obj interface{}) interface{} {
+	return s.Content
+}
+
+// StringArgument holds a literal string.
+type StringArgument struct {
+	// Content holds the string literal.
+	Content string
+}
+
+// Value returns the string content we're wrapping.
+func (s *StringArgument) Value(self *Evaluator, obj interface{}) interface{} {
+	return s.Content
+}
+
+// FieldArgument holds a reference to an object's field value.
+type FieldArgument struct {
+	// Field the name of the structure/object field we return.
+	Field string
+}
+
+// Value returns the value of the field from the specified object.
+func (f *FieldArgument) Value(self *Evaluator, obj interface{}) interface{} {
+
+	ref := reflect.ValueOf(obj)
+	field := reflect.Indirect(ref).FieldByName(f.Field)
+
+	switch field.Kind() {
+	case reflect.Int, reflect.Int64:
+		return field.Int()
+	case reflect.Float32, reflect.Float64:
+		return field.Float()
+	case reflect.String:
+		return field.String()
+	case reflect.Bool:
+		if field.Bool() {
+			return "true"
+		}
+		return "false"
+	}
+	return nil
+}
+
+// FunctionArgument holds a reference to a function invokation.
+type FunctionArgument struct {
+	// Name of the function to invoke
+	Function string
+
+	// Optional arguments to function.
+	Arguments []string
+}
+
+// Value returns the result of calling the function we're wrapping.
+//
+// TODO: Arguments are ignored
+func (f *FunctionArgument) Value(self *Evaluator, obj interface{}) interface{} {
+	res, ok := self.Functions[f.Function]
+	if ok {
+		out := res.(func() bool)
+		return (out())
+
+	}
+	fmt.Printf("Unknown function: %s\n", f.Function)
+	os.Exit(1)
+	return false
+
+}
+
+//
 // Bytecode functions
+//
 
 // IfOperation holds state for the `if` operation
 type IfOperation struct {
-	Left   Token
-	Right  Token
-	Op     Token
-	Return Token
+	Left   Argument
+	Right  Argument
+	Op     string
+	Return string
 }
 
 // ReturnOperation holds state for the `return` operation
 type ReturnOperation struct {
-	// Value holds the value of a number to be pushed upon the RPN stack.
+	// Value holds the value which will be returned.
 	Value bool
 }
 
 // PrintOperation holds state for the `print` operation.
 type PrintOperation struct {
-	Values []Token
+	// Values are the various values to be printed.
+	Values []Argument
 }
 
 // New returns a new evaluation object, which can be used to apply
@@ -121,11 +213,14 @@ func (e *Evaluator) parse() error {
 
 		case PRINT:
 
-			var tmp []Token
+			//
+			// Here are the arguments we're going to be printing.
+			//
+			var tmp []Argument
 
 			for {
 				//
-				// Keep printing output until we hit
+				// We keep printing output until we hit
 				// a semi-colon, or the end of the file.
 				//
 				n := l.NextToken()
@@ -133,9 +228,21 @@ func (e *Evaluator) parse() error {
 					break
 				}
 
-				tmp = append(tmp, n)
+				//
+				// Convert the token to an argument.
+				//
+				obj := e.tokenToArgument(n)
+
+				//
+				// Add it to our list.
+				//
+				tmp = append(tmp, obj)
+
 			}
 
+			//
+			// Now record the print operation.
+			//
 			e.Bytecode = append(e.Bytecode,
 				&PrintOperation{Values: tmp})
 
@@ -147,6 +254,7 @@ func (e *Evaluator) parse() error {
 	return nil
 }
 
+// parseIf is our biggest method; it parses the contents of an if-statement.
 func (e *Evaluator) parseIF(l *Lexer) error {
 
 	//
@@ -156,12 +264,20 @@ func (e *Evaluator) parseIF(l *Lexer) error {
 	//
 	// e.g. "if ( Count == 3 ) { return true; }"
 	//
+	// However there is a second form which is designed for the use
+	// of functions:
 	//
-	var left Token
-	var op Token
-	var right Token
+	//   IF ( function() ) ..
+	//
+	// We tell them apart by looking at the tokens we receive.
+	//
+	var left Argument
+	var right Argument
+	var op string
 
+	//
 	// skip the (
+	//
 	skip := l.NextToken()
 	if skip.Literal != "(" {
 		return fmt.Errorf("expected '(' got %v", skip)
@@ -170,29 +286,31 @@ func (e *Evaluator) parseIF(l *Lexer) error {
 	//
 	// Get the first operand.
 	//
-	left = l.NextToken()
+	t := l.NextToken()
+	left = e.tokenToArgument(t)
 
 	//
-	// Get the operand.
+	// Get the operator.
 	//
-	op = l.NextToken()
+	t = l.NextToken()
+	op = t.Literal
 
 	//
-	// There are two forms of IF:
+	// In the general case we'd have:
 	//
-	//   IF ( left OP right ) ..
+	//   IF ( LEFT OP RIGHT )
 	//
-	// And
+	// But remember we also allow:
 	//
-	//   IF ( function() ) ..
+	//   IF ( FUNCTION() )
 	//
-	// We tell them apart by looking above.
+	// If we've been given the second form our `op` token will be `)`,
+	// because the `OP` & `RIGHT` tokens will not be present.
 	//
-	if op.Literal == ")" {
+	// If that is the case we fake values.
+	//
+	if op == ")" {
 
-		//
-		// Because we see ")" we assume we're
-		// the single-form of the IF-statement.
 		//
 		// To avoid making changes we simply
 		// FAKE the other arguments, because
@@ -205,7 +323,7 @@ func (e *Evaluator) parseIF(l *Lexer) error {
 		//
 		// Fake the operation.
 		//
-		op.Literal = "=="
+		op = "=="
 
 		//
 		// Fake the right-value.
@@ -213,7 +331,7 @@ func (e *Evaluator) parseIF(l *Lexer) error {
 		// NB: This works because we force user-added
 		// functions to return boolean values.
 		//
-		right.Literal = "true"
+		right = &StringArgument{Content: "true"}
 
 		//
 		// I feel bad.  But not that bad.
@@ -225,7 +343,8 @@ func (e *Evaluator) parseIF(l *Lexer) error {
 	// OK we're in the three-argument form, so we
 	// get the right operand.
 	//
-	right = l.NextToken()
+	t = l.NextToken()
+	right = e.tokenToArgument(t)
 
 	// skip the )
 	skip = l.NextToken()
@@ -247,7 +366,8 @@ block:
 	}
 
 	// Return value
-	val := l.NextToken()
+	t = l.NextToken()
+	val := t.Literal
 
 	// skip the }
 	skip = l.NextToken()
@@ -260,6 +380,9 @@ block:
 		return fmt.Errorf("expected '}' got %v", skip)
 	}
 
+	//
+	// Record the IF-operation.
+	//
 	e.Bytecode = append(e.Bytecode,
 		&IfOperation{Left: left, Right: right, Op: op, Return: val})
 	return nil
@@ -272,7 +395,7 @@ block:
 func (e *Evaluator) Run(obj interface{}) (bool, error) {
 
 	//
-	// Parse - the first time.
+	// Parse the script into operations, unless we've already done so.
 	//
 	if len(e.Bytecode) == 0 {
 		err := e.parse()
@@ -282,7 +405,8 @@ func (e *Evaluator) Run(obj interface{}) (bool, error) {
 	}
 
 	//
-	// Run the bytecode.
+	// Run the parsed bytecode-operations from our program list,
+	// until we hit a return, or the end of the list.
 	//
 	for _, op := range e.Bytecode {
 
@@ -293,15 +417,17 @@ func (e *Evaluator) Run(obj interface{}) (bool, error) {
 			// Cast for neatness
 			ifo := v
 
-			// Run the iff.
-			res, err := e.runIf(ifo.Left, ifo.Right, ifo.Op.Literal, ifo.Return.Literal, obj)
+			// Run the if-statement.
+			res, err := e.runIf(ifo.Left, ifo.Right, ifo.Op, ifo.Return, obj)
 
 			// Was there an error?
 			if err != nil {
 				return false, fmt.Errorf("failed to run if-test %s", err)
 			}
 
+			//
 			// No error - and we got a match.
+			//
 			if res {
 
 				// Show that this matched
@@ -309,8 +435,8 @@ func (e *Evaluator) Run(obj interface{}) (bool, error) {
 					fmt.Printf("\tIF test matched\n")
 				}
 
-				// If it matched we return the stated value
-				if ifo.Return.Literal == "true" {
+				// Return the value to the caller.
+				if ifo.Return == "true" {
 					return true, nil
 				}
 				return false, nil
@@ -323,16 +449,18 @@ func (e *Evaluator) Run(obj interface{}) (bool, error) {
 			}
 
 		case *ReturnOperation:
-			return op.(*ReturnOperation).Value, nil
-		case *PrintOperation:
-			for _, val := range op.(*PrintOperation).Values {
 
-				val := e.expandToken(val, obj)
-				fmt.Printf("%v", val)
+			return op.(*ReturnOperation).Value, nil
+
+		case *PrintOperation:
+
+			for _, val := range op.(*PrintOperation).Values {
+				fmt.Printf("%v", val.Value(e, obj))
 			}
 
 		default:
-			fmt.Printf("Unknown bytecode thing")
+
+			fmt.Printf("Unknown bytecode operation: %v", op)
 		}
 	}
 
@@ -347,18 +475,18 @@ func (e *Evaluator) Run(obj interface{}) (bool, error) {
 //
 // We return "true" if the statement was true, and the return should
 // be executed.  Otherwise we return false.
-func (e *Evaluator) runIf(left Token, right Token, op string, res string, obj interface{}) (bool, error) {
+func (e *Evaluator) runIf(left Argument, right Argument, op string, res string, obj interface{}) (bool, error) {
 
 	if e.Debug {
-		fmt.Printf("IF %s %s %s Then return %s;\n", left.Literal, op, right.Literal, res)
+		fmt.Printf("IF %v %s %v Then return %s;\n", left, op, right, res)
 
 	}
 
 	//
 	// Expand the left & right sides of the conditional
 	//
-	lVal := e.expandToken(left, obj)
-	rVal := e.expandToken(right, obj)
+	lVal := left.Value(e, obj)
+	rVal := right.Value(e, obj)
 
 	//
 	// Basic operations
@@ -403,16 +531,18 @@ func (e *Evaluator) runIf(left Token, right Token, op string, res string, obj in
 	}
 
 	//
-	// Numeric operations.
+	// All remaining operations are numeric, so we need to convert
+	// the values into numbers.
 	//
-
-	//
-	// Get the parameters as numbers.
+	// Call them `a` and `b`.
 	//
 	var a float64
 	var b float64
 	var err error
 
+	//
+	// Convert
+	//
 	a, err = e.toNumberArg(lVal)
 	if err != nil {
 		return false, err
@@ -422,6 +552,9 @@ func (e *Evaluator) runIf(left Token, right Token, op string, res string, obj in
 		return false, err
 	}
 
+	//
+	// Now operate.
+	//
 	if op == ">" {
 		return (a > b), nil
 	}
@@ -435,68 +568,10 @@ func (e *Evaluator) runIf(left Token, right Token, op string, res string, obj in
 		return (a <= b), nil
 	}
 
+	//
+	// Invalid operator?
+	//
 	return false, fmt.Errorf("unknown operator %v", op)
-}
-
-// expandToken expands the given token, handling a literal string/number,
-// requesting a field-lookup, or making a function-call.
-func (e *Evaluator) expandToken(tok Token, obj interface{}) interface{} {
-
-	// The value we return
-	var val interface{}
-
-	// Assume we're dealing with a literal string.
-	val = tok.Literal
-
-	// But lookup if it is a field-structure, or function-call
-	if tok.Type == IDENT {
-
-		// Is this a function-call?
-		if strings.HasSuffix(tok.Literal, "()") {
-			val = e.callFunction(tok.Literal)
-		} else {
-			// If not it is a field-lookup.
-			val = e.getStructureField(tok.Literal, obj)
-		}
-	}
-
-	return val
-}
-
-// Return the value of the given field from the object.
-func (e *Evaluator) getStructureField(field string, obj interface{}) interface{} {
-	r := reflect.ValueOf(obj)
-	f := reflect.Indirect(r).FieldByName(field)
-
-	switch f.Kind() {
-	case reflect.Int, reflect.Int64:
-		return f.Int()
-	case reflect.Float32, reflect.Float64:
-		return f.Float()
-	case reflect.String:
-		return f.String()
-	case reflect.Bool:
-		if f.Bool() {
-			return "true"
-		}
-		return "false"
-	}
-	return nil
-}
-
-// callFunction invokes a function the user must have defined and passed to
-// us via `AddFunction`.
-func (e *Evaluator) callFunction(fun string) bool {
-
-	res, ok := e.Functions[fun]
-	if ok {
-		out := res.(func() bool)
-		return (out())
-
-	}
-	fmt.Printf("Unknown function: %s\n", fun)
-	os.Exit(1)
-	return false
 }
 
 // toNumberArg tries to convert the given interface to a float64 value.
@@ -522,4 +597,43 @@ func (e *Evaluator) toNumberArg(value interface{}) (float64, error) {
 	}
 
 	return 0, fmt.Errorf("failed to convert %v to number", value)
+}
+
+// tokenToArgument takes a given token, and converts it to
+// an argument.
+//
+// TODO: In the future this should parse a function and consume
+// the arguments until we see ")".
+//
+func (e *Evaluator) tokenToArgument(tok Token) Argument {
+	var tmp Argument
+
+	switch tok.Type {
+
+	case IDENT:
+		//
+		// TODO - handle functions more better.
+		//
+		// Specifically we'll have a function-token.
+		//
+		if strings.HasSuffix(tok.Literal, "()") {
+			tmp = &FunctionArgument{Function: tok.Literal}
+		} else {
+			tmp = &FieldArgument{Field: tok.Literal}
+		}
+	case STRING:
+		tmp = &StringArgument{Content: tok.Literal}
+	case NUMBER:
+		tmp = &StringArgument{Content: tok.Literal}
+	case FALSE:
+		tmp = &BooleanArgument{Content: false}
+	case TRUE:
+		tmp = &BooleanArgument{Content: true}
+
+	default:
+		fmt.Printf("Failed to convert token %v to object - token-type was %s\n", tok, tok.Type)
+		os.Exit(1)
+	}
+
+	return tmp
 }
