@@ -11,12 +11,16 @@ type Token struct {
 
 // pre-defined TokenTypes
 const (
+	COMMA     = "COMMA"
 	EOF       = "EOF"
+	FUNCALL   = "FUNCALL"
 	IDENT     = "IDENT"
 	ILLEGAL   = "ILLEGAL"
+	LBRACKET  = "LBRACKET"
 	NUMBER    = "NUMBER"
-	STRING    = "STRING"
+	RBRACKET  = "RBRACKET"
 	SEMICOLON = "SEMICOLON"
+	STRING    = "STRING"
 
 	// Our keywords.
 	FALSE  = "false"
