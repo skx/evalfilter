@@ -5,7 +5,7 @@ import "fmt"
 // ExampleCustomFunction demonstrates how you can add a custom function
 // to your host-application, which is available to filter scripts.
 //
-// In this example we add the function `len`, which will calculate the
+// In this example we add the function `length`, which will calculate the
 // length of strings, or the contents of fields, and make it available
 // to the scripting-environment.
 //
