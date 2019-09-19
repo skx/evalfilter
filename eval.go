@@ -142,6 +142,7 @@ func (f *FunctionArgument) Value(self *Evaluator, obj interface{}) interface{} {
 // Bytecode functions
 //
 
+// Operation is the abstract interface all operations much implement.
 type Operation interface {
 
 	// Run runs the operation.
@@ -171,6 +172,7 @@ type IfOperation struct {
 	True []Operation
 }
 
+// Run executes an if statement.
 func (i *IfOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
 
 	// Run the if-statement.
@@ -338,6 +340,7 @@ type ReturnOperation struct {
 	Value bool
 }
 
+// Run handles the return operation.
 func (r *ReturnOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
 	return true, r.Value, nil
 }
@@ -348,6 +351,7 @@ type PrintOperation struct {
 	Values []Argument
 }
 
+// Run runs the print operation.
 func (p *PrintOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
 	for _, val := range p.Values {
 		fmt.Printf("%v", val.Value(e, obj))
