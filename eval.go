@@ -199,7 +199,7 @@ func (i *IfOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
 			// If this was a return statement then we return
 			//
 			ret, val, err := t.Run(e, obj)
-			if ret == true {
+			if ret {
 				return ret, val, err
 			}
 
@@ -210,11 +210,6 @@ func (i *IfOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
 		// the statements in the block.
 		//
 		return false, false, nil
-	}
-
-	// Show that IF-statement did not match
-	if e.Debug {
-		fmt.Printf("\tIF-statement did not match.\n")
 	}
 
 	return false, false, nil
