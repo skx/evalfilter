@@ -174,7 +174,7 @@ type IfOperation struct {
 func (i *IfOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
 
 	// Run the if-statement.
-	res, err := i.doesMatch(i.Left, i.Right, i.Op, obj)
+	res, err := i.doesMatch(e, obj)
 
 	// Was there an error?
 	if err != nil {
@@ -219,18 +219,18 @@ func (i *IfOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
 //
 // We return "true" if the statement matched, and the return should
 // be executed.  Otherwise we return false.
-func (i *IfOperation) doesMatch(left Argument, right Argument, op string, obj interface{}) (bool, error) {
+func (i *IfOperation) doesMatch(e *Evaluator, obj interface{}) (bool, error) {
 
 	if e.Debug {
-		fmt.Printf("IF %v %s %v;\n", left.Value(e, obj), op, right.Value(e, obj))
+		fmt.Printf("IF %v %s %v;\n", i.Left.Value(e, obj), i.Op, i.Right.Value(e, obj))
 
 	}
 
 	//
 	// Expand the left & right sides of the conditional
 	//
-	lVal := left.Value(e, obj)
-	rVal := right.Value(e, obj)
+	lVal := i.Left.Value(e, obj)
+	rVal := i.Right.Value(e, obj)
 
 	//
 	// Convert to strings, in case they're needed for the early
@@ -244,22 +244,22 @@ func (i *IfOperation) doesMatch(left Argument, right Argument, op string, obj in
 	//
 
 	// Equality - string and number.
-	if op == "==" {
+	if i.Op == "==" {
 		return (lStr == rStr), nil
 	}
 
 	// Inequality - string and number.
-	if op == "!=" {
+	if i.Op == "!=" {
 		return (lStr != rStr), nil
 	}
 
 	// String-contains
-	if op == "~=" {
+	if i.Op == "~=" {
 		return strings.Contains(lStr, rStr), nil
 	}
 
 	// String does not contain
-	if op == "!~" {
+	if i.Op == "!~" {
 		return !strings.Contains(lStr, rStr), nil
 	}
 
@@ -288,23 +288,23 @@ func (i *IfOperation) doesMatch(left Argument, right Argument, op string, obj in
 	//
 	// Now operate.
 	//
-	if op == ">" {
+	if i.Op == ">" {
 		return (a > b), nil
 	}
-	if op == ">=" {
+	if i.Op == ">=" {
 		return (a >= b), nil
 	}
-	if op == "<" {
+	if i.Op == "<" {
 		return (a < b), nil
 	}
-	if op == "<=" {
+	if i.Op == "<=" {
 		return (a <= b), nil
 	}
 
 	//
 	// Invalid operator?
 	//
-	return false, fmt.Errorf("unknown operator %v", op)
+	return false, fmt.Errorf("unknown operator %v", i.Op)
 }
 
 // toNumberArg tries to convert the given interface to a float64 value.
