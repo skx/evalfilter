@@ -1,7 +1,9 @@
-package evalfilter
+package lexer
 
 import (
 	"testing"
+
+	"github.com/skx/evalfilter/token"
 )
 
 // TestSomeStrings tests that the input of a pair of strings is tokenized
@@ -10,13 +12,13 @@ func TestSomeStrings(t *testing.T) {
 	input := `"Steve" , "Kemp"`
 
 	tests := []struct {
-		expectedType    Type
+		expectedType    token.Type
 		expectedLiteral string
 	}{
-		{STRING, "Steve"},
-		{COMMA, ","},
-		{STRING, "Kemp"},
-		{EOF, ""},
+		{token.STRING, "Steve"},
+		{token.COMMA, ","},
+		{token.STRING, "Kemp"},
+		{token.EOF, ""},
 	}
 	l := NewLexer(input)
 	for i, tt := range tests {
@@ -35,13 +37,13 @@ func TestStringEscape(t *testing.T) {
 	input := `"Steve\n\r\\" "Kemp\n\t\n" "Inline \"quotes\"."`
 
 	tests := []struct {
-		expectedType    Type
+		expectedType    token.Type
 		expectedLiteral string
 	}{
-		{STRING, "Steve\n\r\\"},
-		{STRING, "Kemp\n\t\n"},
-		{STRING, "Inline \"quotes\"."},
-		{EOF, ""},
+		{token.STRING, "Steve\n\r\\"},
+		{token.STRING, "Kemp\n\t\n"},
+		{token.STRING, "Inline \"quotes\"."},
+		{token.EOF, ""},
 	}
 	l := NewLexer(input)
 	for i, tt := range tests {
@@ -62,11 +64,11 @@ func TestComments(t *testing.T) {
 // This is another comment`
 
 	tests := []struct {
-		expectedType    Type
+		expectedType    token.Type
 		expectedLiteral string
 	}{
-		{STRING, "Steve"},
-		{EOF, ""},
+		{token.STRING, "Steve"},
+		{token.EOF, ""},
 	}
 	l := NewLexer(input)
 	for i, tt := range tests {
@@ -88,12 +90,12 @@ func TestUnterminatedString(t *testing.T) {
 print "Steve`
 
 	tests := []struct {
-		expectedType    Type
+		expectedType    token.Type
 		expectedLiteral string
 	}{
-		{PRINT, "print"},
-		{ILLEGAL, "unterminated string"},
-		{EOF, ""},
+		{token.PRINT, "print"},
+		{token.ILLEGAL, "unterminated string"},
+		{token.EOF, ""},
 	}
 	l := NewLexer(input)
 	for i, tt := range tests {
@@ -118,18 +120,18 @@ func TestNumber(t *testing.T) {
 34.54;
 `
 	tests := []struct {
-		expectedType    Type
+		expectedType    token.Type
 		expectedLiteral string
 	}{
-		{NUMBER, "1"},
-		{SEMICOLON, ";"},
-		{NUMBER, "-10"},
-		{SEMICOLON, ";"},
-		{NUMBER, "23"},
-		{SEMICOLON, ";"},
-		{NUMBER, "34.54"},
-		{SEMICOLON, ";"},
-		{EOF, ""},
+		{token.NUMBER, "1"},
+		{token.SEMICOLON, ";"},
+		{token.NUMBER, "-10"},
+		{token.SEMICOLON, ";"},
+		{token.NUMBER, "23"},
+		{token.SEMICOLON, ";"},
+		{token.NUMBER, "34.54"},
+		{token.SEMICOLON, ";"},
+		{token.EOF, ""},
 	}
 	l := NewLexer(input)
 	for i, tt := range tests {
@@ -153,13 +155,13 @@ which continues";
 `
 
 	tests := []struct {
-		expectedType    Type
+		expectedType    token.Type
 		expectedLiteral string
 	}{
-		{PRINT, "print"},
-		{STRING, "This is a test which continues"},
-		{SEMICOLON, ";"},
-		{EOF, ""},
+		{token.PRINT, "print"},
+		{token.STRING, "This is a test which continues"},
+		{token.SEMICOLON, ";"},
+		{token.EOF, ""},
 	}
 	l := NewLexer(input)
 	for i, tt := range tests {

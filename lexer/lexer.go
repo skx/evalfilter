@@ -1,7 +1,11 @@
-package evalfilter
+// Package lexer implements a simple lexer, which will parse
+// user-scripts to be executed by evalfilter.
+package lexer
 
 import (
 	"errors"
+
+	"github.com/skx/evalfilter/token"
 )
 
 // Lexer holds our object-state.
@@ -39,9 +43,9 @@ func (l *Lexer) readChar() {
 
 // NextToken will read the next token, skipping any white space, and ignoring
 // comments - which begin with `//`.
-func (l *Lexer) NextToken() Token {
+func (l *Lexer) NextToken() token.Token {
 
-	var tok Token
+	var tok token.Token
 	l.skipWhitespace()
 
 	// skip single-line comments
@@ -56,27 +60,27 @@ func (l *Lexer) NextToken() Token {
 		str, err := l.readString()
 
 		if err == nil {
-			tok.Type = STRING
+			tok.Type = token.STRING
 			tok.Literal = str
 		} else {
-			tok.Type = ILLEGAL
+			tok.Type = token.ILLEGAL
 			tok.Literal = err.Error()
 		}
 	case rune(0):
 		tok.Literal = ""
-		tok.Type = EOF
+		tok.Type = token.EOF
 	case rune(';'):
 		tok.Literal = ";"
-		tok.Type = SEMICOLON
+		tok.Type = token.SEMICOLON
 	case rune(','):
 		tok.Literal = ","
-		tok.Type = COMMA
+		tok.Type = token.COMMA
 	case rune('('):
 		tok.Literal = "("
-		tok.Type = LBRACKET
+		tok.Type = token.LBRACKET
 	case rune(')'):
 		tok.Literal = ")"
-		tok.Type = RBRACKET
+		tok.Type = token.RBRACKET
 	default:
 		if l.ch == '-' || isDigit(l.ch) {
 			return l.readDecimalNumber()
@@ -91,9 +95,9 @@ func (l *Lexer) NextToken() Token {
 		tok.Literal = l.readIdentifier()
 
 		if l.ch == '(' {
-			tok.Type = FUNCALL
+			tok.Type = token.FUNCALL
 		} else {
-			tok.Type = LookupIdentifier(tok.Literal)
+			tok.Type = token.LookupIdentifier(tok.Literal)
 		}
 		return tok
 	}
@@ -177,7 +181,7 @@ func (l *Lexer) readString() (string, error) {
 }
 
 // read a decimal / floating-point number
-func (l *Lexer) readDecimalNumber() Token {
+func (l *Lexer) readDecimalNumber() token.Token {
 
 	//
 	// Read an integer-number.
@@ -195,13 +199,13 @@ func (l *Lexer) readDecimalNumber() Token {
 		//
 		l.readChar()
 		fraction := l.readNumber()
-		return Token{Type: NUMBER, Literal: integer + "." + fraction}
+		return token.Token{Type: token.NUMBER, Literal: integer + "." + fraction}
 	}
 
 	//
 	// OK just an integer.
 	//
-	return Token{Type: NUMBER, Literal: integer}
+	return token.Token{Type: token.NUMBER, Literal: integer}
 }
 
 // read a numeric digit

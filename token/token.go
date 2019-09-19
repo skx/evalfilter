@@ -1,4 +1,4 @@
-package evalfilter
+package token
 
 // Type is a string
 type Type string
