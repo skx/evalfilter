@@ -78,7 +78,7 @@ func (l *Lexer) NextToken() Token {
 		tok.Literal = ")"
 		tok.Type = RBRACKET
 	default:
-		if isDigit(l.ch) {
+		if l.ch == '-' || isDigit(l.ch) {
 			return l.readDecimalNumber()
 		}
 
@@ -208,7 +208,7 @@ func (l *Lexer) readDecimalNumber() Token {
 func (l *Lexer) readNumber() string {
 	str := ""
 
-	for isDigit(l.ch) {
+	for isDigit(l.ch) || (len(str) == 0 && l.ch == '-') {
 		str += string(l.ch)
 		l.readChar()
 	}
