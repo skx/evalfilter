@@ -2,13 +2,12 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/skx/evalfilter)](https://goreportcard.com/report/github.com/skx/evalfilter)
 [![license](https://img.shields.io/github/license/skx/evalfilter.svg)](https://github.com/skx/evalfilter/blob/master/LICENSE)
 
-* [eval-filter](#eval-filter)
-  * [Sample Use](#sample-use)
-  * [Scripting Facilities](#scripting-facilities)
-  * [Function Invocation](#function-invocation)
-     * [Built-In Functions](#built-in-functions)
-  * [Variables](#variables)
-  * [Alternatives](#alternatives)
+* [Sample Use](#sample-use)
+* [Scripting Facilities](#scripting-facilities)
+* [Function Invocation](#function-invocation)
+   * [Built-In Functions](#built-in-functions)
+* [Variables](#variables)
+* [Alternatives](#alternatives)
 * [Github Setup](#github-setup)
 
 
