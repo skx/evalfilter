@@ -7,13 +7,14 @@ import (
 // TestSomeStrings tests that the input of a pair of strings is tokenized
 // appropriately.
 func TestSomeStrings(t *testing.T) {
-	input := `"Steve" "Kemp"`
+	input := `"Steve" , "Kemp"`
 
 	tests := []struct {
 		expectedType    Type
 		expectedLiteral string
 	}{
 		{STRING, "Steve"},
+		{COMMA, ","},
 		{STRING, "Kemp"},
 		{EOF, ""},
 	}

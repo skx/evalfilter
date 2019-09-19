@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 // Evaluator holds our object state
@@ -101,22 +102,39 @@ type FunctionArgument struct {
 	Function string
 
 	// Optional arguments to function.
-	Arguments []string
+	Arguments []Argument
 }
 
 // Value returns the result of calling the function we're wrapping.
-//
-// TODO: Arguments are ignored
 func (f *FunctionArgument) Value(self *Evaluator, obj interface{}) interface{} {
 	res, ok := self.Functions[f.Function]
-	if ok {
-		out := res.(func() bool)
-		return (out())
-
+	if !ok {
+		fmt.Printf("Unknown function: %s\n", f.Function)
+		os.Exit(1)
 	}
-	fmt.Printf("Unknown function: %s\n", f.Function)
-	os.Exit(1)
-	return false
+
+	//
+	// Are we running with debugging?
+	//
+	if self.Debug {
+		fmt.Printf("Calling function: %s\n", f.Function)
+	}
+
+	out := res.(func(eval *Evaluator, obj interface{}, args ...interface{}) interface{})
+
+	//
+	// Call the function.
+	//
+	ret := (out(self, obj, f.Arguments))
+
+	//
+	// Log the result?
+	//
+	if self.Debug {
+		fmt.Printf("\tReturn: %v\n", ret)
+	}
+
+	return ret
 
 }
 
@@ -153,6 +171,63 @@ func New(input string) *Evaluator {
 		Program:   input,
 	}
 
+	// Add default functions
+	e.AddFunction("len",
+		func(eval *Evaluator, obj interface{}, args ...interface{}) interface{} {
+
+			//
+			// Each argument is an array of args.
+			//
+			for _, arg := range args {
+
+				//
+				// The args
+				//
+				for _, n := range arg.([]Argument) {
+
+					//
+					// Get the first
+					//
+					str := n.Value(eval, obj)
+
+					//
+					// Return the length
+					//
+					return (utf8.RuneCountInString(fmt.Sprintf("%v", str)))
+
+				}
+			}
+			return 0
+		})
+
+	e.AddFunction("trim",
+		func(eval *Evaluator, obj interface{}, args ...interface{}) interface{} {
+
+			//
+			// Each argument is an array of args.
+			//
+			for _, arg := range args {
+
+				//
+				// The args
+				//
+				for _, n := range arg.([]Argument) {
+
+					//
+					// Get the first
+					//
+					str := n.Value(eval, obj)
+
+					//
+					// Return the trimmed version
+					//
+					return (strings.TrimSpace(fmt.Sprintf("%v", str)))
+
+				}
+			}
+			return 0
+		})
+
 	// The environmental variable ${EVAL_FILTER_DEBUG} enables
 	// the use of tracing.
 	if os.Getenv("EVAL_FILTER_DEBUG") != "" {
@@ -163,15 +238,12 @@ func New(input string) *Evaluator {
 
 // AddFunction adds a function to our runtime.
 func (e *Evaluator) AddFunction(name string, fun interface{}) {
-	if !strings.HasSuffix(name, "()") {
-		name += "()"
-	}
 	e.Functions[name] = fun
 }
 
 // parse is an internal method which reads the script we've been
 // given in our constructor and writes out a series of operations
-// to be carried out to `Bytecode`.
+// to be carried out to our `Bytecode` array.
 //
 // This is simple because we have no control-flow, and no need to
 // worry about nested-blocks, variables, etc.
@@ -183,25 +255,26 @@ func (e *Evaluator) parse() error {
 	l := NewLexer(e.Program)
 
 	//
-	// Process all the tokens.
-	//
-	// We're a little fast & loose here.
+	// Process all the tokens forever, until we hit the end of file.
 	//
 	tok := l.NextToken()
 
 	for tok.Type != EOF {
 
-		//
-		// Return
-		//
 		switch tok.Type {
 
+		//
+		// `if`
+		//
 		case IF:
 			err := e.parseIF(l)
 			if err != nil {
 				return err
 			}
 
+			//
+			// `return`
+			//
 		case RETURN:
 
 			// Get the value this token returns
@@ -211,6 +284,9 @@ func (e *Evaluator) parse() error {
 			e.Bytecode = append(e.Bytecode,
 				&ReturnOperation{Value: val.Literal == "true"})
 
+			//
+			// `print`
+			//
 		case PRINT:
 
 			//
@@ -229,9 +305,16 @@ func (e *Evaluator) parse() error {
 				}
 
 				//
+				// Skip over any commas
+				//
+				if n.Type == COMMA || n.Type == LBRACKET || n.Type == RBRACKET {
+					continue
+				}
+
+				//
 				// Convert the token to an argument.
 				//
-				obj := e.tokenToArgument(n)
+				obj := e.tokenToArgument(n, l)
 
 				//
 				// Add it to our list.
@@ -251,10 +334,13 @@ func (e *Evaluator) parse() error {
 		tok = l.NextToken()
 	}
 
+	//
+	// Parsed with no error.
+	//
 	return nil
 }
 
-// parseIf is our biggest method; it parses the contents of an if-statement.
+// parseIf is our biggest method; it parses an if-expression.
 func (e *Evaluator) parseIF(l *Lexer) error {
 
 	//
@@ -287,7 +373,7 @@ func (e *Evaluator) parseIF(l *Lexer) error {
 	// Get the first operand.
 	//
 	t := l.NextToken()
-	left = e.tokenToArgument(t)
+	left = e.tokenToArgument(t, l)
 
 	//
 	// Get the operator.
@@ -344,7 +430,7 @@ func (e *Evaluator) parseIF(l *Lexer) error {
 	// get the right operand.
 	//
 	t = l.NextToken()
-	right = e.tokenToArgument(t)
+	right = e.tokenToArgument(t, l)
 
 	// skip the )
 	skip = l.NextToken()
@@ -410,8 +496,14 @@ func (e *Evaluator) Run(obj interface{}) (bool, error) {
 	//
 	for _, op := range e.Bytecode {
 
+		//
+		// For each instruction we'll execute it.
+		//
 		switch v := op.(type) {
 
+		//
+		// `if`
+		//
 		case *IfOperation:
 
 			// Cast for neatness
@@ -448,16 +540,25 @@ func (e *Evaluator) Run(obj interface{}) (bool, error) {
 				fmt.Printf("\tIF-statement did not match.\n")
 			}
 
+			//
+			// `return`
+			//
 		case *ReturnOperation:
 
 			return op.(*ReturnOperation).Value, nil
 
+			//
+			// `print`
+			//
 		case *PrintOperation:
 
 			for _, val := range op.(*PrintOperation).Values {
 				fmt.Printf("%v", val.Value(e, obj))
 			}
 
+			//
+			// unknown error
+			//
 		default:
 
 			fmt.Printf("Unknown bytecode operation: %v", op)
@@ -473,12 +574,12 @@ func (e *Evaluator) Run(obj interface{}) (bool, error) {
 
 // runIf runs an if comparison.
 //
-// We return "true" if the statement was true, and the return should
+// We return "true" if the statement matched, and the return should
 // be executed.  Otherwise we return false.
 func (e *Evaluator) runIf(left Argument, right Argument, op string, res string, obj interface{}) (bool, error) {
 
 	if e.Debug {
-		fmt.Printf("IF %v %s %v Then return %s;\n", left, op, right, res)
+		fmt.Printf("IF %v %s %v Then return %s;\n", left.Value(e, obj), op, right.Value(e, obj), res)
 
 	}
 
@@ -489,45 +590,34 @@ func (e *Evaluator) runIf(left Argument, right Argument, op string, res string, 
 	rVal := right.Value(e, obj)
 
 	//
+	// Convert to strings, in case they're needed for the early
+	// operations.
+	//
+	lStr := fmt.Sprintf("%v", lVal)
+	rStr := fmt.Sprintf("%v", rVal)
+
+	//
 	// Basic operations
 	//
 
 	// Equality - string and number.
 	if op == "==" {
-
-		// Convert values to string, and compare.
-		//
-		// This allows "5 == "5""
-		//
-		return (fmt.Sprintf("%v", lVal) == fmt.Sprintf("%v", rVal)), nil
+		return (lStr == rStr), nil
 	}
 
 	// Inequality - string and number.
 	if op == "!=" {
-
-		// Convert values to string, and compare.
-		//
-		// This allows "5 != "5""
-		//
-		return (fmt.Sprintf("%v", lVal) != fmt.Sprintf("%v", rVal)), nil
+		return (lStr != rStr), nil
 	}
 
 	// String-contains
 	if op == "~=" {
-
-		src := fmt.Sprintf("%v", lVal)
-		val := fmt.Sprintf("%v", rVal)
-
-		return strings.Contains(src, val), nil
+		return strings.Contains(lStr, rStr), nil
 	}
 
 	// String does not contain
 	if op == "!~" {
-
-		src := fmt.Sprintf("%v", lVal)
-		val := fmt.Sprintf("%v", rVal)
-
-		return !strings.Contains(src, val), nil
+		return !strings.Contains(lStr, rStr), nil
 	}
 
 	//
@@ -599,31 +689,67 @@ func (e *Evaluator) toNumberArg(value interface{}) (float64, error) {
 	return 0, fmt.Errorf("failed to convert %v to number", value)
 }
 
-// tokenToArgument takes a given token, and converts it to
-// an argument.
+// tokenToArgument takes a given token, and converts it to an argument
+// which can be evaluated.
 //
-// TODO: In the future this should parse a function and consume
-// the arguments until we see ")".
+// There is a minor complication here which is that when we see a
+// token which represents a function-call we need to consume the
+// arguments - recursively.
 //
-func (e *Evaluator) tokenToArgument(tok Token) Argument {
+// This means we need a reference to our lexer, so we can fetch the
+// next token(s).
+//
+func (e *Evaluator) tokenToArgument(tok Token, lexer *Lexer) Argument {
 	var tmp Argument
 
 	switch tok.Type {
 
-	case IDENT:
+	case FUNCALL:
+
 		//
-		// TODO - handle functions more better.
+		// We've got a function.
 		//
-		// Specifically we'll have a function-token.
+		// There are two cases:
 		//
-		if strings.HasSuffix(tok.Literal, "()") {
-			tmp = &FunctionArgument{Function: tok.Literal}
-		} else {
-			tmp = &FieldArgument{Field: tok.Literal}
+		//   Function()
+		//
+		// Or
+		//
+		//   Function( foo, bar , baz .. , bart )
+		//
+		// Either way we handle the parsing the same way, we
+		// consume tokens forever until we hit the trailing `)`.
+		//
+		// If we find commas, which separate arguments, then we
+		// discard them, otherwise we expand the tokens recursively.
+		//
+		// Recursive operations mean we can have a script which
+		// runs `len(len(len(Name)))` if we wish.
+		//
+		var args []Argument
+
+		for {
+			t := lexer.NextToken()
+
+			// Terminate when we find a right bracket
+			if t.Type == RBRACKET {
+				break
+			}
+
+			// Ignore commas - and the opening bracket
+			if t.Type == COMMA || t.Type == LBRACKET {
+				continue
+			}
+
+			// Add tokens
+			args = append(args, e.tokenToArgument(t, lexer))
+
 		}
-	case STRING:
-		tmp = &StringArgument{Content: tok.Literal}
-	case NUMBER:
+		tmp = &FunctionArgument{Function: tok.Literal,
+			Arguments: args}
+	case IDENT:
+		tmp = &FieldArgument{Field: tok.Literal}
+	case STRING, NUMBER:
 		tmp = &StringArgument{Content: tok.Literal}
 	case FALSE:
 		tmp = &BooleanArgument{Content: false}

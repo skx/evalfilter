@@ -5,11 +5,11 @@
 
 # eval-filter
 
-Eval-Filter is a very basic embeddable evaluation-engine, which allows simple logic which might otherwise be hardwired into your golang application to be delegated to user-written script(s).
+The evalfilter package provides a basic embeddable evaluation-engine, which allows simple logic which might otherwise be hardwired into your golang application to be delegated to (user-written) script(s).
 
 There is no shortage of embeddable languages which are available to the golang world, but this library is intended to be simpler.  The ideal use case is defining rules which are applied test specific objects.
 
-In short don't think of this as a scripting-language, but instead a simple way of applying a set of rules to an object, or a filtering a large collection of objects in a user-defined fashion.
+In short don't think of this as a scripting-language, but instead a simple way of applying a set of rules to an object, or a filtering a large collection of objects via a user-defined fashion.
 
 You may view a quick and simple example in the file [example_test.go](example_test.go), which filters a list of people by their age.
 
@@ -44,7 +44,7 @@ Assuming no error the `out` value will contain the return-result of your script 
 
 ## Scripting
 
-The scripting "language" itself is where things get interesting, because you can access members of the structure passed as you would expect:
+The scripting language itself is where things get interesting, because you can access members of the structure passed as you would expect:
 
     //
     // You can see that comments are prefixed with "//".
@@ -53,6 +53,7 @@ The scripting "language" itself is where things get interesting, because you can
     // the intent is that the user's script will terminate with either:
     //
     //   return false;
+    // or
     //   return true;
     //
     // Your host application uses this script as a filter, so that
@@ -60,12 +61,12 @@ The scripting "language" itself is where things get interesting, because you can
     //
 
     //
-    // If we have messages from Steve they're "interesting"
+    // If we have messages from Steve they're "interesting".
     //
     if ( Author == "Steve" ) { return true; }
 
     //
-    // We should listen to our parents
+    // We should listen to our parents.
     //
     if ( Author == "YourParent" ) { return true; }
 
@@ -77,72 +78,68 @@ The scripting "language" itself is where things get interesting, because you can
 
 You'll notice that we don't define the _object_ here, because it is implied that the script operates upon a single instance of a particular structure, whatever that might be.   That means `Author` is implicitly the author-field of the message object, which the `Run` method was invoked with.
 
+(i.e. We access "`Author`", rather than `msg.Author` because we're opering upon a single object - the name of that object is redundent.)
+
 
 ## Scripting Facilities
 
-Inside your script you can:
+The engine supports scripts which:
 
-* Perform comparisons of strings and numbers.
-  * equality
+* Perform comparisons of strings and numbers:
+  * equality:
     * "`if ( Message == "test" ) { return true; }`"
-  * inequality
+  * inequality:
     * "`if ( Count != 3 ) { return true; }`"
-  * size (`<`, `<=`, `>`, `>=`)
-    * "`if ( Count > 10 ) { return false; }`"
-  * String contains
+  * size (`<`, `<=`, `>`, `>=`):
+    * "`if ( Count >= 10 ) { return false; }`"
+  * String contains:
     * "`if ( Content ~= "needle" )`"
-  * Does not contain
+  * Does not contain:
     * "`if ( Content !~ "some text we dont want" )`"
+* You can also add new primitives to the engine.
+  * By implementing them in your golang host application.
 
-Here you'll see you're referring to structure-fields by name, they are found dynamically via reflection.
-
-It is also possible to invoke functions, as described in the next section, though there are some caveats here.
+You'll note that you're referring to structure-fields by name, they are found dynamically via reflection.
 
 
 ## Function Invocation
 
-One thing you cannot do, at this time, is invoke arbitrary function-calls.
+In addition to operating upon the fields of an object/structure literally you can also call functions with them.
 
-However it _is_ possible to add functions to the evaluator before you run your script, with the caveat that these functions cannot accept arguments.
+For example you might have a list of people, which you wish to filter by the length of their names:
 
-Adding a function means doing this in your driver:
+    // People have "name" + "age" attributes
+    type Person struct {
+      Name string
+      Age  int
+    }
+	people := []Person{
+	    {"Bob", 31},
+        {"John", 42},
+        {"Michael", 17},
+        {"Jenny", 26},
+    }
 
-     //
-     // Load the evaluator with a script
-     //
-     eval := NewEvaluator(source)
+You can filter the list based upon the length of their name via a filter-script like this:
 
-     //
-	 // Add a utility-function to return whether we're inside
-	 // working hours.
-	 //
-     eval.AddFunction("WorkingHours",
+    // Example filter - we only care about people with "long" names.
+    if ( len(Name) > 4 ) { return true ; }
 
-        //
-        // Return values of user-functions are boolean.
-        //
-		func() bool {
-			loc, _ := time.LoadLocation("Europe/Helsinki")
-			now := time.Now().In(loc)
-			hr, _, _ := now.Clock()
-			if hr <= 7 || hr >= 19 {
-				return false
-			}
-			return true
-		})
+    // Since we return false the caller will know to ignore people here.
+    return false;
 
-    //
-    // Now run ..
-    //
-    out, err := l.Run(obj)
+You can implement your own functions in your application, which can be
+called by scripts - see [example_function_test.go](example_function_test.go) for an example of doing that.
 
-Now your script can use that function, like so:
 
-     //
-     // If this event occurred within working hours we don't
-     // want to raise any additiona notification(s)
-     //
-     if ( WorkingHours() ) { return false; }
+## Built-In Functions
+
+The following functions are built-in, and available by default:
+
+* `len( field | string)`
+  * Returns the length of the given string, or the contents of the given field.
+* `trim( field | string)`
+  * Returns the given string, or the contents of the given field, with leading/trailing whitespace removed.
 
 
 
