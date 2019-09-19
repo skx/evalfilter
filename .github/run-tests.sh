@@ -1,15 +1,12 @@
 #!/bin/bash
 
-# This will allow the linter to be installed.  All a mess.
-rm go.mod
-
 # Install tools to test our code-quality.
 go get -u golang.org/x/lint/golint
 go get -u honnef.co/go/tools/cmd/staticcheck
 
 # Run the static-check tool - we ignore errors in goserver/static.go
 t=$(mktemp)
-staticcheck -checks all ./... > $t
+staticcheck -checks all ./... | grep -v "no Go files in" > $t
 if [ -s $t ]; then
     echo "Found errors via 'staticcheck'"
     cat $t
