@@ -13,10 +13,13 @@ type IfOperation struct {
 	// Left argument
 	Left Argument
 
-	// Right argument.
+	// Right argument - note that this might be missing.
 	Right Argument
 
-	// Test-operation
+	// The comparison operation to be applied to the two arguments.
+	//
+	// If only a single argument is passed to the `if` operation
+	// then the left-most argument will be tested for "truthiness".
 	Op string
 
 	// Operations to be carried out if the statement matches.
@@ -68,12 +71,12 @@ func (i *IfOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
 	return false, false, nil
 }
 
-// doesMatch runs the actual comparision for an if statement
-//
-// We return "true" if the statement matched, and the return should
-// be executed.  Otherwise we return false.
+// doesMatch runs the actual comparison for the if-statement.
 func (i *IfOperation) doesMatch(e *Evaluator, obj interface{}) (bool, error) {
 
+	//
+	// Show detail(s) if we're running with a debug-flag
+	//
 	if e.Debug {
 		if i.Op != "" {
 			fmt.Printf("IF %v %s %v;\n", i.Left.Value(e, obj), i.Op, i.Right.Value(e, obj))
@@ -206,7 +209,14 @@ func (i *IfOperation) toNumberArg(value interface{}) (float64, error) {
 	return 0, fmt.Errorf("failed to convert %v to number", value)
 }
 
-// truthy tests if the given object is "true".
+// truthy tests if the given object is "truthy", or true-like:
+//
+// * nil is false.
+// * `false` is false
+// * An empty string is false.
+// * A numeric value of 0 is false.
+//
+// Everything else is true.
 func (i *IfOperation) truthy(val interface{}) bool {
 	switch v := val.(type) {
 	case bool:
