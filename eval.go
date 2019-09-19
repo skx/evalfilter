@@ -29,7 +29,7 @@ type Evaluator struct {
 	Functions map[string]interface{}
 
 	// Bytecode operations are stored here
-	Bytecode []interface{}
+	Bytecode []Operation
 }
 
 // Argument is an abstract argument-type.
@@ -141,6 +141,20 @@ func (f *FunctionArgument) Value(self *Evaluator, obj interface{}) interface{} {
 //
 // Bytecode functions
 //
+
+type Operation interface {
+
+	// Run runs the operation.
+	//
+	// Return values:
+	//   return - If true we're returning
+	//
+	//   value  - The value we terminate with
+	//
+	//   error  - An error occurred
+	//
+	Run(self *Evaluator, obj interface{}) (bool, bool, error)
+}
 
 // IfOperation holds state for the `if` operation
 type IfOperation struct {
