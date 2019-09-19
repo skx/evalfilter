@@ -2,6 +2,16 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/skx/evalfilter)](https://goreportcard.com/report/github.com/skx/evalfilter)
 [![license](https://img.shields.io/github/license/skx/evalfilter.svg)](https://github.com/skx/evalfilter/blob/master/LICENSE)
 
+* [eval-filter](#eval-filter)
+  * [Sample Use](#sample-use)
+  * [Scripting Facilities](#scripting-facilities)
+  * [Function Invocation](#function-invocation)
+     * [Built-In Functions](#built-in-functions)
+  * [Variables](#variables)
+  * [Alternatives](#alternatives)
+* [Github Setup](#github-setup)
+
+
 
 # eval-filter
 
@@ -85,6 +95,8 @@ The engine supports scripts which:
     * "`if ( Content !~ "some text we dont want" )`"
 * You can also add new primitives to the engine.
   * By implementing them in your golang host application.
+* Your host-application can set variables which are accessible to the user-script, with a `$`-prefix.
+  * `if ( $time == "Steve" ) { print "You set the variable 'time' to 'Steve'\n"; }`
 * Finally there is a `print` primitive to allow you to see what is happening, if you need to.
 
 You'll note that you're referring to structure-fields by name, they are found dynamically via reflection.
@@ -177,6 +189,11 @@ If this solution doesn't quite fit your needs you might investigate:
 * https://github.com/Knetic/govaluate
 * https://github.com/PaesslerAG/gval/
 * https://github.com/antonmedv/expr
+
+## Github Setup
+
+This repository is configured to run tests upon every commit, and when pull-requests are created/updated.  The testing is carried out via [.github/run-tests.sh](.github/run-tests.sh) which is used by the [github-action-tester](https://github.com/skx/github-action-tester) action.
+
 
 Steve
 --
