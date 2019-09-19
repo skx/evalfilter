@@ -295,30 +295,13 @@ func (e *Evaluator) parseIF(l *lexer.Lexer) (Operation, error) {
 	if op == ")" {
 
 		//
-		// To avoid making changes we simply
-		// FAKE the other arguments, because
-		// saying "if ( foo() )" is logically
-		// the same as saying:
-		//
-		//  if ( foo() == "true" )
-		//
-
-		//
-		// Fake the operation.
-		//
-		op = "=="
-
-		//
-		// Fake the right-value.
-		//
-		// NB: This works because we force user-added
-		// functions to return boolean values.
-		//
-		right = &StringArgument{Content: "true"}
-
-		//
 		// I feel bad.  But not that bad.
 		//
+		// Here we skip parsing the right-operand
+		// leaving `Right` and `Op` at their default
+		// values
+		//
+		op = ""
 		goto block
 	}
 

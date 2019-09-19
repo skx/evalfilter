@@ -75,7 +75,11 @@ func (i *IfOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
 func (i *IfOperation) doesMatch(e *Evaluator, obj interface{}) (bool, error) {
 
 	if e.Debug {
-		fmt.Printf("IF %v %s %v;\n", i.Left.Value(e, obj), i.Op, i.Right.Value(e, obj))
+		if i.Op != "" {
+			fmt.Printf("IF %v %s %v;\n", i.Left.Value(e, obj), i.Op, i.Right.Value(e, obj))
+		} else {
+			fmt.Printf("IF ( %v );\n", i.Left.Value(e, obj))
+		}
 
 	}
 
@@ -83,6 +87,23 @@ func (i *IfOperation) doesMatch(e *Evaluator, obj interface{}) (bool, error) {
 	// Expand the left & right sides of the conditional
 	//
 	lVal := i.Left.Value(e, obj)
+
+	//
+	// Single argument form?
+	//
+
+	if i.Op == "" {
+
+		//
+		// Is the result true/false?
+		//
+		if i.truthy(lVal) {
+			return true, nil
+		}
+
+		return false, nil
+	}
+
 	rVal := i.Right.Value(e, obj)
 
 	//
@@ -183,4 +204,44 @@ func (i *IfOperation) toNumberArg(value interface{}) (float64, error) {
 	}
 
 	return 0, fmt.Errorf("failed to convert %v to number", value)
+}
+
+// truthy tests if the given object is "true".
+func (i *IfOperation) truthy(val interface{}) bool {
+	switch v := val.(type) {
+	case bool:
+		return (val.(bool))
+	case string:
+		return (val.(string) != "")
+	case int:
+		return (val.(int) != 0)
+	case int8:
+		return (val.(int8) != 0)
+	case int16:
+		return (val.(int16) != 0)
+	case int32:
+		return (val.(int32) != 0)
+	case int64:
+		return (val.(int64) != 0)
+	case uint:
+		return (val.(uint) != 0)
+	case uint8:
+		return (val.(uint8) != 0)
+	case uint16:
+		return (val.(uint16) != 0)
+	case uint32:
+		return (val.(uint32) != 0)
+	case uint64:
+		return (val.(uint64) != 0)
+	case float32:
+		return (val.(float32) != 0)
+	case float64:
+		return (val.(float64) != 0)
+	case nil:
+		return false
+	default:
+		fmt.Printf("unexpected type %T", v)
+	}
+
+	return false
 }
