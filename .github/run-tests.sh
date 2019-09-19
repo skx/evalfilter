@@ -7,9 +7,6 @@ rm go.mod
 go get -u golang.org/x/lint/golint
 go get -u honnef.co/go/tools/cmd/staticcheck
 
-# Init the modules
-go mod init
-
 # Run the static-check tool - we ignore errors in goserver/static.go
 t=$(mktemp)
 staticcheck -checks all ./... > $t
