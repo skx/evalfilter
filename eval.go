@@ -12,6 +12,9 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/skx/evalfilter/lexer"
+	"github.com/skx/evalfilter/token"
 )
 
 // Evaluator holds our object state
@@ -443,27 +446,27 @@ func (e *Evaluator) AddFunction(name string, fun interface{}) {
 // This is abstracted into a routine of its own so that we can
 // either parse the stream of tokens for the full-script, or parse
 // the block which is used inside an IF statement.
-func (e *Evaluator) parseOperation(tok Token, l *Lexer) (Operation, error) {
+func (e *Evaluator) parseOperation(tok token.Token, l *lexer.Lexer) (Operation, error) {
 
 	switch tok.Type {
 
 	//
 	// `if`
 	//
-	case IF:
+	case token.IF:
 		return e.parseIF(l)
 
 	//
 	// `return`
 	//
-	case RETURN:
+	case token.RETURN:
 
 		// Get the value this token returns
 		val := l.NextToken()
 
 		// The next token should be a semi-colon
 		tmp := l.NextToken()
-		if tmp.Type != SEMICOLON {
+		if tmp.Type != token.SEMICOLON {
 			return nil, fmt.Errorf("expected ';' after return-value")
 
 		}
@@ -473,7 +476,7 @@ func (e *Evaluator) parseOperation(tok Token, l *Lexer) (Operation, error) {
 	//
 	// `print`
 	//
-	case PRINT:
+	case token.PRINT:
 
 		//
 		// Here are the arguments we're going to be printing.
@@ -486,14 +489,14 @@ func (e *Evaluator) parseOperation(tok Token, l *Lexer) (Operation, error) {
 			// a semi-colon, or the end of the file.
 			//
 			n := l.NextToken()
-			if n.Type == SEMICOLON || n.Type == EOF {
+			if n.Type == token.SEMICOLON || n.Type == token.EOF {
 				break
 			}
 
 			//
 			// Skip over any commas
 			//
-			if n.Type == COMMA {
+			if n.Type == token.COMMA {
 				continue
 			}
 
@@ -529,14 +532,14 @@ func (e *Evaluator) parse() error {
 	//
 	// Create a lexer to process our script.
 	//
-	l := NewLexer(e.Program)
+	l := lexer.NewLexer(e.Program)
 
 	//
 	// Process all the tokens forever, until we hit the end of file.
 	//
 	tok := l.NextToken()
 
-	for tok.Type != EOF {
+	for tok.Type != token.EOF {
 
 		//
 		// Parse the next statement.
@@ -564,7 +567,7 @@ func (e *Evaluator) parse() error {
 }
 
 // parseIf is our biggest method; it parses an if-expression.
-func (e *Evaluator) parseIF(l *Lexer) (Operation, error) {
+func (e *Evaluator) parseIF(l *lexer.Lexer) (Operation, error) {
 
 	//
 	// The general form is:
@@ -744,12 +747,12 @@ func (e *Evaluator) Run(obj interface{}) (bool, error) {
 // This means we need a reference to our lexer, so we can fetch the
 // next token(s).
 //
-func (e *Evaluator) tokenToArgument(tok Token, lexer *Lexer) Argument {
+func (e *Evaluator) tokenToArgument(tok token.Token, lexer *lexer.Lexer) Argument {
 	var tmp Argument
 
 	switch tok.Type {
 
-	case FUNCALL:
+	case token.FUNCALL:
 
 		//
 		// We've got a function.
@@ -777,12 +780,12 @@ func (e *Evaluator) tokenToArgument(tok Token, lexer *Lexer) Argument {
 			t := lexer.NextToken()
 
 			// Terminate when we find a right bracket
-			if t.Type == RBRACKET {
+			if t.Type == token.RBRACKET {
 				break
 			}
 
 			// Ignore commas - and the opening bracket
-			if t.Type == COMMA || t.Type == LBRACKET {
+			if t.Type == token.COMMA || t.Type == token.LBRACKET {
 				continue
 			}
 
@@ -792,13 +795,13 @@ func (e *Evaluator) tokenToArgument(tok Token, lexer *Lexer) Argument {
 		}
 		tmp = &FunctionArgument{Function: tok.Literal,
 			Arguments: args}
-	case IDENT:
+	case token.IDENT:
 		tmp = &FieldArgument{Field: tok.Literal}
-	case STRING, NUMBER:
+	case token.STRING, token.NUMBER:
 		tmp = &StringArgument{Content: tok.Literal}
-	case FALSE:
+	case token.FALSE:
 		tmp = &BooleanArgument{Content: false}
-	case TRUE:
+	case token.TRUE:
 		tmp = &BooleanArgument{Content: true}
 
 	default:

@@ -1,4 +1,6 @@
-package evalfilter
+// Package token holds the definitions of the various token-types
+// we require to lex our source code.
+package token
 
 // Type is a string
 type Type string
