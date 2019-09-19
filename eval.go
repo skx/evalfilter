@@ -117,8 +117,12 @@ func (e *Evaluator) AddFunction(name string, fun interface{}) {
 	e.Functions[name] = fun
 }
 
-// AddVariable adds a variable which will be available to the
-// script.
+// SetVariable adds, or updates, a variable which will be available
+// to the filter script.
+//
+// Variables in the filter script should be prefixed with `$`,
+// for example a variable set as `time` will be accessed via the
+// name `$time`.
 func (e *Evaluator) SetVariable(name string, value interface{}) {
 	e.Variables[name] = value
 }
