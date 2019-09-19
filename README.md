@@ -5,22 +5,26 @@
 
 # eval-filter
 
-The evalfilter package provides a basic embeddable evaluation-engine, which allows simple logic which might otherwise be hardwired into your golang application to be delegated to (user-written) script(s).
+The evalfilter package provides an embeddable evaluation-engine, which allows simple logic which might otherwise be hardwired into your golang application to be delegated to (user-written) script(s).
 
-There is no shortage of embeddable languages which are available to the golang world, but this library is intended to be simpler.  The ideal use case is defining rules which are applied test specific objects.
+There is no shortage of embeddable languages which are available to the golang world, but this library is intended to be simpler; the ideal use case is defining rules which are applied test specific objects.
 
-In short don't think of this as a scripting-language, but instead a simple way of applying a set of rules to an object, or a filtering a large collection of objects via a user-defined fashion.
+To give a feel for the way it works you may consult the simple example in the file [example_test.go](example_test.go), which filters a list of people by their age.
 
-You may view a quick and simple example in the file [example_test.go](example_test.go), which filters a list of people by their age.
+There is a second example which implements a custom-function (in golang) which can be called by the script, visible at [example_function_test.go](example_function_test.go).
 
 
 ## Sample Use
 
-You might have a chat-bot which listens to incoming messages and does something interesting when specific messages are seen.  You don't necessarily need to have a full-scripting language, you just need to be write a snippet of script which returns `true` if the given message is interesting.
+You might have a chat-bot which listens to incoming messages and runs "something interesting" when specific messages are seen.  You don't necessarily need to have a full-scripting language, you just need to allow a user to specify whether the interesting-action should occur, on a per-message basis.
 
-Upon the receipt of each incoming message you call the filter, if the message is interesting it will return `true`.  If the return-value is `false` you know the message is uninteresting and you do nothing.
+* Create an instance of the `evalfilter`.
+* Load the user's script.
+* For each incoming message run the script against it.
+  * If it returns `true` you know you should carry out your interesting activity.
+  * Otherwise you will not.
 
-Assume you have a structure describing incoming messages:
+Assume you have a structure describing your incoming messages which looks something like this:
 
     type Message struct {
         Author  string
@@ -29,22 +33,7 @@ Assume you have a structure describing incoming messages:
         Sent    time.Time
     }
 
-Now you have an instance of that message:
-
-    var msg Message
-
-You want to decide if this message is interesting, so you might invoke the evaluator with like so:
-
-    eval, er := evaluator.New( `script goes here ...` )
-    out, err := eval.Run( msg )
-
-Assuming no error the `out` value will contain the return-result of your script which will be a `boolean`, because these scripts are _filters_.
-
-
-
-## Scripting
-
-The scripting language itself is where things get interesting, because you can access members of the structure passed as you would expect:
+The user could now write following script to let you know that the incoming message was interesting:
 
     //
     // You can see that comments are prefixed with "//".
@@ -66,9 +55,9 @@ The scripting language itself is where things get interesting, because you can a
     if ( Author == "Steve" ) { return true; }
 
     //
-    // We should listen to our parents.
+    // A bug?  Awesome.
     //
-    if ( Author == "YourParent" ) { return true; }
+    if ( Message ~=  "panic" ) { return true; }
 
     //
     // OK the message is uninteresting, and will be discarded, or
@@ -78,7 +67,6 @@ The scripting language itself is where things get interesting, because you can a
 
 You'll notice that we don't define the _object_ here, because it is implied that the script operates upon a single instance of a particular structure, whatever that might be.   That means `Author` is implicitly the author-field of the message object, which the `Run` method was invoked with.
 
-(i.e. We access "`Author`", rather than `msg.Author` because we're opering upon a single object - the name of that object is redundent.)
 
 
 ## Scripting Facilities
@@ -128,20 +116,24 @@ You can filter the list based upon the length of their name via a filter-script 
     // Since we return false the caller will know to ignore people here.
     return false;
 
-You can implement your own functions in your application, which can be
-called by scripts - see [example_function_test.go](example_function_test.go) for an example of doing that.
-
 
 ## Built-In Functions
 
 The following functions are built-in, and available by default:
 
-* `len( field | string)`
+* `len(field | string)`
   * Returns the length of the given string, or the contents of the given field.
-* `trim( field | string)`
+* `trim(field | string)`
   * Returns the given string, or the contents of the given field, with leading/trailing whitespace removed.
 
 
+## Alternatives
+
+If this solution doesn't quite fit your needs you might investigate:
+
+* https://github.com/Knetic/govaluate
+* https://github.com/PaesslerAG/gval/
+* https://github.com/antonmedv/expr
 
 Steve
 --
