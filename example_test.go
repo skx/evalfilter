@@ -53,7 +53,7 @@ return false;
 		res, err := eval.Run(entry)
 
 		//
-		// Error-detection is important.
+		// Error-detection is important (!)
 		//
 		if err != nil {
 			panic(err)
