@@ -103,7 +103,7 @@ func TestEq(t *testing.T) {
 		{Input: `if ( Count == 12.4 ) { return true; } return false;`, Result: true},
 		{Input: `if ( Count == 3 ) { return true; } return false;`, Result: false},
 		{Input: `if ( Count != 1 ) { return true; }`, Result: true},
-		{Input: `if ( Count != 12.4 ) { return false; } return true`, Result: true},
+		{Input: `if ( Count != 12.4 ) { return false; } return true;`, Result: true},
 		{Input: `if ( "Steve" == "Steve" ) { return true; }`, Result: true},
 		{Input: `if ( "Steve" == "Kemp" ) { return true; } return false;`, Result: false},
 	}
