@@ -4,6 +4,7 @@ package lexer
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/skx/evalfilter/token"
 )
@@ -97,7 +98,12 @@ func (l *Lexer) NextToken() token.Token {
 		if l.ch == '(' {
 			tok.Type = token.FUNCALL
 		} else {
-			tok.Type = token.LookupIdentifier(tok.Literal)
+			if strings.HasPrefix(tok.Literal, "$") {
+				tok.Type = token.VARIABLE
+				tok.Literal = tok.Literal[1:]
+			} else {
+				tok.Type = token.LookupIdentifier(tok.Literal)
+			}
 		}
 		return tok
 	}

@@ -139,3 +139,15 @@ func (f *FunctionArgument) Value(self *Evaluator, obj interface{}) interface{} {
 	return ret
 
 }
+
+// VariableArgument holds a reference to a variable set by the golang
+// host.
+type VariableArgument struct {
+	// Field the name of the structure/object field we return.
+	Name string
+}
+
+// Value returns the value of the variable set by the golang host application.
+func (v *VariableArgument) Value(self *Evaluator, obj interface{}) interface{} {
+	return self.Variables[v.Name]
+}

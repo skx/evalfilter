@@ -31,6 +31,10 @@ type Evaluator struct {
 
 	// Bytecode operations are stored here
 	Bytecode []Operation
+
+	// Variables contains references to variables set via
+	// the golang host application.
+	Variables map[string]interface{}
 }
 
 // New returns a new evaluation object, which can be used to apply
@@ -39,6 +43,7 @@ func New(input string) *Evaluator {
 	e := &Evaluator{
 		Debug:     false,
 		Functions: make(map[string]interface{}),
+		Variables: make(map[string]interface{}),
 		Program:   input,
 	}
 
@@ -110,6 +115,12 @@ func New(input string) *Evaluator {
 // AddFunction adds a function to our runtime.
 func (e *Evaluator) AddFunction(name string, fun interface{}) {
 	e.Functions[name] = fun
+}
+
+// AddVariable adds a variable which will be available to the
+// script.
+func (e *Evaluator) SetVariable(name string, value interface{}) {
+	e.Variables[name] = value
 }
 
 // Look at the given token, and parse it as an operation.
@@ -451,6 +462,8 @@ func (e *Evaluator) tokenToArgument(tok token.Token, lexer *lexer.Lexer) Argumen
 			Arguments: args}
 	case token.IDENT:
 		tmp = &FieldArgument{Field: tok.Literal}
+	case token.VARIABLE:
+		tmp = &VariableArgument{Name: tok.Literal}
 	case token.STRING, token.NUMBER:
 		tmp = &StringArgument{Content: tok.Literal}
 	case token.FALSE:

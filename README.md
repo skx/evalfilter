@@ -129,7 +129,7 @@ You can filter the list based upon the length of their name via a filter-script 
 This example is contained in [example_function_test.go](example_function_test.go) if you wish to see the complete code.
 
 
-## Built-In Functions
+### Built-In Functions
 
 The following functions are built-in, and available by default:
 
@@ -137,6 +137,37 @@ The following functions are built-in, and available by default:
   * Returns the length of the given string, or the contents of the given field.
 * `trim(field | string)`
   * Returns the given string, or the contents of the given field, with leading/trailing whitespace removed.
+
+
+## Variables
+
+Your host application can register variables which are accessible to your scripting environment via the `AddVariable` method.  The variables can have their values updated at any time before the call to `Eval` is made.
+
+For example the following script sets the variable `time` which is updated every second - **NOTE**: Variables are accessed with a `$`-prefix
+
+	eval := evalfilter.New(`print "The time is ", $time, "\n";
+                            return false;`)
+
+	for {
+
+        // Set the variable `$time` to be the seconds past the epoch.
+		eval.SetVariable("time", fmt.Sprintf("%v", time.Now().Unix()))
+
+        // Run the script.
+		ret, err := eval.Run(nil)
+
+        // If there are errors - abort
+		if err != nil {
+			panic(err)
+		}
+
+        // Show the result
+		fmt.Printf("Script gave result %v\n", ret)
+
+        // Update every second.
+
+		time.Sleep(1 * time.Second)
+    }
 
 
 ## Alternatives

@@ -23,6 +23,7 @@ const (
 	RBRACKET  = "RBRACKET"
 	SEMICOLON = "SEMICOLON"
 	STRING    = "STRING"
+	VARIABLE  = "VARIABLE"
 
 	// Our keywords.
 	FALSE  = "false"
