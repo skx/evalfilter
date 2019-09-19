@@ -29,10 +29,5 @@ echo "Launching linter .."
 golint -set_exit_status ./...
 echo "Completed linter .."
 
-# Run the shadow-checker
-echo "Launching shadowed-variable check .."
-go vet ./...
-echo "Completed shadowed-variable check .."
-
 # Run golang tests
 go test ./...
