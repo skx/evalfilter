@@ -173,9 +173,8 @@ type IfOperation struct {
 
 func (i *IfOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
 
-	// TODO- move runIf into this function.
 	// Run the if-statement.
-	res, err := e.runIf(i.Left, i.Right, i.Op, obj)
+	res, err := i.doesMatch(i.Left, i.Right, i.Op, obj)
 
 	// Was there an error?
 	if err != nil {
@@ -187,11 +186,6 @@ func (i *IfOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
 	//
 	if res {
 
-		// Show that this matched
-		if e.Debug {
-			fmt.Printf("\tIF test matched\n")
-		}
-
 		//
 		// The test matches so we should now handle
 		// all the things that are in the `true`
@@ -200,10 +194,9 @@ func (i *IfOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
 		for _, t := range i.True {
 
 			//
-			// Process operation
+			// Process each operation.
 			//
-			// If this was a return statement then
-			// we return
+			// If this was a return statement then we return
 			//
 			ret, val, err := t.Run(e, obj)
 			if ret == true {
@@ -225,6 +218,123 @@ func (i *IfOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
 	}
 
 	return false, false, nil
+}
+
+// doesMatch runs the actual comparision for an if statement
+//
+// We return "true" if the statement matched, and the return should
+// be executed.  Otherwise we return false.
+func (i *IfOperation) doesMatch(left Argument, right Argument, op string, obj interface{}) (bool, error) {
+
+	if e.Debug {
+		fmt.Printf("IF %v %s %v;\n", left.Value(e, obj), op, right.Value(e, obj))
+
+	}
+
+	//
+	// Expand the left & right sides of the conditional
+	//
+	lVal := left.Value(e, obj)
+	rVal := right.Value(e, obj)
+
+	//
+	// Convert to strings, in case they're needed for the early
+	// operations.
+	//
+	lStr := fmt.Sprintf("%v", lVal)
+	rStr := fmt.Sprintf("%v", rVal)
+
+	//
+	// Basic operations
+	//
+
+	// Equality - string and number.
+	if op == "==" {
+		return (lStr == rStr), nil
+	}
+
+	// Inequality - string and number.
+	if op == "!=" {
+		return (lStr != rStr), nil
+	}
+
+	// String-contains
+	if op == "~=" {
+		return strings.Contains(lStr, rStr), nil
+	}
+
+	// String does not contain
+	if op == "!~" {
+		return !strings.Contains(lStr, rStr), nil
+	}
+
+	//
+	// All remaining operations are numeric, so we need to convert
+	// the values into numbers.
+	//
+	// Call them `a` and `b`.
+	//
+	var a float64
+	var b float64
+	var err error
+
+	//
+	// Convert
+	//
+	a, err = i.toNumberArg(lVal)
+	if err != nil {
+		return false, err
+	}
+	b, err = i.toNumberArg(rVal)
+	if err != nil {
+		return false, err
+	}
+
+	//
+	// Now operate.
+	//
+	if op == ">" {
+		return (a > b), nil
+	}
+	if op == ">=" {
+		return (a >= b), nil
+	}
+	if op == "<" {
+		return (a < b), nil
+	}
+	if op == "<=" {
+		return (a <= b), nil
+	}
+
+	//
+	// Invalid operator?
+	//
+	return false, fmt.Errorf("unknown operator %v", op)
+}
+
+// toNumberArg tries to convert the given interface to a float64 value.
+func (i *IfOperation) toNumberArg(value interface{}) (float64, error) {
+
+	// string?
+	_, ok := value.(string)
+	if ok {
+		a, _ := strconv.ParseFloat(value.(string), 32)
+		return a, nil
+	}
+
+	// int
+	_, ok = value.(int)
+	if ok {
+		return (float64(value.(int))), nil
+	}
+
+	// float?
+	_, ok = value.(int64)
+	if ok {
+		return (float64(value.(int64))), nil
+	}
+
+	return 0, fmt.Errorf("failed to convert %v to number", value)
 }
 
 // ReturnOperation holds state for the `return` operation
@@ -623,123 +733,6 @@ func (e *Evaluator) Run(obj interface{}) (bool, error) {
 	// hit a bare return-statement.
 	//
 	return false, fmt.Errorf("script failed to terminate with a return statement")
-}
-
-// runIf runs an if comparison.
-//
-// We return "true" if the statement matched, and the return should
-// be executed.  Otherwise we return false.
-func (e *Evaluator) runIf(left Argument, right Argument, op string, obj interface{}) (bool, error) {
-
-	if e.Debug {
-		fmt.Printf("IF %v %s %v;\n", left.Value(e, obj), op, right.Value(e, obj))
-
-	}
-
-	//
-	// Expand the left & right sides of the conditional
-	//
-	lVal := left.Value(e, obj)
-	rVal := right.Value(e, obj)
-
-	//
-	// Convert to strings, in case they're needed for the early
-	// operations.
-	//
-	lStr := fmt.Sprintf("%v", lVal)
-	rStr := fmt.Sprintf("%v", rVal)
-
-	//
-	// Basic operations
-	//
-
-	// Equality - string and number.
-	if op == "==" {
-		return (lStr == rStr), nil
-	}
-
-	// Inequality - string and number.
-	if op == "!=" {
-		return (lStr != rStr), nil
-	}
-
-	// String-contains
-	if op == "~=" {
-		return strings.Contains(lStr, rStr), nil
-	}
-
-	// String does not contain
-	if op == "!~" {
-		return !strings.Contains(lStr, rStr), nil
-	}
-
-	//
-	// All remaining operations are numeric, so we need to convert
-	// the values into numbers.
-	//
-	// Call them `a` and `b`.
-	//
-	var a float64
-	var b float64
-	var err error
-
-	//
-	// Convert
-	//
-	a, err = e.toNumberArg(lVal)
-	if err != nil {
-		return false, err
-	}
-	b, err = e.toNumberArg(rVal)
-	if err != nil {
-		return false, err
-	}
-
-	//
-	// Now operate.
-	//
-	if op == ">" {
-		return (a > b), nil
-	}
-	if op == ">=" {
-		return (a >= b), nil
-	}
-	if op == "<" {
-		return (a < b), nil
-	}
-	if op == "<=" {
-		return (a <= b), nil
-	}
-
-	//
-	// Invalid operator?
-	//
-	return false, fmt.Errorf("unknown operator %v", op)
-}
-
-// toNumberArg tries to convert the given interface to a float64 value.
-func (e *Evaluator) toNumberArg(value interface{}) (float64, error) {
-
-	// string?
-	_, ok := value.(string)
-	if ok {
-		a, _ := strconv.ParseFloat(value.(string), 32)
-		return a, nil
-	}
-
-	// int
-	_, ok = value.(int)
-	if ok {
-		return (float64(value.(int))), nil
-	}
-
-	// float?
-	_, ok = value.(int64)
-	if ok {
-		return (float64(value.(int64))), nil
-	}
-
-	return 0, fmt.Errorf("failed to convert %v to number", value)
 }
 
 // tokenToArgument takes a given token, and converts it to an argument
