@@ -113,6 +113,7 @@ func TestNumber(t *testing.T) {
 // This is a with numbers
 //
 1;
+-10;
 23;
 34.54;
 `
@@ -121,6 +122,8 @@ func TestNumber(t *testing.T) {
 		expectedLiteral string
 	}{
 		{NUMBER, "1"},
+		{SEMICOLON, ";"},
+		{NUMBER, "-10"},
 		{SEMICOLON, ";"},
 		{NUMBER, "23"},
 		{SEMICOLON, ";"},
