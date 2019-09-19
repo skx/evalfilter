@@ -126,6 +126,8 @@ You can filter the list based upon the length of their name via a filter-script 
     // Since we return false the caller will know to ignore people here.
     return false;
 
+This example is contained in [example_function_test.go](example_function_test.go) if you wish to see the complete code.
+
 
 ## Built-In Functions
 
