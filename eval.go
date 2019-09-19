@@ -158,10 +158,73 @@ type Operation interface {
 
 // IfOperation holds state for the `if` operation
 type IfOperation struct {
-	Left   Argument
-	Right  Argument
-	Op     string
-	Return string
+	// Left argument
+	Left Argument
+
+	// Right argument.
+	Right Argument
+
+	// Test-operation
+	Op string
+
+	// Operations to be carried out if the statement matches.
+	True []Operation
+}
+
+func (i *IfOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
+
+	// TODO- move runIf into this function.
+	// Run the if-statement.
+	res, err := e.runIf(i.Left, i.Right, i.Op, obj)
+
+	// Was there an error?
+	if err != nil {
+		return false, false, fmt.Errorf("failed to run if-test %s", err)
+	}
+
+	//
+	// No error - and we got a match.
+	//
+	if res {
+
+		// Show that this matched
+		if e.Debug {
+			fmt.Printf("\tIF test matched\n")
+		}
+
+		//
+		// The test matches so we should now handle
+		// all the things that are in the `true`
+		// list.
+		//
+		for _, t := range i.True {
+
+			//
+			// Process operation
+			//
+			// If this was a return statement then
+			// we return
+			//
+			ret, val, err := t.Run(e, obj)
+			if ret == true {
+				return ret, val, err
+			}
+
+		}
+
+		//
+		// At this point we've matched, and we've run
+		// the statements in the block.
+		//
+		return false, false, nil
+	}
+
+	// Show that IF-statement did not match
+	if e.Debug {
+		fmt.Printf("\tIF-statement did not match.\n")
+	}
+
+	return false, false, nil
 }
 
 // ReturnOperation holds state for the `return` operation
@@ -170,10 +233,21 @@ type ReturnOperation struct {
 	Value bool
 }
 
+func (r *ReturnOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
+	return true, r.Value, nil
+}
+
 // PrintOperation holds state for the `print` operation.
 type PrintOperation struct {
 	// Values are the various values to be printed.
 	Values []Argument
+}
+
+func (p *PrintOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
+	for _, val := range p.Values {
+		fmt.Printf("%v", val.Value(e, obj))
+	}
+	return false, false, nil
 }
 
 // New returns a new evaluation object, which can be used to apply
@@ -255,6 +329,86 @@ func (e *Evaluator) AddFunction(name string, fun interface{}) {
 	e.Functions[name] = fun
 }
 
+// Look at the given token, and parse it as an operation.
+//
+// This is abstracted into a routine of its own so that we can
+// either parse the stream of tokens for the full-script, or parse
+// the block which is used inside an IF statement.
+func (e *Evaluator) parseOperation(tok Token, l *Lexer) (Operation, error) {
+
+	switch tok.Type {
+
+	//
+	// `if`
+	//
+	case IF:
+		return e.parseIF(l)
+
+	//
+	// `return`
+	//
+	case RETURN:
+
+		// Get the value this token returns
+		val := l.NextToken()
+
+		// The next token should be a semi-colon
+		tmp := l.NextToken()
+		if tmp.Type != SEMICOLON {
+			return nil, fmt.Errorf("expected ';' after return-value")
+
+		}
+		// Update our bytecode
+		return &ReturnOperation{Value: val.Literal == "true"}, nil
+
+	//
+	// `print`
+	//
+	case PRINT:
+
+		//
+		// Here are the arguments we're going to be printing.
+		//
+		var tmp []Argument
+
+		for {
+			//
+			// We keep printing output until we hit
+			// a semi-colon, or the end of the file.
+			//
+			n := l.NextToken()
+			if n.Type == SEMICOLON || n.Type == EOF {
+				break
+			}
+
+			//
+			// Skip over any commas
+			//
+			if n.Type == COMMA {
+				continue
+			}
+
+			//
+			// Convert the token to an argument.
+			//
+			obj := e.tokenToArgument(n, l)
+
+			//
+			// Add it to our list.
+			//
+			tmp = append(tmp, obj)
+
+		}
+
+		//
+		// Now record the print operation.
+		//
+		return &PrintOperation{Values: tmp}, nil
+
+	}
+	return nil, fmt.Errorf("failed to parse token type %s : %s", tok.Type, tok)
+}
+
 // parse is an internal method which reads the script we've been
 // given in our constructor and writes out a series of operations
 // to be carried out to our `Bytecode` array.
@@ -275,76 +429,22 @@ func (e *Evaluator) parse() error {
 
 	for tok.Type != EOF {
 
-		switch tok.Type {
-
 		//
-		// `if`
+		// Parse the next statement.
 		//
-		case IF:
-			err := e.parseIF(l)
-			if err != nil {
-				return err
-			}
-
-			//
-			// `return`
-			//
-		case RETURN:
-
-			// Get the value this token returns
-			val := l.NextToken()
-
-			// Update our bytecode
-			e.Bytecode = append(e.Bytecode,
-				&ReturnOperation{Value: val.Literal == "true"})
-
-			//
-			// `print`
-			//
-		case PRINT:
-
-			//
-			// Here are the arguments we're going to be printing.
-			//
-			var tmp []Argument
-
-			for {
-				//
-				// We keep printing output until we hit
-				// a semi-colon, or the end of the file.
-				//
-				n := l.NextToken()
-				if n.Type == SEMICOLON || n.Type == EOF {
-					break
-				}
-
-				//
-				// Skip over any commas
-				//
-				if n.Type == COMMA || n.Type == LBRACKET || n.Type == RBRACKET {
-					continue
-				}
-
-				//
-				// Convert the token to an argument.
-				//
-				obj := e.tokenToArgument(n, l)
-
-				//
-				// Add it to our list.
-				//
-				tmp = append(tmp, obj)
-
-			}
-
-			//
-			// Now record the print operation.
-			//
-			e.Bytecode = append(e.Bytecode,
-				&PrintOperation{Values: tmp})
-
+		op, err := e.parseOperation(tok, l)
+		if err != nil {
+			return err
 		}
 
+		//
+		// Append it to our list.
+		//
+		e.Bytecode = append(e.Bytecode, op)
+
+		//
+		// Proceed onto the next token.
+		//
 		tok = l.NextToken()
 	}
 
@@ -355,7 +455,7 @@ func (e *Evaluator) parse() error {
 }
 
 // parseIf is our biggest method; it parses an if-expression.
-func (e *Evaluator) parseIF(l *Lexer) error {
+func (e *Evaluator) parseIF(l *Lexer) (Operation, error) {
 
 	//
 	// The general form is:
@@ -380,7 +480,7 @@ func (e *Evaluator) parseIF(l *Lexer) error {
 	//
 	skip := l.NextToken()
 	if skip.Literal != "(" {
-		return fmt.Errorf("expected '(' got %v", skip)
+		return &IfOperation{}, fmt.Errorf("expected '(' got %v", skip)
 	}
 
 	//
@@ -449,43 +549,38 @@ func (e *Evaluator) parseIF(l *Lexer) error {
 	// skip the )
 	skip = l.NextToken()
 	if skip.Literal != ")" {
-		return fmt.Errorf("expected ')' got %v", skip)
+		return &IfOperation{}, fmt.Errorf("expected ')' got %v", skip)
 	}
 
 block:
 	// skip the {
 	skip = l.NextToken()
 	if skip.Literal != "{" {
-		return fmt.Errorf("expected '{' got %v", skip)
-	}
-
-	// The body should only contain a return-statement
-	skip = l.NextToken()
-	if skip.Type != RETURN {
-		return fmt.Errorf("expected 'return' got %v", skip)
-	}
-
-	// Return value
-	t = l.NextToken()
-	val := t.Literal
-
-	// skip the }
-	skip = l.NextToken()
-
-	// Skip optional ";" after return
-	if skip.Literal == ";" {
-		skip = l.NextToken()
-	}
-	if skip.Literal != "}" {
-		return fmt.Errorf("expected '}' got %v", skip)
+		return &IfOperation{}, fmt.Errorf("expected '{' got %v", skip)
 	}
 
 	//
-	// Record the IF-operation.
+	// The list of statements to execute when the if-statement
+	// matches
 	//
-	e.Bytecode = append(e.Bytecode,
-		&IfOperation{Left: left, Right: right, Op: op, Return: val})
-	return nil
+	var Matches []Operation
+
+	// Now we should parse the statement.
+	b := l.NextToken()
+
+body:
+	stmt, err := e.parseOperation(b, l)
+	if err != nil {
+		return &IfOperation{}, err
+	}
+
+	Matches = append(Matches, stmt)
+
+	b = l.NextToken()
+	if b.Literal != "}" {
+		goto body
+	}
+	return &IfOperation{Left: left, Right: right, Op: op, True: Matches}, nil
 }
 
 // Run executes the user-supplied script against the specified object.
@@ -511,71 +606,15 @@ func (e *Evaluator) Run(obj interface{}) (bool, error) {
 	for _, op := range e.Bytecode {
 
 		//
-		// For each instruction we'll execute it.
+		// Run the opcode
 		//
-		switch v := op.(type) {
+		ret, val, err := op.Run(e, obj)
 
 		//
-		// `if`
+		// Should we return?  If so do that.
 		//
-		case *IfOperation:
-
-			// Cast for neatness
-			ifo := v
-
-			// Run the if-statement.
-			res, err := e.runIf(ifo.Left, ifo.Right, ifo.Op, ifo.Return, obj)
-
-			// Was there an error?
-			if err != nil {
-				return false, fmt.Errorf("failed to run if-test %s", err)
-			}
-
-			//
-			// No error - and we got a match.
-			//
-			if res {
-
-				// Show that this matched
-				if e.Debug {
-					fmt.Printf("\tIF test matched\n")
-				}
-
-				// Return the value to the caller.
-				if ifo.Return == "true" {
-					return true, nil
-				}
-				return false, nil
-
-			}
-
-			// Show that IF-statement did not match
-			if e.Debug {
-				fmt.Printf("\tIF-statement did not match.\n")
-			}
-
-			//
-			// `return`
-			//
-		case *ReturnOperation:
-
-			return op.(*ReturnOperation).Value, nil
-
-			//
-			// `print`
-			//
-		case *PrintOperation:
-
-			for _, val := range op.(*PrintOperation).Values {
-				fmt.Printf("%v", val.Value(e, obj))
-			}
-
-			//
-			// unknown error
-			//
-		default:
-
-			fmt.Printf("Unknown bytecode operation: %v", op)
+		if ret {
+			return val, err
 		}
 	}
 
@@ -590,10 +629,10 @@ func (e *Evaluator) Run(obj interface{}) (bool, error) {
 //
 // We return "true" if the statement matched, and the return should
 // be executed.  Otherwise we return false.
-func (e *Evaluator) runIf(left Argument, right Argument, op string, res string, obj interface{}) (bool, error) {
+func (e *Evaluator) runIf(left Argument, right Argument, op string, obj interface{}) (bool, error) {
 
 	if e.Debug {
-		fmt.Printf("IF %v %s %v Then return %s;\n", left.Value(e, obj), op, right.Value(e, obj), res)
+		fmt.Printf("IF %v %s %v;\n", left.Value(e, obj), op, right.Value(e, obj))
 
 	}
 
