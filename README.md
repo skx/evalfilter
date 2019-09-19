@@ -11,7 +11,6 @@ There is no shortage of embeddable languages which are available to the golang w
 
 To give a feel for the way it works you may consult the simple example in the file [example_test.go](example_test.go), which filters a list of people by their age.
 
-There is a second example which implements a custom-function (in golang) which can be called by the script, visible at [example_function_test.go](example_function_test.go).
 
 
 ## Sample Use
@@ -45,17 +44,17 @@ The user could now write following script to let you know that the incoming mess
     // or
     //   return true;
     //
-    // Your host application uses this script as a filter, so that
-    // any message which return `true` will be processed further.
+    // Your host application may decide to do something interesting
+    // when it receives a `true` result, and nothing when it sees `false`.
     //
 
     //
-    // If we have messages from Steve they're "interesting".
+    // If we have a message from Steve it is "interesting"!
     //
     if ( Author == "Steve" ) { return true; }
 
     //
-    // A bug?  Awesome.
+    // A bug is being discussed?  Awesome.
     //
     if ( Message ~=  "panic" ) { return true; }
 
@@ -86,9 +85,20 @@ The engine supports scripts which:
     * "`if ( Content !~ "some text we dont want" )`"
 * You can also add new primitives to the engine.
   * By implementing them in your golang host application.
+* Finally there is a `print` primitive to allow you to see what is happening, if you need to.
 
 You'll note that you're referring to structure-fields by name, they are found dynamically via reflection.
 
+`if` conditions can be nested as the following sample shows, but note that there is no support for `else` clauses.
+
+
+     if ( Count > 10 ) {
+         print "Count is > 10\n";
+
+         if ( Count > 50 ) {
+              print "The count is super-big!\n";
+         }
+     }
 
 ## Function Invocation
 
