@@ -16,7 +16,7 @@
 
 The evalfilter package provides an embeddable evaluation-engine, which allows simple logic which might otherwise be hardwired into your golang application to be delegated to (user-written) script(s).
 
-There is no shortage of embeddable languages which are available to the golang world, but this library is intended to be simpler; the ideal use case is defining rules which are applied test specific objects.
+There is no shortage of embeddable languages which are available to the golang world, but this library is intended to be simpler; the ideal use case is defining rules which are applied to run tests against objects.
 
 To give a feel for the way it works you may consult the simple example in the file [example_test.go](example_test.go), which filters a list of people by their age.
 
