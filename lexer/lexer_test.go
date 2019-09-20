@@ -57,6 +57,43 @@ func TestStringEscape(t *testing.T) {
 	}
 }
 
+// TestIf ensures that an if statement can be handled.
+func TestIf(t *testing.T) {
+	input := `if ( true ) { print "OK"; } else { print "FAIL"; }`
+
+	tests := []struct {
+		expectedType    token.Type
+		expectedLiteral string
+	}{
+		{token.IF, "if"},
+		{token.LBRACKET, "("},
+		{token.TRUE, "true"},
+		{token.RBRACKET, ")"},
+		{token.IDENT, "{"},
+		{token.PRINT, "print"},
+		{token.STRING, "OK"},
+		{token.SEMICOLON, ";"},
+		{token.IDENT, "}"},
+		{token.ELSE, "else"},
+		{token.IDENT, "{"},
+		{token.PRINT, "print"},
+		{token.STRING, "FAIL"},
+		{token.SEMICOLON, ";"},
+		{token.IDENT, "}"},
+		{token.EOF, ""},
+	}
+	l := NewLexer(input)
+	for i, tt := range tests {
+		tok := l.NextToken()
+		if tok.Type != tt.expectedType {
+			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
+		}
+		if tok.Literal != tt.expectedLiteral {
+			t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
+		}
+	}
+}
+
 // TestComments ensures that single-line comments work.
 func TestComments(t *testing.T) {
 	input := `// This is a comment
