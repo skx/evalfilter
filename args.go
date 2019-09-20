@@ -121,7 +121,7 @@ func (f *FunctionArgument) Value(self *Evaluator, obj interface{}) interface{} {
 	//
 	// Convert the function reference to something we can use.
 	//
-	out := res.(func(eval *Evaluator, obj interface{}, args ...interface{}) interface{})
+	out := res.(func(eval *Evaluator, obj interface{}, args []Argument) interface{})
 
 	//
 	// Call the function.

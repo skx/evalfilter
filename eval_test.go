@@ -190,7 +190,7 @@ func TestFunction(t *testing.T) {
 
 		obj := New(tst.Input)
 		obj.AddFunction("True",
-			func(eval *Evaluator, obj interface{}, args ...interface{}) interface{} {
+			func(eval *Evaluator, obj interface{}, args []Argument) interface{} {
 				return true
 			})
 

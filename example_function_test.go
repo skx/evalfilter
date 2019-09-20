@@ -62,33 +62,27 @@ return false;
 	// This is just an example :)
 	//
 	eval.AddFunction("length",
-		func(eval *Evaluator, obj interface{}, args ...interface{}) interface{} {
+		func(eval *Evaluator, obj interface{}, args []Argument) interface{} {
 
 			//
-			// Each argument is an array of args.
+			// Loop over the arguments
 			//
 			for _, arg := range args {
 
 				//
-				// The args themselves.
+				// Get the first argument.
 				//
-				for _, n := range arg.([]Argument) {
+				val := arg.Value(eval, obj)
 
-					//
-					// Get the first argument.
-					//
-					val := n.Value(eval, obj)
+				//
+				// Now as a string.
+				//
+				str := fmt.Sprintf("%v", val)
 
-					//
-					// Now as a string.
-					//
-					str := fmt.Sprintf("%v", val)
-
-					//
-					// Return the length
-					//
-					return len(str)
-				}
+				//
+				// Return the length
+				//
+				return len(str)
 			}
 			return 0
 		})

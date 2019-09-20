@@ -44,57 +44,47 @@ func New(input string) *Evaluator {
 
 	// Add default functions
 	e.AddFunction("len",
-		func(eval *Evaluator, obj interface{}, args ...interface{}) interface{} {
+		func(eval *Evaluator, obj interface{}, args []Argument) interface{} {
+
+			len := 0
 
 			//
-			// Each argument is an array of args.
+			// Loop over the arguments.
 			//
 			for _, arg := range args {
 
 				//
-				// The args
+				// Get the string.
 				//
-				for _, n := range arg.([]Argument) {
+				str := fmt.Sprintf("%v", arg.Value(eval, obj))
 
-					//
-					// Get the first
-					//
-					str := n.Value(eval, obj)
+				//
+				// Add the length.
+				//
+				len += utf8.RuneCountInString(str)
 
-					//
-					// Return the length
-					//
-					return (utf8.RuneCountInString(fmt.Sprintf("%v", str)))
-
-				}
 			}
-			return 0
+			return len
 		})
 
 	e.AddFunction("trim",
-		func(eval *Evaluator, obj interface{}, args ...interface{}) interface{} {
+		func(eval *Evaluator, obj interface{}, args []Argument) interface{} {
 
 			//
-			// Each argument is an array of args.
+			// We loop over the args.
 			//
 			for _, arg := range args {
 
 				//
-				// The args
+				// Get the first, as a string-value
 				//
-				for _, n := range arg.([]Argument) {
+				str := fmt.Sprintf("%v", arg.Value(eval, obj))
 
-					//
-					// Get the first
-					//
-					str := n.Value(eval, obj)
+				//
+				// Return the trimmed version
+				//
+				return (strings.TrimSpace(str))
 
-					//
-					// Return the trimmed version
-					//
-					return (strings.TrimSpace(fmt.Sprintf("%v", str)))
-
-				}
 			}
 			return 0
 		})
