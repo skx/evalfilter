@@ -17,10 +17,6 @@ import (
 
 // Evaluator holds our object state
 type Evaluator struct {
-	// Debug is a flag which is used to indicate whether we perform
-	// some minimal tracing to STDOUT during the course of our script
-	// execution.
-	Debug bool
 
 	// Program is the script the user wishes to run.
 	Program string
@@ -41,7 +37,6 @@ type Evaluator struct {
 // the specified script to an object/structure.
 func New(input string) *Evaluator {
 	e := &Evaluator{
-		Debug:     false,
 		Functions: make(map[string]interface{}),
 		Variables: make(map[string]interface{}),
 		Program:   input,
@@ -104,11 +99,6 @@ func New(input string) *Evaluator {
 			return 0
 		})
 
-	// The environmental variable ${EVAL_FILTER_DEBUG} enables
-	// the use of tracing.
-	if os.Getenv("EVAL_FILTER_DEBUG") != "" {
-		e.Debug = true
-	}
 	return e
 }
 

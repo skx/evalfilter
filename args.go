@@ -109,6 +109,9 @@ type FunctionArgument struct {
 // Value returns the result of calling the function we're wrapping.
 func (f *FunctionArgument) Value(self *Evaluator, obj interface{}) interface{} {
 
+	//
+	// Lookup the function.
+	//
 	res, ok := self.Functions[f.Function]
 	if !ok {
 		fmt.Printf("Unknown function: %s\n", f.Function)
@@ -116,12 +119,8 @@ func (f *FunctionArgument) Value(self *Evaluator, obj interface{}) interface{} {
 	}
 
 	//
-	// Are we running with debugging?
+	// Convert the function reference to something we can use.
 	//
-	if self.Debug {
-		fmt.Printf("Calling function: %s\n", f.Function)
-	}
-
 	out := res.(func(eval *Evaluator, obj interface{}, args ...interface{}) interface{})
 
 	//
@@ -130,12 +129,8 @@ func (f *FunctionArgument) Value(self *Evaluator, obj interface{}) interface{} {
 	ret := (out(self, obj, f.Arguments))
 
 	//
-	// Log the result?
+	// Return the result.
 	//
-	if self.Debug {
-		fmt.Printf("\tReturn: %v\n", ret)
-	}
-
 	return ret
 
 }

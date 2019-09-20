@@ -26,7 +26,8 @@ func TestLess(t *testing.T) {
 		{Input: `if ( 1.4 < 2 ) { return false; }`, Result: false},
 		{Input: `if ( 3 <= 3 ) { return true; }`, Result: true},
 		{Input: `if ( 1 <= 3 ) { return false; }`, Result: false},
-		{Input: `if ( Count <= 3 ) { return false; }`, Result: false},
+		{Input: `if ( Count <= 3 ) { print ""; return false; }`, Result: false},
+		{Input: `if ( len("steve") <= 3 ) { return false; } else { return true; }`, Result: true},
 	}
 
 	for _, tst := range tests {
@@ -101,6 +102,7 @@ func TestEq(t *testing.T) {
 
 	tests := []Test{
 		{Input: `if ( Count == 12.4 ) { return true; } return false;`, Result: true},
+		{Input: `if ( len(trim(" steve " ) ) == 5 ) { return true; } return false;`, Result: true},
 		{Input: `if ( Count == 3 ) { return true; } return false;`, Result: false},
 		{Input: `if ( Count != 1 ) { return true; }`, Result: true},
 		{Input: `if ( Count != 12.4 ) { return false; } return true;`, Result: true},
@@ -229,6 +231,34 @@ func TestBool(t *testing.T) {
 		obj := New(tst.Input)
 
 		ret, err := obj.Run(object)
+		if err != nil {
+			t.Fatalf("Found unexpected error running test %s\n", err.Error())
+		}
+
+		if ret != tst.Result {
+			t.Fatalf("Found unexpected result running script")
+		}
+	}
+}
+
+// TestVariable sets a variable.
+func TestVariable(t *testing.T) {
+
+	type Test struct {
+		Input  string
+		Result bool
+	}
+
+	tests := []Test{
+		{Input: `if ( len( $name ) == 5 ) { return true; } return false;`, Result: true},
+	}
+
+	for _, tst := range tests {
+
+		obj := New(tst.Input)
+		obj.SetVariable("name", "Steve")
+
+		ret, err := obj.Run(nil)
 		if err != nil {
 			t.Fatalf("Found unexpected error running test %s\n", err.Error())
 		}
