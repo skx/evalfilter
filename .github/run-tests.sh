@@ -30,7 +30,7 @@ go test ./...
 #
 # Finally look at our test-coverage
 #
-covered=$(go test ./... --cover | awk '{if ($1 != "?") print $5; else print "0.0";}' | sed 's/\%//g' | awk '{s+=$1} END {printf "%.2f\n", s}')
+covered=$(go test ./... --cover | awk '{if ($1 != "?") print $5; else print "100.0";}' | sed 's/\%//g' | awk '{s+=$1} END {printf "%.2f\n", s}')
 sum=$(go test ./... --cover | wc -l)
 
 perc=$(perl -e "print int($covered / $sum);\n"; )
