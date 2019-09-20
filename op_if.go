@@ -24,6 +24,9 @@ type IfOperation struct {
 
 	// Operations to be carried out if the statement matches.
 	True []Operation
+
+	// Operations to be carried out if the statement does not.
+	False []Operation
 }
 
 // Run executes an if statement.
@@ -60,12 +63,26 @@ func (i *IfOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
 			}
 
 		}
+	} else {
 
 		//
-		// At this point we've matched, and we've run
-		// the statements in the block.
+		// The test did not so we should now handle
+		// all the things that are in the `false` list.
 		//
-		return false, false, nil
+		for _, t := range i.False {
+
+			//
+			// Process each operation.
+			//
+			// If this was a return statement then we return
+			//
+			ret, val, err := t.Run(e, obj)
+			if ret {
+				return ret, val, err
+			}
+
+		}
+
 	}
 
 	return false, false, nil
