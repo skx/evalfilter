@@ -100,7 +100,7 @@ The engine supports scripts which:
 
 You'll note that you're referring to structure-fields by name, they are found dynamically via reflection.
 
-`if` conditions can be nested as the following sample shows, but note that there is no support for `else` clauses.
+`if` conditions can be nested as the following sample shows, and also support an `else` clause.
 
 
      if ( Count > 10 ) {
@@ -108,6 +108,8 @@ You'll note that you're referring to structure-fields by name, they are found dy
 
          if ( Count > 50 ) {
               print "The count is super-big!\n";
+         } else {
+              print "The count is somewhat high!\n";
          }
      }
 
