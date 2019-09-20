@@ -92,18 +92,6 @@ func (i *IfOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
 func (i *IfOperation) doesMatch(e *Evaluator, obj interface{}) (bool, error) {
 
 	//
-	// Show detail(s) if we're running with a debug-flag
-	//
-	if e.Debug {
-		if i.Op != "" {
-			fmt.Printf("IF %v %s %v;\n", i.Left.Value(e, obj), i.Op, i.Right.Value(e, obj))
-		} else {
-			fmt.Printf("IF ( %v );\n", i.Left.Value(e, obj))
-		}
-
-	}
-
-	//
 	// Expand the left & right sides of the conditional
 	//
 	lVal := i.Left.Value(e, obj)
