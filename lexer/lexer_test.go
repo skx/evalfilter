@@ -211,3 +211,71 @@ which continues";
 		}
 	}
 }
+
+// TestRewind tests that we can rewind our input.
+func TestRewind(t *testing.T) {
+	input := `"Steve" , "Kemp"`
+
+	tests := []struct {
+		expectedType    token.Type
+		expectedLiteral string
+	}{
+		{token.STRING, "Steve"},
+		{token.COMMA, ","},
+		{token.COMMA, ","},
+		{token.STRING, "Kemp"},
+		{token.EOF, ""},
+	}
+
+	rewound := false
+	l := NewLexer(input)
+	for i, tt := range tests {
+		tok := l.NextToken()
+		if tok.Type != tt.expectedType {
+			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
+		}
+		if tok.Literal != tt.expectedLiteral {
+			t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
+		}
+
+		if tok.Type == token.COMMA && !rewound {
+			l.Rewind(tok)
+			rewound = true
+		}
+	}
+}
+
+// TestTypes tests we can see ident, function calls , and variables.
+func TestTypes(t *testing.T) {
+	input := `foo("steve"); $type`
+
+	tests := []struct {
+		expectedType    token.Type
+		expectedLiteral string
+	}{
+		{token.FUNCALL, "foo"},
+		{token.LBRACKET, "("},
+		{token.STRING, "steve"},
+		{token.RBRACKET, ")"},
+		{token.SEMICOLON, ";"},
+		{token.VARIABLE, "type"},
+		{token.EOF, ""},
+	}
+
+	rewound := false
+	l := NewLexer(input)
+	for i, tt := range tests {
+		tok := l.NextToken()
+		if tok.Type != tt.expectedType {
+			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
+		}
+		if tok.Literal != tt.expectedLiteral {
+			t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
+		}
+
+		if tok.Type == token.COMMA && !rewound {
+			l.Rewind(tok)
+			rewound = true
+		}
+	}
+}
