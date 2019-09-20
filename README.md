@@ -154,9 +154,11 @@ The following functions are built-in, and available by default:
 
 ## Variables
 
-Your host application can register variables which are accessible to your scripting environment via the `AddVariable` method.  The variables can have their values updated at any time before the call to `Eval` is made.
+Your host application can register variables which are accessible to your scripting environment via the `SetVariable` method.  The variables can have their values updated at any time before the call to `Eval` is made.
 
-For example the following script sets the variable `time` which is updated every second - **NOTE**: Variables are accessed with a `$`-prefix
+* **NOTE**: Variables are accessed with a `$`-prefix inside the users' script
+
+For example the following script sets the variable `time` which is updated every second:
 
     eval := evalfilter.New(`print "The time is ", $time, "\n";
                             return false;`)
