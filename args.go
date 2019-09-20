@@ -57,17 +57,6 @@ func (s *BooleanArgument) Value(self *Evaluator, obj interface{}) interface{} {
 	return s.Content
 }
 
-// StringArgument holds a literal string.
-type StringArgument struct {
-	// Content holds the string literal.
-	Content string
-}
-
-// Value returns the string content we're wrapping.
-func (s *StringArgument) Value(self *Evaluator, obj interface{}) interface{} {
-	return s.Content
-}
-
 // FieldArgument holds a reference to an object's field value.
 type FieldArgument struct {
 	// Field the name of the structure/object field we return.
@@ -133,6 +122,17 @@ func (f *FunctionArgument) Value(self *Evaluator, obj interface{}) interface{} {
 	//
 	return ret
 
+}
+
+// StringArgument holds a literal string.
+type StringArgument struct {
+	// Content holds the string literal.
+	Content string
+}
+
+// Value returns the string content we're wrapping.
+func (s *StringArgument) Value(self *Evaluator, obj interface{}) interface{} {
+	return s.Content
 }
 
 // VariableArgument holds a reference to a variable set by the golang
