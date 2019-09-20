@@ -1,6 +1,8 @@
 package evalfilter
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -23,10 +25,11 @@ func TestLess(t *testing.T) {
 
 	tests := []Test{
 		{Input: `if ( 1 < 4 ) { return true; }`, Result: true},
+		{Input: `if ( 1 < 4 ) { return true; } else { print "help!"; return false;}`, Result: true},
 		{Input: `if ( 1.4 < 2 ) { return false; }`, Result: false},
 		{Input: `if ( 3 <= 3 ) { return true; }`, Result: true},
 		{Input: `if ( 1 <= 3 ) { return false; }`, Result: false},
-		{Input: `if ( Count <= 3 ) { print ""; return false; }`, Result: false},
+		{Input: `if ( Count <= 3 ) { print "", ""; return false; }`, Result: false},
 		{Input: `if ( len("steve") <= 3 ) { return false; } else { return true; }`, Result: true},
 	}
 
@@ -103,6 +106,7 @@ func TestEq(t *testing.T) {
 	tests := []Test{
 		{Input: `if ( Count == 12.4 ) { return true; } return false;`, Result: true},
 		{Input: `if ( len(trim(" steve " ) ) == 5 ) { return true; } return false;`, Result: true},
+		{Input: `if ( len(trim() ) == 0 ) { return true; } return false;`, Result: true},
 		{Input: `if ( Count == 3 ) { return true; } return false;`, Result: false},
 		{Input: `if ( Count != 1 ) { return true; }`, Result: true},
 		{Input: `if ( Count != 12.4 ) { return false; } return true;`, Result: true},
@@ -184,6 +188,7 @@ func TestFunction(t *testing.T) {
 		{Input: `if ( True() ) { return true; } return false;`, Result: true},
 		{Input: `if ( True() == false ) { return true; } return false;`, Result: false},
 		{Input: `if ( True() ~= "true" ) { return true; } return false;`, Result: true},
+		{Input: `True(); return false;`, Result: false},
 	}
 
 	for _, tst := range tests {
@@ -265,6 +270,58 @@ func TestVariable(t *testing.T) {
 
 		if ret != tst.Result {
 			t.Fatalf("Found unexpected result running script")
+		}
+	}
+}
+
+// TestParseErrors parses bogus programs, and ensures that their errors
+// are caught.
+func TestParseErrors(t *testing.T) {
+	tests := []string{
+		`return false`,
+		`if`,
+		`if ( 1 != 1 `,
+		`if ( 1 != 1 )`,
+		`if ( 1 != 1 ) {`,
+		`if ( 1 != 1 ) { return true ;`,
+		`if ( 1 == 1 ) { return true ; } else `,
+	}
+
+	for _, tst := range tests {
+
+		fmt.Printf("Parsing: %s\n", tst)
+		obj := New(tst)
+		_, err := obj.Run(nil)
+
+		if err == nil {
+			t.Fatalf("Found no error, but expected to do so")
+		}
+
+		if !strings.Contains(err.Error(), "expected") &&
+			!strings.Contains(err.Error(), "EOF") {
+			t.Fatalf("The error we found didn't match what we expected: %s", err.Error())
+		}
+	}
+}
+
+// TestReturn ensures that scripts with no return are bogus.
+func TestReturn(t *testing.T) {
+	tests := []string{
+		`trim();`,
+		``,
+	}
+
+	for _, tst := range tests {
+
+		obj := New(tst)
+		_, err := obj.Run(nil)
+
+		if err == nil {
+			t.Fatalf("Found no error, but expected to do so")
+		}
+
+		if !strings.Contains(err.Error(), "failed to terminate with a return statement") {
+			t.Fatalf("The error we found didn't match what we expected: %s", err.Error())
 		}
 	}
 }
