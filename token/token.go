@@ -26,6 +26,7 @@ const (
 	VARIABLE  = "VARIABLE"
 
 	// Our keywords.
+	ELSE   = "else"
 	FALSE  = "false"
 	IF     = "if"
 	PRINT  = "print"
@@ -35,6 +36,7 @@ const (
 
 // keywords holds our reversed keywords
 var keywords = map[string]Type{
+	"else":   ELSE,
 	"false":  FALSE,
 	"if":     IF,
 	"print":  PRINT,

@@ -22,6 +22,9 @@ type Lexer struct {
 
 	// The input string we're reading from.
 	characters []rune
+
+	// If we need to rewind a token we can do that here.
+	rewind token.Token
 }
 
 // NewLexer creates a Lexer instance from the specified string input.
@@ -42,9 +45,23 @@ func (l *Lexer) readChar() {
 	l.readPosition++
 }
 
+// Rewind reinserts a token into our stream.
+func (l *Lexer) Rewind(tok token.Token) {
+	l.rewind = tok
+}
+
 // NextToken will read the next token, skipping any white space, and ignoring
 // comments - which begin with `//`.
 func (l *Lexer) NextToken() token.Token {
+
+	//
+	// If we've been rewound return that token.
+	//
+	if l.rewind.Literal != "" {
+		tmp := l.rewind
+		l.rewind.Literal = ""
+		return tmp
+	}
 
 	var tok token.Token
 	l.skipWhitespace()
