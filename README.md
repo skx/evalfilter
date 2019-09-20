@@ -124,8 +124,8 @@ For example you might have a list of people, which you wish to filter by the len
       Name string
       Age  int
     }
-	people := []Person{
-	    {"Bob", 31},
+    people := []Person{
+        {"Bob", 31},
         {"John", 42},
         {"Michael", 17},
         {"Jenny", 26},
@@ -158,28 +158,28 @@ Your host application can register variables which are accessible to your script
 
 For example the following script sets the variable `time` which is updated every second - **NOTE**: Variables are accessed with a `$`-prefix
 
-	eval := evalfilter.New(`print "The time is ", $time, "\n";
+    eval := evalfilter.New(`print "The time is ", $time, "\n";
                             return false;`)
 
-	for {
+    for {
 
         // Set the variable `$time` to be the seconds past the epoch.
-		eval.SetVariable("time", fmt.Sprintf("%v", time.Now().Unix()))
+        eval.SetVariable("time", fmt.Sprintf("%v", time.Now().Unix()))
 
         // Run the script.
-		ret, err := eval.Run(nil)
+        ret, err := eval.Run(nil)
 
         // If there are errors - abort
-		if err != nil {
-			panic(err)
-		}
+        if err != nil {
+            panic(err)
+        }
 
         // Show the result
-		fmt.Printf("Script gave result %v\n", ret)
+        fmt.Printf("Script gave result %v\n", ret)
 
         // Update every second.
 
-		time.Sleep(1 * time.Second)
+        time.Sleep(1 * time.Second)
     }
 
 
