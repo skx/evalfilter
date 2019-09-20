@@ -158,7 +158,7 @@ Your host application can register variables which are accessible to your script
 
 * **NOTE**: Variables are accessed with a `$`-prefix inside the users' script
 
-For example the following script sets the variable `time` which is updated every second:
+For example the following example sets the contents of the variable `time`, and then outputs it.  Every second the output will change, because the value has been updated:
 
     eval := evalfilter.New(`print "The time is ", $time, "\n";
                             return false;`)
