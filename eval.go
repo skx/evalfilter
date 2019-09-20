@@ -341,27 +341,66 @@ block:
 	}
 
 	//
-	// The list of statements to execute when the if-statement
-	// matches
+	// The list of statements to execute when the if-statement matches,
+	// or fails to match.
 	//
-	var Matches []Operation
+	var True []Operation
+	var False []Operation
 
 	// Now we should parse the statement.
 	b := l.NextToken()
 
-body:
+true_body:
 	stmt, err := e.parseOperation(b, l)
 	if err != nil {
 		return &IfOperation{}, err
 	}
 
-	Matches = append(Matches, stmt)
+	True = append(True, stmt)
 
 	b = l.NextToken()
 	if b.Literal != "}" {
-		goto body
+		goto true_body
 	}
-	return &IfOperation{Left: left, Right: right, Op: op, True: Matches}, nil
+
+	//
+	// Now look for else
+	//
+	el := l.NextToken()
+	if el.Type != token.ELSE {
+		l.Rewind(el)
+
+		return &IfOperation{Left: left, Right: right, Op: op,
+			True:  True,
+			False: False}, nil
+	}
+
+	// skip the {
+	skip = l.NextToken()
+	if skip.Literal != "{" {
+		return &IfOperation{}, fmt.Errorf("expected '{' after 'else' got %v", skip)
+	}
+
+	// Now we should parse the statement.
+	b = l.NextToken()
+
+false_body:
+	stmt, err = e.parseOperation(b, l)
+	if err != nil {
+		return &IfOperation{}, err
+	}
+
+	False = append(False, stmt)
+
+	b = l.NextToken()
+	if b.Literal != "}" {
+		goto false_body
+	}
+
+	return &IfOperation{Left: left, Right: right, Op: op,
+		True:  True,
+		False: False}, nil
+
 }
 
 // Run executes the user-supplied script against the specified object.
