@@ -1,8 +1,10 @@
-// Package evalfilter allows you to run simple  tests against objects or
-// structs implemented in golang, via the use of user-supplied scripts
+// Package evalfilter allows you to run simple tests against objects or
+// structs implemented in golang, via the use of user-supplied scripts.
 //
 // Since the result of running tests against objects is a boolean/binary
 // "yes/no" result it is perfectly suited to working as a filter.
+//
+// It is not designed to be a general purpose embedded scripting language.
 package evalfilter
 
 import (
@@ -18,24 +20,27 @@ import (
 // Evaluator holds our object state
 type Evaluator struct {
 
+	// Bytecode operations are stored here.
+	Bytecode []Operation
+
 	// Program is the script the user wishes to run.
 	Program string
 
 	// Functions contains references to helper functions which
-	// have been made available to the user-script.
+	// have been made available to the user-script and which are
+	// implemented outside this package in the golang host-application.
 	Functions map[string]interface{}
 
-	// Bytecode operations are stored here
-	Bytecode []Operation
-
 	// Variables contains references to variables set via
-	// the golang host application.
+	// the golang host-application.
 	Variables map[string]interface{}
 }
 
 // New returns a new evaluation object, which can be used to apply
 // the specified script to an object/structure.
 func New(input string) *Evaluator {
+
+	// Create a stub object.
 	e := &Evaluator{
 		Functions: make(map[string]interface{}),
 		Variables: make(map[string]interface{}),
@@ -86,13 +91,16 @@ func New(input string) *Evaluator {
 				return (strings.TrimSpace(str))
 
 			}
-			return 0
+			return ""
 		})
 
+	// Return the configured object.
 	return e
 }
 
 // AddFunction adds a function to our runtime.
+//
+// Once a function has been added it may be used by the filter script.
 func (e *Evaluator) AddFunction(name string, fun interface{}) {
 	e.Functions[name] = fun
 }
@@ -111,10 +119,30 @@ func (e *Evaluator) SetVariable(name string, value interface{}) {
 //
 // This is abstracted into a routine of its own so that we can
 // either parse the stream of tokens for the full-script, or parse
-// the block which is used inside an IF statement.
+// the blocks which is used for `if` statements.
 func (e *Evaluator) parseOperation(tok token.Token, l *lexer.Lexer) (Operation, error) {
 
 	switch tok.Type {
+
+	//
+	// `eval`
+	//
+	case token.FUNCALL:
+
+		//
+		// Eval is a special case, because we're basically making
+		// a function-call but throwing away the result.
+		//
+
+		//
+		// Parse the function into a callable argument.
+		//
+		arg := e.tokenToArgument(tok, l)
+
+		//
+		// Now append the eval-operation
+		//
+		return &EvalOperation{Value: arg}, nil
 
 	//
 	// `if`
@@ -481,6 +509,13 @@ func (e *Evaluator) tokenToArgument(tok token.Token, lexer *lexer.Lexer) Argumen
 			args = append(args, e.tokenToArgument(t, lexer))
 
 		}
+
+		// Skip the optional, but expected, trailing ";"
+		skip := lexer.NextToken()
+		if skip.Type != token.SEMICOLON {
+			lexer.Rewind(skip)
+		}
+
 		tmp = &FunctionArgument{Function: tok.Literal,
 			Arguments: args}
 	case token.IDENT:
