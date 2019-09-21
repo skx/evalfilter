@@ -105,6 +105,12 @@ func (p *Parser) parseIF(l *lexer.Lexer) (runtime.Operation, error) {
 	var op string
 
 	//
+	// We build up a list of expressions
+	//
+	var expr []runtime.IfExpression
+	exprType := "and"
+
+	//
 	// skip the (
 	//
 	skip := l.NextToken()
@@ -112,6 +118,7 @@ func (p *Parser) parseIF(l *lexer.Lexer) (runtime.Operation, error) {
 		return &runtime.IfOperation{}, fmt.Errorf("expected '(' got %v", skip)
 	}
 
+expr:
 	//
 	// Get the first operand.
 	//
@@ -147,7 +154,7 @@ func (p *Parser) parseIF(l *lexer.Lexer) (runtime.Operation, error) {
 		// leaving `Right` and `Op` at their default
 		// values
 		//
-		op = ""
+		expr = append(expr, runtime.IfExpression{Left: left})
 		goto block
 	}
 
@@ -158,12 +165,27 @@ func (p *Parser) parseIF(l *lexer.Lexer) (runtime.Operation, error) {
 	t = l.NextToken()
 	right = p.tokenToArgument(t, l)
 
-	// skip the )
-	skip = l.NextToken()
-	if skip.Literal != ")" {
-		return &runtime.IfOperation{}, fmt.Errorf("expected ')' got %v", skip)
-	}
+	//
+	// Add on the expression
+	//
+	expr = append(expr, runtime.IfExpression{Left: left, Right: right, Op: op})
 
+	//
+	// Loop?
+	//
+	skip = l.NextToken()
+	if skip.Literal == ")" {
+		goto block
+	}
+	if skip.Type == token.AND {
+		exprType = "and"
+		goto expr
+	}
+	if skip.Type == token.OR {
+		exprType = "or"
+		goto expr
+	}
+	return &runtime.IfOperation{}, fmt.Errorf("unterminated if expression: %v", skip)
 block:
 	// skip the {
 	skip = l.NextToken()
@@ -201,9 +223,10 @@ true_body:
 	if el.Type != token.ELSE {
 		l.Rewind(el)
 
-		return &runtime.IfOperation{Left: left, Right: right, Op: op,
-			True:  True,
-			False: False}, nil
+		return &runtime.IfOperation{Expressions: expr,
+			ExpressionType: exprType,
+			True:           True,
+			False:          False}, nil
 	}
 
 	// skip the {
@@ -228,9 +251,10 @@ false_body:
 		goto false_body
 	}
 
-	return &runtime.IfOperation{Left: left, Right: right, Op: op,
-		True:  True,
-		False: False}, nil
+	return &runtime.IfOperation{Expressions: expr,
+		ExpressionType: exprType,
+		True:           True,
+		False:          False}, nil
 
 }
 

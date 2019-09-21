@@ -10,8 +10,27 @@ import (
 	"github.com/skx/evalfilter/environment"
 )
 
-// IfOperation holds state for the `if` operation
-type IfOperation struct {
+// IfExpression contains an expression which can be contained within a list.
+//
+// The intention here is that we generally allow:
+//
+//   if ( a == b ) { ..
+//
+// But we also want to allow:
+//
+//  if ( a == b AND b == c ) { ..
+//
+// The simplest way to do that is to allow an array of expressions, and
+// test them all.  In the case of `and` we are a match if all the expressions
+// match.  In the case of `or` we're a match if at least one does.
+//
+// This only works because we don't allow grouping, so we cannot say:
+//
+//  if ( a == b AND c == d OR foo == bar ) { .. }
+//
+// If we parsed real expressions we should do that ..
+type IfExpression struct {
+
 	// Left argument
 	Left Argument
 
@@ -23,6 +42,17 @@ type IfOperation struct {
 	// If only a single argument is passed to the `if` operation
 	// then the left-most argument will be tested for "truthiness".
 	Op string
+}
+
+// IfOperation holds state for the `if` operation
+type IfOperation struct {
+
+	// Expressions contain a list of expressions to
+	// evaluate.
+	Expressions []IfExpression
+
+	// Are the expression list "and" or "or"?
+	ExpressionType string
 
 	// Operations to be carried out if the statement matches.
 	True []Operation
@@ -93,16 +123,68 @@ func (i *IfOperation) Run(env *environment.Environment, obj interface{}) (bool, 
 // doesMatch runs the actual comparison for the if-statement.
 func (i *IfOperation) doesMatch(env *environment.Environment, obj interface{}) (bool, error) {
 
+	// All expressions must match.
+	if i.ExpressionType == "and" {
+
+		// For each expression
+		for _, e := range i.Expressions {
+
+			// Test it
+			match, err := i.doesMatchTest(env, obj, e.Left, e.Right, e.Op)
+			if err != nil {
+				return match, err
+			}
+
+			// If it didn't match then we're done.
+			if !match {
+				return false, nil
+			}
+		}
+
+		// If we got here then we do have a match.
+		return true, nil
+	}
+
+	// At least one expression must match.
+	if i.ExpressionType == "or" {
+
+		// Did at least one expression match?
+		matched := false
+
+		// For each expression.
+		for _, e := range i.Expressions {
+
+			// Test it
+			match, err := i.doesMatchTest(env, obj, e.Left, e.Right, e.Op)
+			if err != nil {
+				return match, err
+			}
+
+			// If it matched then record that.
+			if match {
+				matched = true
+			}
+		}
+
+		// If at least one expression matched then we're good.
+		return matched, nil
+	}
+
+	return false, fmt.Errorf("unknown if-expression-type")
+}
+
+// doesMatchTest tests a single expression.
+func (i *IfOperation) doesMatchTest(env *environment.Environment, obj interface{}, left Argument, right Argument, op string) (bool, error) {
+
 	//
 	// Expand the left & right sides of the conditional
 	//
-	lVal := i.Left.Value(env, obj)
+	lVal := left.Value(env, obj)
 
 	//
 	// Single argument form?
 	//
-
-	if i.Op == "" {
+	if op == "" {
 
 		//
 		// Is the result true/false?
@@ -114,7 +196,7 @@ func (i *IfOperation) doesMatch(env *environment.Environment, obj interface{}) (
 		return false, nil
 	}
 
-	rVal := i.Right.Value(env, obj)
+	rVal := right.Value(env, obj)
 
 	//
 	// Convert to strings, in case they're needed for the early
@@ -128,22 +210,22 @@ func (i *IfOperation) doesMatch(env *environment.Environment, obj interface{}) (
 	//
 
 	// Equality - string and number.
-	if i.Op == "==" {
+	if op == "==" {
 		return (lStr == rStr), nil
 	}
 
 	// Inequality - string and number.
-	if i.Op == "!=" {
+	if op == "!=" {
 		return (lStr != rStr), nil
 	}
 
 	// String-contains
-	if i.Op == "~=" {
+	if op == "~=" {
 		return strings.Contains(lStr, rStr), nil
 	}
 
 	// String does not contain
-	if i.Op == "!~" {
+	if op == "!~" {
 		return !strings.Contains(lStr, rStr), nil
 	}
 
@@ -172,23 +254,23 @@ func (i *IfOperation) doesMatch(env *environment.Environment, obj interface{}) (
 	//
 	// Now operate.
 	//
-	if i.Op == ">" {
+	if op == ">" {
 		return (a > b), nil
 	}
-	if i.Op == ">=" {
+	if op == ">=" {
 		return (a >= b), nil
 	}
-	if i.Op == "<" {
+	if op == "<" {
 		return (a < b), nil
 	}
-	if i.Op == "<=" {
+	if op == "<=" {
 		return (a <= b), nil
 	}
 
 	//
 	// Invalid operator?
 	//
-	return false, fmt.Errorf("unknown operator %v", i.Op)
+	return false, fmt.Errorf("unknown operator %v", op)
 }
 
 // toNumberArg tries to convert the given interface to a float64 value.

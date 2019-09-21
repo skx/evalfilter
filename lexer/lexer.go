@@ -87,6 +87,19 @@ func (l *Lexer) NextToken() token.Token {
 	case rune(0):
 		tok.Literal = ""
 		tok.Type = token.EOF
+	case rune('&'):
+		if l.peekChar() == rune('&') {
+			tok.Literal = "and"
+			tok.Type = token.AND
+			l.readChar()
+		}
+	case rune('|'):
+		if l.peekChar() == rune('|') {
+			tok.Literal = "or"
+			tok.Type = token.OR
+			l.readChar()
+
+		}
 	case rune(';'):
 		tok.Literal = ";"
 		tok.Type = token.SEMICOLON
