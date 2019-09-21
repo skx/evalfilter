@@ -1,10 +1,12 @@
 // Package evalfilter allows you to run simple tests against objects or
 // structs implemented in golang, via the use of user-supplied scripts.
 //
-// Since the result of running tests against objects is a boolean/binary
+// Since the result of running tests against objects is a binary
 // "yes/no" result it is perfectly suited to working as a filter.
 //
-// It is not designed to be a general purpose embedded scripting language.
+// In short this allows you to provide user-customization of your host
+// application, but it is explicitly not designed to be a general purpose
+// embedded scripting language.
 package evalfilter
 
 import (
@@ -17,7 +19,7 @@ import (
 	"github.com/skx/evalfilter/token"
 )
 
-// Evaluator holds our object state
+// Evaluator holds our object state.
 type Evaluator struct {
 
 	// Bytecode operations are stored here.
@@ -148,6 +150,10 @@ func (e *Evaluator) parseOperation(tok token.Token, l *lexer.Lexer) (Operation, 
 	// `if`
 	//
 	case token.IF:
+
+		// The `if` statement is our most complex case, and it
+		// will not get simpler, so it is moved into its own
+		// routine.
 		return e.parseIF(l)
 
 	//
@@ -158,13 +164,14 @@ func (e *Evaluator) parseOperation(tok token.Token, l *lexer.Lexer) (Operation, 
 		// Get the value this token returns
 		val := l.NextToken()
 
-		// The next token should be a semi-colon
+		// The token after that should be a semi-colon.
 		tmp := l.NextToken()
 		if tmp.Type != token.SEMICOLON {
 			return nil, fmt.Errorf("expected ';' after return-value")
 
 		}
-		// Update our bytecode
+
+		// Return the operation.
 		return &ReturnOperation{Value: val.Literal == "true"}, nil
 
 	//
@@ -212,6 +219,12 @@ func (e *Evaluator) parseOperation(tok token.Token, l *lexer.Lexer) (Operation, 
 		return &PrintOperation{Values: tmp}, nil
 
 	}
+
+	//
+	// If we hit this point we've received input that we don't
+	// recognize - either because it was invalid, or because we've
+	// become unsynced in our token-stream.
+	//
 	return nil, fmt.Errorf("failed to parse token type %s : %s", tok.Type, tok)
 }
 
