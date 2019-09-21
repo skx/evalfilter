@@ -2,13 +2,14 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/skx/evalfilter)](https://goreportcard.com/report/github.com/skx/evalfilter)
 [![license](https://img.shields.io/github/license/skx/evalfilter.svg)](https://github.com/skx/evalfilter/blob/master/LICENSE)
 
-* [Sample Use](#sample-use)
-* [Scripting Facilities](#scripting-facilities)
-* [Function Invocation](#function-invocation)
-   * [Built-In Functions](#built-in-functions)
-* [Variables](#variables)
-* [Alternatives](#alternatives)
-* [Github Setup](#github-setup)
+* [eval-filter](#eval-filter)
+  * [Sample Use](#sample-use)
+  * [Scripting Facilities](#scripting-facilities)
+  * [Function Invocation](#function-invocation)
+    * [Built-In Functions](#built-in-functions)
+  * [Variables](#variables)
+  * [Alternatives](#alternatives)
+  * [Github Setup](#github-setup)
 
 
 
@@ -16,10 +17,18 @@
 
 The evalfilter package provides an embeddable evaluation-engine, which allows simple logic which might otherwise be hardwired into your golang application to be delegated to (user-written) script(s).
 
-There is no shortage of embeddable languages which are available to the golang world, but this library is intended to be simpler; the ideal use case is defining rules which are applied to run tests against objects.
+There is no shortage of embeddable languages which are available to the golang world, this library is intended to be less complex, allowing only simple tests to be made against structures/objects.  That said the flexibility present means that if you don't need full scripting support this might just be sufficient for your needs.
 
-To give a feel for the way it works you may consult the simple example in the file [example_test.go](example_test.go), which filters a list of people by their age.
+* The backstory behind this project is explained in [this blog-post](https://blog.steve.fi/a_slack_hack.html)
 
+To give you a quick feel for how things look you could consult:
+
+* [example_test.go](example_test.go).
+  * This filters a list of people by their age.
+* [example_function_test.go](example_test_test.go).
+  * This exports a function from the golang-host application to the script.
+  * Then uses that to filter a list of people.
+* Some other simple examples are available beneath the [_examples/](_examples/) directory.
 
 
 ## Sample Use
@@ -53,8 +62,8 @@ The user could now write following script to let you know that the incoming mess
     // or
     //   return true;
     //
-    // Your host application may decide to do something interesting
-    // when it receives a `true` result, and nothing when it sees `false`.
+    // Your host application will then carry out the interesting operation
+    // when it receives a `true` result.
     //
 
     //
@@ -88,6 +97,7 @@ The engine supports scripts which:
     * "`if ( Count != 3 ) { return true; }`"
   * size (`<`, `<=`, `>`, `>=`):
     * "`if ( Count >= 10 ) { return false; }`"
+    * "`if ( Hour >= 8 && Hour <= 17 ) { return false; }`"
   * String contains:
     * "`if ( Content ~= "needle" )`"
   * Does not contain:
