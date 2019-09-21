@@ -1,0 +1,22 @@
+//
+// Test `or` in the `if` statement.
+/
+
+
+//
+// Look for either username.
+//
+if ( Username == "bin" or Username == "sys" ) {
+
+  print "**********************************************************************\n";
+  print "*** We found 'sys'  or 'bin'\n";
+  print "**********************************************************************\n";
+
+  return true;
+}
+
+
+//
+// All over.
+//
+return false;
