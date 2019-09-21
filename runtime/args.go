@@ -1,7 +1,11 @@
-// The operations we allow users to implement use "runtime.Argument" as an
-// abstract type.
+// Package runtime defines the things that relate to our runtime, whether
+// that is the return-result from the parser, or the actual execution of
+// the operations.
 //
-// There are several types of arguments that we allow:
+// We allow a number of things to be handled at runtime.  The most important
+// is the handling of arguments, which are deferred to the interface
+// runtime.Argument.  The Argument type allows us to treat each of the
+// possible argument-types as generic:
 //
 // * Literal integers / strings / booleans.
 //
