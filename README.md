@@ -25,7 +25,7 @@ To give you a quick feel for how things look you could consult:
 
 * [example_test.go](example_test.go).
   * This filters a list of people by their age.
-* [example_function_test.go](example_test_test.go).
+* [example_function_test.go](example_function_test.go).
   * This exports a function from the golang-host application to the script.
   * Then uses that to filter a list of people.
 * Some other simple examples are available beneath the [_examples/](_examples/) directory.
