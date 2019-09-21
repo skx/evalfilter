@@ -185,7 +185,7 @@ expr:
 		exprType = "or"
 		goto expr
 	}
-	return &runtime.IfOperation{}, fmt.Errorf("Unterminated if expression: %v", skip)
+	return &runtime.IfOperation{}, fmt.Errorf("unterminated if expression: %v", skip)
 block:
 	// skip the {
 	skip = l.NextToken()
