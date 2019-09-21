@@ -57,39 +57,94 @@ func TestStringEscape(t *testing.T) {
 	}
 }
 
-// TestIf ensures that an if statement can be handled.
-func TestIf(t *testing.T) {
-	input := `if ( true ) { print "OK"; } else { print "FAIL"; }`
+// TestIfAnd ensures that an if statement can be handled.
+func TestIfAnd(t *testing.T) {
 
-	tests := []struct {
-		expectedType    token.Type
-		expectedLiteral string
-	}{
-		{token.IF, "if"},
-		{token.LBRACKET, "("},
-		{token.TRUE, "true"},
-		{token.RBRACKET, ")"},
-		{token.IDENT, "{"},
-		{token.PRINT, "print"},
-		{token.STRING, "OK"},
-		{token.SEMICOLON, ";"},
-		{token.IDENT, "}"},
-		{token.ELSE, "else"},
-		{token.IDENT, "{"},
-		{token.PRINT, "print"},
-		{token.STRING, "FAIL"},
-		{token.SEMICOLON, ";"},
-		{token.IDENT, "}"},
-		{token.EOF, ""},
+	tests := []string{
+		`if ( true  &&  true ) { print "OK"; } else { print "FAIL"; }`,
+		`if ( true and true ) { print "OK"; } else { print "FAIL"; }`,
 	}
-	l := NewLexer(input)
-	for i, tt := range tests {
-		tok := l.NextToken()
-		if tok.Type != tt.expectedType {
-			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
+
+	for _, input := range tests {
+
+		tests := []struct {
+			expectedType    token.Type
+			expectedLiteral string
+		}{
+			{token.IF, "if"},
+			{token.LBRACKET, "("},
+			{token.TRUE, "true"},
+			{token.AND, "and"},
+			{token.TRUE, "true"},
+			{token.RBRACKET, ")"},
+			{token.IDENT, "{"},
+			{token.PRINT, "print"},
+			{token.STRING, "OK"},
+			{token.SEMICOLON, ";"},
+			{token.IDENT, "}"},
+			{token.ELSE, "else"},
+			{token.IDENT, "{"},
+			{token.PRINT, "print"},
+			{token.STRING, "FAIL"},
+			{token.SEMICOLON, ";"},
+			{token.IDENT, "}"},
+			{token.EOF, ""},
 		}
-		if tok.Literal != tt.expectedLiteral {
-			t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
+		l := NewLexer(input)
+		for i, tt := range tests {
+			tok := l.NextToken()
+			if tok.Type != tt.expectedType {
+				t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
+			}
+			if tok.Literal != tt.expectedLiteral {
+				t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
+			}
+		}
+	}
+}
+
+// TestIfOr ensures that an if statement can be handled.
+func TestIfOr(t *testing.T) {
+
+	tests := []string{
+		`if ( true || true ) { print "OK"; } else { print "FAIL"; }`,
+		`if ( true or true ) { print "OK"; } else { print "FAIL"; }`,
+	}
+
+	for _, input := range tests {
+
+		tests := []struct {
+			expectedType    token.Type
+			expectedLiteral string
+		}{
+			{token.IF, "if"},
+			{token.LBRACKET, "("},
+			{token.TRUE, "true"},
+			{token.OR, "or"},
+			{token.TRUE, "true"},
+			{token.RBRACKET, ")"},
+			{token.IDENT, "{"},
+			{token.PRINT, "print"},
+			{token.STRING, "OK"},
+			{token.SEMICOLON, ";"},
+			{token.IDENT, "}"},
+			{token.ELSE, "else"},
+			{token.IDENT, "{"},
+			{token.PRINT, "print"},
+			{token.STRING, "FAIL"},
+			{token.SEMICOLON, ";"},
+			{token.IDENT, "}"},
+			{token.EOF, ""},
+		}
+		l := NewLexer(input)
+		for i, tt := range tests {
+			tok := l.NextToken()
+			if tok.Type != tt.expectedType {
+				t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
+			}
+			if tok.Literal != tt.expectedLiteral {
+				t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
+			}
 		}
 	}
 }
@@ -277,5 +332,26 @@ func TestTypes(t *testing.T) {
 			l.Rewind(tok)
 			rewound = true
 		}
+	}
+}
+
+// TestEOF handles testing bound-checking
+func TestEOF(t *testing.T) {
+	input := ` `
+
+	// Parse
+	l := NewLexer(input)
+
+	for {
+		tk := l.NextToken()
+		if tk.Type == token.EOF {
+			break
+		}
+	}
+
+	// Now we're at the end
+	final := l.peekChar()
+	if final != rune(0) {
+		t.Fatalf("peeking past the EOF didn't give us nil")
 	}
 }
