@@ -1,8 +1,12 @@
 // This file contains the implementation for the print operation
 
-package evalfilter
+package runtime
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/skx/evalfilter/environment"
+)
 
 // PrintOperation holds state for the `print` operation.
 type PrintOperation struct {
@@ -11,9 +15,9 @@ type PrintOperation struct {
 }
 
 // Run runs the print operation.
-func (p *PrintOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
+func (p *PrintOperation) Run(env *environment.Environment, obj interface{}) (bool, bool, error) {
 	for _, val := range p.Values {
-		fmt.Printf("%v", val.Value(e, obj))
+		fmt.Printf("%v", val.Value(env, obj))
 	}
 	return false, false, nil
 }

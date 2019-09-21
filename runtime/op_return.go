@@ -1,6 +1,8 @@
 // This file contains the implementation for the return operation
 
-package evalfilter
+package runtime
+
+import "github.com/skx/evalfilter/environment"
 
 // ReturnOperation holds state for the `return` operation
 type ReturnOperation struct {
@@ -9,6 +11,6 @@ type ReturnOperation struct {
 }
 
 // Run handles the return operation.
-func (r *ReturnOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
+func (r *ReturnOperation) Run(env *environment.Environment, obj interface{}) (bool, bool, error) {
 	return true, r.Value, nil
 }

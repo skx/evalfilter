@@ -1,6 +1,11 @@
 package evalfilter
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/skx/evalfilter/environment"
+	"github.com/skx/evalfilter/runtime"
+)
 
 // ExampleCustomFunction demonstrates how you can add a custom function
 // to your host-application, which is available to filter scripts.
@@ -62,7 +67,7 @@ return false;
 	// This is just an example :)
 	//
 	eval.AddFunction("length",
-		func(eval *Evaluator, obj interface{}, args []Argument) interface{} {
+		func(env *environment.Environment, obj interface{}, args []runtime.Argument) interface{} {
 
 			//
 			// Loop over the arguments
@@ -72,7 +77,7 @@ return false;
 				//
 				// Get the first argument.
 				//
-				val := arg.Value(eval, obj)
+				val := arg.Value(env, obj)
 
 				//
 				// Now as a string.

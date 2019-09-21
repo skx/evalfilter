@@ -1,7 +1,9 @@
 // Operation is the abstract interface any of our operations
 // must implement.
 
-package evalfilter
+package runtime
+
+import "github.com/skx/evalfilter/environment"
 
 // Operation is the abstract interface all operations much implement.
 type Operation interface {
@@ -15,5 +17,5 @@ type Operation interface {
 	//
 	//   error  - An error occurred
 	//
-	Run(self *Evaluator, obj interface{}) (bool, bool, error)
+	Run(env *environment.Environment, obj interface{}) (bool, bool, error)
 }

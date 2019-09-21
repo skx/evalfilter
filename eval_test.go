@@ -1,9 +1,11 @@
 package evalfilter
 
 import (
-	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/skx/evalfilter/environment"
+	"github.com/skx/evalfilter/runtime"
 )
 
 // TestLess tests uses `>` and `>=`.
@@ -195,7 +197,7 @@ func TestFunction(t *testing.T) {
 
 		obj := New(tst.Input)
 		obj.AddFunction("True",
-			func(eval *Evaluator, obj interface{}, args []Argument) interface{} {
+			func(env *environment.Environment, obj interface{}, args []runtime.Argument) interface{} {
 				return true
 			})
 
@@ -289,7 +291,6 @@ func TestParseErrors(t *testing.T) {
 
 	for _, tst := range tests {
 
-		fmt.Printf("Parsing: %s\n", tst)
 		obj := New(tst)
 		_, err := obj.Run(nil)
 
