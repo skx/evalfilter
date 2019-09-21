@@ -9,7 +9,9 @@
 // The `foo` function call is evaluated and executed, via an instance of
 // this object.
 
-package evalfilter
+package runtime
+
+import "github.com/skx/evalfilter/environment"
 
 // EvalOperation holds state for the evaluation of a function-call.
 type EvalOperation struct {
@@ -19,9 +21,9 @@ type EvalOperation struct {
 }
 
 // Run runs the eval operation, the result is discarded.
-func (eo *EvalOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
+func (eo *EvalOperation) Run(env *environment.Environment, obj interface{}) (bool, bool, error) {
 
 	// Here we make the call, by evaluating the result.
-	eo.Value.(*FunctionArgument).Value(e, obj)
+	eo.Value.(*FunctionArgument).Value(env, obj)
 	return false, false, nil
 }

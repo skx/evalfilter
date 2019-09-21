@@ -15,7 +15,9 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/skx/evalfilter/environment"
 	"github.com/skx/evalfilter/lexer"
+	"github.com/skx/evalfilter/runtime"
 	"github.com/skx/evalfilter/token"
 )
 
@@ -23,19 +25,13 @@ import (
 type Evaluator struct {
 
 	// Bytecode operations are stored here.
-	Bytecode []Operation
+	Bytecode []runtime.Operation
+
+	// Environment holds our environment reference
+	Env *environment.Environment
 
 	// Program is the script the user wishes to run.
 	Program string
-
-	// Functions contains references to helper functions which
-	// have been made available to the user-script and which are
-	// implemented outside this package in the golang host-application.
-	Functions map[string]interface{}
-
-	// Variables contains references to variables set via
-	// the golang host-application.
-	Variables map[string]interface{}
 }
 
 // New returns a new evaluation object, which can be used to apply
@@ -44,14 +40,13 @@ func New(input string) *Evaluator {
 
 	// Create a stub object.
 	e := &Evaluator{
-		Functions: make(map[string]interface{}),
-		Variables: make(map[string]interface{}),
-		Program:   input,
+		Env:     environment.New(),
+		Program: input,
 	}
 
 	// Add default functions
 	e.AddFunction("len",
-		func(eval *Evaluator, obj interface{}, args []Argument) interface{} {
+		func(env *environment.Environment, obj interface{}, args []runtime.Argument) interface{} {
 
 			len := 0
 
@@ -63,7 +58,7 @@ func New(input string) *Evaluator {
 				//
 				// Get the string.
 				//
-				str := fmt.Sprintf("%v", arg.Value(eval, obj))
+				str := fmt.Sprintf("%v", arg.Value(env, obj))
 
 				//
 				// Add the length.
@@ -75,7 +70,7 @@ func New(input string) *Evaluator {
 		})
 
 	e.AddFunction("trim",
-		func(eval *Evaluator, obj interface{}, args []Argument) interface{} {
+		func(env *environment.Environment, obj interface{}, args []runtime.Argument) interface{} {
 
 			//
 			// We loop over the args.
@@ -85,7 +80,7 @@ func New(input string) *Evaluator {
 				//
 				// Get the first, as a string-value
 				//
-				str := fmt.Sprintf("%v", arg.Value(eval, obj))
+				str := fmt.Sprintf("%v", arg.Value(env, obj))
 
 				//
 				// Return the trimmed version
@@ -104,7 +99,7 @@ func New(input string) *Evaluator {
 //
 // Once a function has been added it may be used by the filter script.
 func (e *Evaluator) AddFunction(name string, fun interface{}) {
-	e.Functions[name] = fun
+	e.Env.AddFunction(name, fun)
 }
 
 // SetVariable adds, or updates, a variable which will be available
@@ -114,7 +109,7 @@ func (e *Evaluator) AddFunction(name string, fun interface{}) {
 // for example a variable set as `time` will be accessed via the
 // name `$time`.
 func (e *Evaluator) SetVariable(name string, value interface{}) {
-	e.Variables[name] = value
+	e.Env.SetVariable(name, value)
 }
 
 // Look at the given token, and parse it as an operation.
@@ -122,7 +117,7 @@ func (e *Evaluator) SetVariable(name string, value interface{}) {
 // This is abstracted into a routine of its own so that we can
 // either parse the stream of tokens for the full-script, or parse
 // the blocks which is used for `if` statements.
-func (e *Evaluator) parseOperation(tok token.Token, l *lexer.Lexer) (Operation, error) {
+func (e *Evaluator) parseOperation(tok token.Token, l *lexer.Lexer) (runtime.Operation, error) {
 
 	switch tok.Type {
 
@@ -144,7 +139,7 @@ func (e *Evaluator) parseOperation(tok token.Token, l *lexer.Lexer) (Operation, 
 		//
 		// Now append the eval-operation
 		//
-		return &EvalOperation{Value: arg}, nil
+		return &runtime.EvalOperation{Value: arg}, nil
 
 	//
 	// `if`
@@ -172,7 +167,7 @@ func (e *Evaluator) parseOperation(tok token.Token, l *lexer.Lexer) (Operation, 
 		}
 
 		// Return the operation.
-		return &ReturnOperation{Value: val.Literal == "true"}, nil
+		return &runtime.ReturnOperation{Value: val.Literal == "true"}, nil
 
 	//
 	// `print`
@@ -182,7 +177,7 @@ func (e *Evaluator) parseOperation(tok token.Token, l *lexer.Lexer) (Operation, 
 		//
 		// Here are the arguments we're going to be printing.
 		//
-		var tmp []Argument
+		var tmp []runtime.Argument
 
 		for {
 			//
@@ -216,7 +211,7 @@ func (e *Evaluator) parseOperation(tok token.Token, l *lexer.Lexer) (Operation, 
 		//
 		// Now record the print operation.
 		//
-		return &PrintOperation{Values: tmp}, nil
+		return &runtime.PrintOperation{Values: tmp}, nil
 
 	}
 
@@ -274,7 +269,7 @@ func (e *Evaluator) parse() error {
 }
 
 // parseIf is our biggest method; it parses an if-expression.
-func (e *Evaluator) parseIF(l *lexer.Lexer) (Operation, error) {
+func (e *Evaluator) parseIF(l *lexer.Lexer) (runtime.Operation, error) {
 
 	//
 	// The general form is:
@@ -290,8 +285,8 @@ func (e *Evaluator) parseIF(l *lexer.Lexer) (Operation, error) {
 	//
 	// We tell them apart by looking at the tokens we receive.
 	//
-	var left Argument
-	var right Argument
+	var left runtime.Argument
+	var right runtime.Argument
 	var op string
 
 	//
@@ -299,7 +294,7 @@ func (e *Evaluator) parseIF(l *lexer.Lexer) (Operation, error) {
 	//
 	skip := l.NextToken()
 	if skip.Literal != "(" {
-		return &IfOperation{}, fmt.Errorf("expected '(' got %v", skip)
+		return &runtime.IfOperation{}, fmt.Errorf("expected '(' got %v", skip)
 	}
 
 	//
@@ -351,22 +346,22 @@ func (e *Evaluator) parseIF(l *lexer.Lexer) (Operation, error) {
 	// skip the )
 	skip = l.NextToken()
 	if skip.Literal != ")" {
-		return &IfOperation{}, fmt.Errorf("expected ')' got %v", skip)
+		return &runtime.IfOperation{}, fmt.Errorf("expected ')' got %v", skip)
 	}
 
 block:
 	// skip the {
 	skip = l.NextToken()
 	if skip.Literal != "{" {
-		return &IfOperation{}, fmt.Errorf("expected '{' got %v", skip)
+		return &runtime.IfOperation{}, fmt.Errorf("expected '{' got %v", skip)
 	}
 
 	//
 	// The list of statements to execute when the if-statement matches,
 	// or fails to match.
 	//
-	var True []Operation
-	var False []Operation
+	var True []runtime.Operation
+	var False []runtime.Operation
 
 	// Now we should parse the statement.
 	b := l.NextToken()
@@ -374,7 +369,7 @@ block:
 true_body:
 	stmt, err := e.parseOperation(b, l)
 	if err != nil {
-		return &IfOperation{}, err
+		return &runtime.IfOperation{}, err
 	}
 
 	True = append(True, stmt)
@@ -391,7 +386,7 @@ true_body:
 	if el.Type != token.ELSE {
 		l.Rewind(el)
 
-		return &IfOperation{Left: left, Right: right, Op: op,
+		return &runtime.IfOperation{Left: left, Right: right, Op: op,
 			True:  True,
 			False: False}, nil
 	}
@@ -399,7 +394,7 @@ true_body:
 	// skip the {
 	skip = l.NextToken()
 	if skip.Literal != "{" {
-		return &IfOperation{}, fmt.Errorf("expected '{' after 'else' got %v", skip)
+		return &runtime.IfOperation{}, fmt.Errorf("expected '{' after 'else' got %v", skip)
 	}
 
 	// Now we should parse the statement.
@@ -408,7 +403,7 @@ true_body:
 false_body:
 	stmt, err = e.parseOperation(b, l)
 	if err != nil {
-		return &IfOperation{}, err
+		return &runtime.IfOperation{}, err
 	}
 
 	False = append(False, stmt)
@@ -418,7 +413,7 @@ false_body:
 		goto false_body
 	}
 
-	return &IfOperation{Left: left, Right: right, Op: op,
+	return &runtime.IfOperation{Left: left, Right: right, Op: op,
 		True:  True,
 		False: False}, nil
 
@@ -449,7 +444,7 @@ func (e *Evaluator) Run(obj interface{}) (bool, error) {
 		//
 		// Run the opcode
 		//
-		ret, val, err := op.Run(e, obj)
+		ret, val, err := op.Run(e.Env, obj)
 
 		//
 		// Should we return?  If so do that.
@@ -476,8 +471,8 @@ func (e *Evaluator) Run(obj interface{}) (bool, error) {
 // This means we need a reference to our lexer, so we can fetch the
 // next token(s).
 //
-func (e *Evaluator) tokenToArgument(tok token.Token, lexer *lexer.Lexer) Argument {
-	var tmp Argument
+func (e *Evaluator) tokenToArgument(tok token.Token, lexer *lexer.Lexer) runtime.Argument {
+	var tmp runtime.Argument
 
 	switch tok.Type {
 
@@ -503,7 +498,7 @@ func (e *Evaluator) tokenToArgument(tok token.Token, lexer *lexer.Lexer) Argumen
 		// Recursive operations mean we can have a script which
 		// runs `len(len(len(Name)))` if we wish.
 		//
-		var args []Argument
+		var args []runtime.Argument
 
 		for {
 			t := lexer.NextToken()
@@ -529,18 +524,18 @@ func (e *Evaluator) tokenToArgument(tok token.Token, lexer *lexer.Lexer) Argumen
 			lexer.Rewind(skip)
 		}
 
-		tmp = &FunctionArgument{Function: tok.Literal,
+		tmp = &runtime.FunctionArgument{Function: tok.Literal,
 			Arguments: args}
 	case token.IDENT:
-		tmp = &FieldArgument{Field: tok.Literal}
+		tmp = &runtime.FieldArgument{Field: tok.Literal}
 	case token.VARIABLE:
-		tmp = &VariableArgument{Name: tok.Literal}
+		tmp = &runtime.VariableArgument{Name: tok.Literal}
 	case token.STRING, token.NUMBER:
-		tmp = &StringArgument{Content: tok.Literal}
+		tmp = &runtime.StringArgument{Content: tok.Literal}
 	case token.FALSE:
-		tmp = &BooleanArgument{Content: false}
+		tmp = &runtime.BooleanArgument{Content: false}
 	case token.TRUE:
-		tmp = &BooleanArgument{Content: true}
+		tmp = &runtime.BooleanArgument{Content: true}
 
 	default:
 		fmt.Printf("Failed to convert token %v to object - token-type was %s\n", tok, tok.Type)

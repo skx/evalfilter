@@ -13,12 +13,14 @@
 // retrieved, as well as the concrete implementations.
 //
 
-package evalfilter
+package runtime
 
 import (
 	"fmt"
 	"os"
 	"reflect"
+
+	"github.com/skx/evalfilter/environment"
 )
 
 // Argument is our abstract argument-type, defining the interface which
@@ -43,7 +45,7 @@ type Argument interface {
 	// runtime - since the various implementations might
 	// need access to the host runtime and the object which
 	// the script is being executed against.
-	Value(self *Evaluator, obj interface{}) interface{}
+	Value(env *environment.Environment, obj interface{}) interface{}
 }
 
 // BooleanArgument holds a literal boolean value.
@@ -53,7 +55,7 @@ type BooleanArgument struct {
 }
 
 // Value returns the boolean content we're wrapping.
-func (s *BooleanArgument) Value(self *Evaluator, obj interface{}) interface{} {
+func (s *BooleanArgument) Value(env *environment.Environment, obj interface{}) interface{} {
 	return s.Content
 }
 
@@ -64,7 +66,7 @@ type FieldArgument struct {
 }
 
 // Value returns the value of the field from the specified object.
-func (f *FieldArgument) Value(self *Evaluator, obj interface{}) interface{} {
+func (f *FieldArgument) Value(env *environment.Environment, obj interface{}) interface{} {
 
 	ref := reflect.ValueOf(obj)
 	field := reflect.Indirect(ref).FieldByName(f.Field)
@@ -96,12 +98,12 @@ type FunctionArgument struct {
 }
 
 // Value returns the result of calling the function we're wrapping.
-func (f *FunctionArgument) Value(self *Evaluator, obj interface{}) interface{} {
+func (f *FunctionArgument) Value(env *environment.Environment, obj interface{}) interface{} {
 
 	//
 	// Lookup the function.
 	//
-	res, ok := self.Functions[f.Function]
+	res, ok := env.Functions[f.Function]
 	if !ok {
 		fmt.Printf("Unknown function: %s\n", f.Function)
 		os.Exit(1)
@@ -110,12 +112,12 @@ func (f *FunctionArgument) Value(self *Evaluator, obj interface{}) interface{} {
 	//
 	// Convert the function reference to something we can use.
 	//
-	out := res.(func(eval *Evaluator, obj interface{}, args []Argument) interface{})
+	out := res.(func(env *environment.Environment, obj interface{}, args []Argument) interface{})
 
 	//
 	// Call the function.
 	//
-	ret := (out(self, obj, f.Arguments))
+	ret := (out(env, obj, f.Arguments))
 
 	//
 	// Return the result.
@@ -131,7 +133,7 @@ type StringArgument struct {
 }
 
 // Value returns the string content we're wrapping.
-func (s *StringArgument) Value(self *Evaluator, obj interface{}) interface{} {
+func (s *StringArgument) Value(env *environment.Environment, obj interface{}) interface{} {
 	return s.Content
 }
 
@@ -143,6 +145,6 @@ type VariableArgument struct {
 }
 
 // Value returns the value of the variable set by the golang host application.
-func (v *VariableArgument) Value(self *Evaluator, obj interface{}) interface{} {
-	return self.Variables[v.Name]
+func (v *VariableArgument) Value(env *environment.Environment, obj interface{}) interface{} {
+	return env.Variables[v.Name]
 }

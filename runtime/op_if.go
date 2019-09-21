@@ -1,11 +1,13 @@
 // This file contains the implementation for the `if` operation.
 
-package evalfilter
+package runtime
 
 import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/skx/evalfilter/environment"
 )
 
 // IfOperation holds state for the `if` operation
@@ -30,10 +32,10 @@ type IfOperation struct {
 }
 
 // Run executes an if statement.
-func (i *IfOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
+func (i *IfOperation) Run(env *environment.Environment, obj interface{}) (bool, bool, error) {
 
 	// Run the if-statement.
-	res, err := i.doesMatch(e, obj)
+	res, err := i.doesMatch(env, obj)
 
 	// Was there an error?
 	if err != nil {
@@ -57,7 +59,7 @@ func (i *IfOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
 			//
 			// If this was a return statement then we return
 			//
-			ret, val, err := t.Run(e, obj)
+			ret, val, err := t.Run(env, obj)
 			if ret {
 				return ret, val, err
 			}
@@ -76,7 +78,7 @@ func (i *IfOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
 			//
 			// If this was a return statement then we return
 			//
-			ret, val, err := t.Run(e, obj)
+			ret, val, err := t.Run(env, obj)
 			if ret {
 				return ret, val, err
 			}
@@ -89,12 +91,12 @@ func (i *IfOperation) Run(e *Evaluator, obj interface{}) (bool, bool, error) {
 }
 
 // doesMatch runs the actual comparison for the if-statement.
-func (i *IfOperation) doesMatch(e *Evaluator, obj interface{}) (bool, error) {
+func (i *IfOperation) doesMatch(env *environment.Environment, obj interface{}) (bool, error) {
 
 	//
 	// Expand the left & right sides of the conditional
 	//
-	lVal := i.Left.Value(e, obj)
+	lVal := i.Left.Value(env, obj)
 
 	//
 	// Single argument form?
@@ -112,7 +114,7 @@ func (i *IfOperation) doesMatch(e *Evaluator, obj interface{}) (bool, error) {
 		return false, nil
 	}
 
-	rVal := i.Right.Value(e, obj)
+	rVal := i.Right.Value(env, obj)
 
 	//
 	// Convert to strings, in case they're needed for the early
