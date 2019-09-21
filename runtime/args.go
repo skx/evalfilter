@@ -1,4 +1,4 @@
-// The operations we allow users to implement use "Argument" as an
+// The operations we allow users to implement use "runtime.Argument" as an
 // abstract type.
 //
 // There are several types of arguments that we allow:
@@ -12,7 +12,6 @@
 // This file contains an abstract interface to define how those are
 // retrieved, as well as the concrete implementations.
 //
-
 package runtime
 
 import (
