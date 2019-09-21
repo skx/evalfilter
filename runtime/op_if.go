@@ -170,7 +170,7 @@ func (i *IfOperation) doesMatch(env *environment.Environment, obj interface{}) (
 		return matched, nil
 	}
 
-	return false, fmt.Errorf("unknown if-expression-type.")
+	return false, fmt.Errorf("unknown if-expression-type")
 }
 
 // doesMatchTest tests a single expression.
