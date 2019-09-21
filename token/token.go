@@ -26,9 +26,11 @@ const (
 	VARIABLE  = "VARIABLE"
 
 	// Our keywords.
+	AND    = "and"
 	ELSE   = "else"
 	FALSE  = "false"
 	IF     = "if"
+	OR     = "or"
 	PRINT  = "print"
 	RETURN = "return"
 	TRUE   = "true"
@@ -36,9 +38,11 @@ const (
 
 // keywords holds our reversed keywords
 var keywords = map[string]Type{
+	"and":    AND,
 	"else":   ELSE,
 	"false":  FALSE,
 	"if":     IF,
+	"or":     OR,
 	"print":  PRINT,
 	"return": RETURN,
 	"true":   TRUE,

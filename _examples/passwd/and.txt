@@ -1,17 +1,21 @@
 //
 // Test `or` in the `if` statement.
-/
+//
 
 
 //
 // Look for `nobody` with a high Uid.
 //
-if ( Username == "nobody" and Uid > 10000 ) {
-
+if ( Username == "nobody" && Uid > 1000 ) {
   print "**********************************************************************\n";
-  print "*** We found 'nobody'\n";
-  print "**********************************************************************\n";
+}
 
+//
+// Same again, but with `and` not `&&`.
+//
+if ( Username == "nobody" and Uid > 1000 ) {
+  print "*** We found ", Username, "\n";
+  print "**********************************************************************\n";
   return true;
 }
 

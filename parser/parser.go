@@ -177,11 +177,11 @@ expr:
 	if skip.Literal == ")" {
 		goto block
 	}
-	if skip.Literal == "and" {
+	if skip.Type == token.AND {
 		exprType = "and"
 		goto expr
 	}
-	if skip.Literal == "or" {
+	if skip.Type == token.OR {
 		exprType = "or"
 		goto expr
 	}

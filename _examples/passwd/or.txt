@@ -1,17 +1,21 @@
 //
 // Test `or` in the `if` statement.
-/
+//
 
 
 //
 // Look for either username.
 //
 if ( Username == "bin" or Username == "sys" ) {
-
   print "**********************************************************************\n";
-  print "*** We found 'sys'  or 'bin'\n";
-  print "**********************************************************************\n";
+}
 
+//
+// Same again but with `||` not `or`
+//
+if ( Username == "bin" || Username == "sys" ) {
+  print "*** We found ", Username, "\n";
+  print "**********************************************************************\n";
   return true;
 }
 
