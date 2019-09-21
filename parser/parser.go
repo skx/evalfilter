@@ -22,6 +22,8 @@ type Parser struct {
 	Script string
 }
 
+// New creates a new parser-object, which will operate upon the script
+// supplied by the caller.
 func New(script string) *Parser {
 
 	p := &Parser{
