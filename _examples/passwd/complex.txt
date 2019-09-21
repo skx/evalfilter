@@ -1,0 +1,46 @@
+//
+// This script operates upon users and mostly prints information
+//
+
+
+//
+// Show the username and its length.
+//
+print "The length of ", Username , " is " , len( Username ) , "\n";
+
+//
+// Is this a "real" user?
+//
+if ( Uid >= 1000 ) {
+
+   if ( Username != "nobody") {
+     print "\tThis user is a non-system user.\n";
+     return true;
+   }
+}
+
+//
+// Real-users will have terminated here.
+//
+
+
+//
+// Some simple operations.
+//
+if ( len(Username) == 4 ) {
+   print "\tThis username is a four-letter world!  That's funny!\n";
+}
+
+if ( Uid == 0 ) {
+  print "\t**** ROOT ****\n";
+}
+
+if ( Username ~= "Debian" ) {
+    print "\tUsername is definitely Debian-specific.\n";
+} else {
+  if ( Username ~= "-" ) {
+    print "\tUsername is probably Debian-specific.\n";
+  }
+}
+
+return false;

@@ -1,0 +1,27 @@
+//
+// This is a simple script which just shows the username
+// we were given, along with their home-directory
+//
+
+
+//
+// Print the username.
+//
+print Username ;
+
+//
+// Invoke our custom-function, which just dumps the arguments which were
+// recieved.
+//
+// You can see the fields which are in the `User` object via the go-docs:
+//
+//  https://golang.org/pkg/os/user/#User
+//
+dump( Username, HomeDir, Uid, Gid )
+
+print "\n";
+
+//
+// All over.
+//
+return false;
