@@ -27,12 +27,11 @@ echo "Completed linter .."
 # Run golang tests
 go test ./...
 
-#
-# Finally look at our test-coverage
-#
-covered=$(go test ./... --cover | awk '{if ($1 != "?") print $5; else print "100.0";}' | sed 's/\%//g' | awk '{s+=$1} END {printf "%.2f\n", s}')
-sum=$(go test ./... --cover | wc -l)
-
-perc=$(perl -e "print int($covered / $sum);\n"; )
-
-echo "Test coverage, global: ${perc}"
+# If that worked build our examples, to ensure they work
+# and that we've not broken compatibility
+for i in _examples/*; do
+    pushd $i
+    echo "Building example in $(pwd)"
+    go build .
+    popd
+done
