@@ -1,3 +1,8 @@
+// Package ast contains an AST-like set of objects which can be
+// used to evaluate a program.
+//
+// The AST is built up by our parser, via a series of tokens read
+// from the user-script.
 package ast
 
 import (
