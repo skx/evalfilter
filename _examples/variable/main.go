@@ -21,13 +21,13 @@ func main() {
 	eval := evalfilter.New(`
 
 // Show the time.
-print "The time is ", $time, "\n";
+print( "The time is ", $time, "\n" );
 
 // Simple of accessing the variable in a conditional-
 if ( $time == "steve" ) {
-   print "\tThat is a surprise..\n";
+   print( "\tThat is a surprise..\n");
 } else {
-   print "\tYay!\n" ;
+   print("\tYay!\n");
 }
 
 // We're done
