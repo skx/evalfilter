@@ -6,19 +6,10 @@
 //
 // Look for either username.
 //
-if ( Username == "bin" or Username == "sys" ) {
-  print "**********************************************************************\n";
-}
-
-//
-// Same again but with `||` not `or`
-//
-if ( Username == "bin" || Username == "sys" ) {
-  print "*** We found ", Username, "\n";
-  print "**********************************************************************\n";
+if ( ( Username == "bin" ) || ( Username == "sys" ) ) {
+  print( "**********************************************************************\n");
   return true;
 }
-
 
 //
 // All over.
