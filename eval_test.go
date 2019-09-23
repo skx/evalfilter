@@ -1,23 +1,21 @@
 package evalfilter
 
 import (
-	"strings"
 	"testing"
 
-	"github.com/skx/evalfilter/environment"
-	"github.com/skx/evalfilter/runtime"
+	"github.com/skx/evalfilter/object"
 )
 
 // TestLess tests uses `>` and `>=`.
 func TestLess(t *testing.T) {
 
 	// Dummy structure to test field-access.
-	type Object struct {
+	type Structure struct {
 		Count int
 	}
 
 	// Instance of object
-	var object Object
+	var object Structure
 	object.Count = 3
 
 	type Test struct {
@@ -27,11 +25,11 @@ func TestLess(t *testing.T) {
 
 	tests := []Test{
 		{Input: `if ( 1 < 4 ) { return true; }`, Result: true},
-		{Input: `if ( 1 < 4 ) { return true; } else { print "help!"; return false;}`, Result: true},
+		{Input: `if ( 1 < 4 ) { return true; } else { print( "help!"); return false;}`, Result: true},
 		{Input: `if ( 1.4 < 2 ) { return false; }`, Result: false},
 		{Input: `if ( 3 <= 3 ) { return true; }`, Result: true},
 		{Input: `if ( 1 <= 3 ) { return false; }`, Result: false},
-		{Input: `if ( Count <= 3 ) { print "", ""; return false; }`, Result: false},
+		{Input: `if ( Count <= 3 ) { print( "", ""); return false; }`, Result: false},
 		{Input: `if ( len("steve") <= 3 ) { return false; } else { return true; }`, Result: true},
 	}
 
@@ -41,7 +39,7 @@ func TestLess(t *testing.T) {
 
 		ret, err := obj.Run(object)
 		if err != nil {
-			t.Fatalf("Found unexpected error running test %s\n", err.Error())
+			t.Fatalf("Found unexpected error running test '%s' - %s\n", tst.Input, err.Error())
 		}
 
 		if ret != tst.Result {
@@ -173,13 +171,12 @@ func TestContains(t *testing.T) {
 func TestFunction(t *testing.T) {
 
 	// Dummy structure to test field-access.
-	type Object struct {
+	type Structure struct {
 		Count int
 	}
 
 	// Instance of object
-	var object Object
-	object.Count = 3
+	o := &Structure{Count: 3}
 
 	type Test struct {
 		Input  string
@@ -189,7 +186,7 @@ func TestFunction(t *testing.T) {
 	tests := []Test{
 		{Input: `if ( True() ) { return true; } return false;`, Result: true},
 		{Input: `if ( True() == false ) { return true; } return false;`, Result: false},
-		{Input: `if ( True() ~= "true" ) { return true; } return false;`, Result: true},
+		{Input: `if ( True() != false ) { return true; } return false;`, Result: true},
 		{Input: `True(); return false;`, Result: false},
 	}
 
@@ -197,11 +194,11 @@ func TestFunction(t *testing.T) {
 
 		obj := New(tst.Input)
 		obj.AddFunction("True",
-			func(env *environment.Environment, obj interface{}, args []runtime.Argument) interface{} {
-				return true
+			func(args []object.Object) object.Object {
+				return &object.Boolean{Value: true}
 			})
 
-		ret, err := obj.Run(object)
+		ret, err := obj.Run(o)
 		if err != nil {
 			t.Fatalf("Found unexpected error running test %s\n", err.Error())
 		}
@@ -230,6 +227,7 @@ func TestBool(t *testing.T) {
 	}
 
 	tests := []Test{
+		{Input: `if ( Valid ) { return true; } return false;`, Result: true},
 		{Input: `if ( Valid == true ) { return true; } return false;`, Result: true},
 	}
 
@@ -239,11 +237,11 @@ func TestBool(t *testing.T) {
 
 		ret, err := obj.Run(object)
 		if err != nil {
-			t.Fatalf("Found unexpected error running test %s\n", err.Error())
+			t.Fatalf("Found unexpected error running test '%s' - %s\n", tst.Input, err.Error())
 		}
 
 		if ret != tst.Result {
-			t.Fatalf("Found unexpected result running script")
+			t.Fatalf("Found unexpected result running script; got %v expected %v", ret, tst.Result)
 		}
 	}
 }
@@ -257,7 +255,8 @@ func TestVariable(t *testing.T) {
 	}
 
 	tests := []Test{
-		{Input: `if ( len( $name ) == 5 ) { return true; } return false;`, Result: true},
+		{Input: `name = "Steve"; if ( len( $name ) == 5 ) { return true; } return false;`, Result: true},
+		{Input: `name = "Steve"; if ( len( name ) == 5 ) { return true; } return false;`, Result: true},
 	}
 
 	for _, tst := range tests {
@@ -272,57 +271,6 @@ func TestVariable(t *testing.T) {
 
 		if ret != tst.Result {
 			t.Fatalf("Found unexpected result running script")
-		}
-	}
-}
-
-// TestParseErrors parses bogus programs, and ensures that their errors
-// are caught.
-func TestParseErrors(t *testing.T) {
-	tests := []string{
-		`return false`,
-		`if`,
-		`if ( 1 != 1 `,
-		`if ( 1 != 1 )`,
-		`if ( 1 != 1 ) {`,
-		`if ( 1 != 1 ) { return true ;`,
-		`if ( 1 == 1 ) { return true ; } else `,
-	}
-
-	for _, tst := range tests {
-
-		obj := New(tst)
-		_, err := obj.Run(nil)
-
-		if err == nil {
-			t.Fatalf("Found no error, but expected to do so")
-		}
-
-		if !strings.Contains(err.Error(), "expected") &&
-			!strings.Contains(err.Error(), "EOF") {
-			t.Fatalf("The error we found didn't match what we expected: %s", err.Error())
-		}
-	}
-}
-
-// TestReturn ensures that scripts with no return are bogus.
-func TestReturn(t *testing.T) {
-	tests := []string{
-		`trim();`,
-		``,
-	}
-
-	for _, tst := range tests {
-
-		obj := New(tst)
-		_, err := obj.Run(nil)
-
-		if err == nil {
-			t.Fatalf("Found no error, but expected to do so")
-		}
-
-		if !strings.Contains(err.Error(), "failed to terminate with a return statement") {
-			t.Fatalf("The error we found didn't match what we expected: %s", err.Error())
 		}
 	}
 }
