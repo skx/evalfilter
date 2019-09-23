@@ -1,5 +1,4 @@
-// eval is our evaluation package, which allows running a user-supplied
-// script against an object.
+// Package evalfilter allows running a user-supplied script against an object.
 package evalfilter
 
 import (
@@ -102,11 +101,7 @@ func (e *Eval) Run(obj interface{}) (bool, error) {
 	// Ok we ran, and returned a value, convert that
 	// to a boolean value.
 	//
-	if e.isTruthy(out) {
-		return true, nil
-	} else {
-		return false, nil
-	}
+	return e.isTruthy(out), nil
 }
 
 // AddFunction adds a function to our runtime.
@@ -123,7 +118,7 @@ func (e *Eval) SetVariable(name string, value interface{}) {
 	e.Environment.Set(name, &object.String{Value: fmt.Sprintf("%v", value)})
 }
 
-// Evalit is our core function for evaluating nodes.
+// EvalIt is our core function for evaluating nodes.
 func (e *Eval) EvalIt(node ast.Node, env *object.Environment) object.Object {
 	switch node := node.(type) {
 
