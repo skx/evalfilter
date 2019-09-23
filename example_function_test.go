@@ -3,8 +3,7 @@ package evalfilter
 import (
 	"fmt"
 
-	"github.com/skx/evalfilter/environment"
-	"github.com/skx/evalfilter/runtime"
+	"github.com/skx/evalfilter/object"
 )
 
 // ExampleCustomFunction demonstrates how you can add a custom function
@@ -67,29 +66,12 @@ return false;
 	// This is just an example :)
 	//
 	eval.AddFunction("length",
-		func(env *environment.Environment, obj interface{}, args []runtime.Argument) interface{} {
-
-			//
-			// Loop over the arguments
-			//
-			for _, arg := range args {
-
-				//
-				// Get the first argument.
-				//
-				val := arg.Value(env, obj)
-
-				//
-				// Now as a string.
-				//
-				str := fmt.Sprintf("%v", val)
-
-				//
-				// Return the length
-				//
-				return len(str)
+		func(args []object.Object) object.Object {
+			sum := 0
+			for _, e := range args {
+				sum += len(e.Inspect())
 			}
-			return 0
+			return &object.Integer{Value: int64(sum)}
 		})
 
 	//
