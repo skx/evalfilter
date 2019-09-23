@@ -1,5 +1,3 @@
-// Package token holds the definitions of the various token-types
-// we require to lex our source code.
 package token
 
 // Type is a string
@@ -11,39 +9,50 @@ type Token struct {
 	Literal string
 }
 
-// pre-defined TokenTypes
+// pre-defined Type
 const (
-	COMMA     = "COMMA"
 	EOF       = "EOF"
-	FUNCALL   = "FUNCALL"
 	IDENT     = "IDENT"
 	ILLEGAL   = "ILLEGAL"
-	LBRACKET  = "LBRACKET"
-	NUMBER    = "NUMBER"
-	RBRACKET  = "RBRACKET"
-	SEMICOLON = "SEMICOLON"
+	INT       = "INT"
+	FLOAT     = "FLOAT"
+	ASSIGN    = "="
+	PLUS      = "+"
+	AND       = "&&"
+	OR        = "||"
+	COMMA     = ","
+	SEMICOLON = ";"
+	MINUS     = "-"
+	BANG      = "!"
+	ASTERISK  = "*"
+	SLASH     = "/"
+	LT        = "<"
+	LT_EQUALS = "<="
+	GT        = ">"
+	GT_EQUALS = ">="
+	CONTAINS  = "~="
+	MISSING   = "!~"
+	LPAREN    = "("
+	RPAREN    = ")"
+	LBRACE    = "{"
+	RBRACE    = "}"
+	TRUE      = "TRUE"
+	FALSE     = "FALSE"
+	IF        = "IF"
+	ELSE      = "ELSE"
+	RETURN    = "RETURN"
+	EQ        = "=="
+	NOT_EQ    = "!="
 	STRING    = "STRING"
-	VARIABLE  = "VARIABLE"
-
-	// Our keywords.
-	AND    = "and"
-	ELSE   = "else"
-	FALSE  = "false"
-	IF     = "if"
-	OR     = "or"
-	PRINT  = "print"
-	RETURN = "return"
-	TRUE   = "true"
+	COLON     = ":"
+	PERIOD    = "."
 )
 
-// keywords holds our reversed keywords
+// reversed keywords
 var keywords = map[string]Type{
-	"and":    AND,
 	"else":   ELSE,
 	"false":  FALSE,
 	"if":     IF,
-	"or":     OR,
-	"print":  PRINT,
 	"return": RETURN,
 	"true":   TRUE,
 }
