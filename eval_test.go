@@ -262,7 +262,7 @@ func TestVariable(t *testing.T) {
 	for _, tst := range tests {
 
 		obj := New(tst.Input)
-		obj.SetVariable("name", "Steve")
+		obj.SetVariable("name", &object.String{Value: "Steve"})
 
 		ret, err := obj.Run(nil)
 		if err != nil {
