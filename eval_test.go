@@ -31,6 +31,7 @@ func TestLess(t *testing.T) {
 		{Input: `if ( 1 <= 3 ) { return false; }`, Result: false},
 		{Input: `if ( Count <= 3 ) { print( "", ""); return false; }`, Result: false},
 		{Input: `if ( len("steve") <= 3 ) { return false; } else { return true; }`, Result: true},
+		{Input: `if ( len("π") == 1) { return true; } else { return false; }`, Result: true},
 	}
 
 	for _, tst := range tests {

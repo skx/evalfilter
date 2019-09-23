@@ -5,6 +5,7 @@ package evalfilter
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/skx/evalfilter/object"
 )
@@ -12,8 +13,12 @@ import (
 // fnLen is the implementation of our `len` function.
 func fnLen(args []object.Object) object.Object {
 	sum := 0
+
 	for _, e := range args {
-		sum += len(e.Inspect())
+		switch e.(type) {
+		case *object.String:
+			sum += utf8.RuneCountInString(e.(*object.String).Value)
+		}
 	}
 	return &object.Integer{Value: int64(sum)}
 }
