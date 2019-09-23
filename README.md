@@ -3,6 +3,7 @@
 [![license](https://img.shields.io/github/license/skx/evalfilter.svg)](https://github.com/skx/evalfilter/blob/master/LICENSE)
 
 * [eval-filter](#eval-filter)
+  * [API Stability](#api-stability)
   * [Sample Use](#sample-use)
   * [Scripting Facilities](#scripting-facilities)
   * [Function Invocation](#function-invocation)
@@ -29,6 +30,10 @@ To give you a quick feel for how things look you could consult:
   * This exports a function from the golang-host application to the script.
   * Then uses that to filter a list of people.
 * Some other simple examples are available beneath the [_examples/](_examples/) directory.
+
+## API Stability
+
+The API will remain as is for any 1.x.x release.
 
 
 ## Sample Use
@@ -174,7 +179,7 @@ For example the following example sets the contents of the variable `time`, and 
     for {
 
         // Set the variable `$time` to be the seconds past the epoch.
-        eval.SetVariable("time", fmt.Sprintf("%v", time.Now().Unix()))
+		eval.SetVariable("time", &object.Integer{Value: time.Now().Unix()})
 
         // Run the script.
         ret, err := eval.Run(nil)
