@@ -1,3 +1,7 @@
+// Package lexer contains our simple lexer.
+//
+// The lexer returns tokens from a (string) input, as a series of Token
+// objects.
 package lexer
 
 import (

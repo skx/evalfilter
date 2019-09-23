@@ -1,3 +1,5 @@
+// Package token contains identifiers for the various logical things
+// we find in our source-scripts.
 package token
 
 // Type is a string
