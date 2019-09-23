@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/skx/evalfilter"
+	"github.com/skx/evalfilter/object"
 )
 
 //
@@ -24,7 +25,7 @@ func main() {
 print( "The time is ", $time, "\n" );
 
 // Simple of accessing the variable in a conditional-
-if ( $time == "steve" ) {
+if ( $time < 3000 ) {
    print( "\tThat is a surprise..\n");
 } else {
    print("\tYay!\n");
@@ -42,7 +43,7 @@ return false;
 		//
 		// Set the `time` variable to the current time.
 		//
-		eval.SetVariable("time", fmt.Sprintf("%v", time.Now().Unix()))
+		eval.SetVariable("time", &object.Integer{Value: time.Now().Unix()})
 
 		//
 		// Run the script.
