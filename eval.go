@@ -114,8 +114,8 @@ func (e *Eval) AddFunction(name string, fun interface{}) {
 
 // SetVariable adds, or updates, a variable which will be available
 // to the filter script.
-func (e *Eval) SetVariable(name string, value interface{}) {
-	e.Environment.Set(name, &object.String{Value: fmt.Sprintf("%v", value)})
+func (e *Eval) SetVariable(name string, value object.Object) {
+	e.Environment.Set(name, value)
 }
 
 // EvalIt is our core function for evaluating nodes.
@@ -478,7 +478,6 @@ func (e *Eval) evalAssignStatement(a *ast.AssignStatement, env *object.Environme
 	if e.isError(evaluated) {
 		return evaluated
 	}
-
 	env.Set(a.Name.String(), evaluated)
 	return evaluated
 }
@@ -545,23 +544,24 @@ func (e *Eval) evalIdentifier(node *ast.Identifier, env *object.Environment) obj
 	//
 	// Otherwise we need to perform a structure lookup.
 	//
-	ref := reflect.ValueOf(e.Object)
-	field := reflect.Indirect(ref).FieldByName(node.Value)
+	if e.Object != nil {
+		ref := reflect.ValueOf(e.Object)
+		field := reflect.Indirect(ref).FieldByName(name)
 
-	switch field.Kind() {
-	case reflect.Int, reflect.Int64:
-		return &object.Integer{Value: field.Int()}
-	case reflect.Float32, reflect.Float64:
-		return &object.Float{Value: field.Float()}
-	case reflect.String:
-		return &object.String{Value: field.String()}
-	case reflect.Bool:
-		return &object.Boolean{Value: field.Bool()}
+		switch field.Kind() {
+		case reflect.Int, reflect.Int64:
+			return &object.Integer{Value: field.Int()}
+		case reflect.Float32, reflect.Float64:
+			return &object.Float{Value: field.Float()}
+		case reflect.String:
+			return &object.String{Value: field.String()}
+		case reflect.Bool:
+			return &object.Boolean{Value: field.Bool()}
+		}
 	}
 
-	// skx
-	fmt.Fprintf(os.Stderr, "identifier not found: %s\n", node.Value)
-	return e.newError("identifier not found: " + node.Value)
+	// Not found
+	return NULL
 }
 
 func (e *Eval) evalExpression(exps []ast.Expression, env *object.Environment) []object.Object {
