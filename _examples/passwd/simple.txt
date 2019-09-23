@@ -7,7 +7,7 @@
 //
 // Print the username.
 //
-print Username ;
+print( Username );
 
 //
 // Invoke our custom-function, which just dumps the arguments which were
@@ -17,9 +17,9 @@ print Username ;
 //
 //  https://golang.org/pkg/os/user/#User
 //
-dump( Username, HomeDir, Uid, Gid )
+dump( Username, HomeDir, Uid, Gid );
 
-print "\n";
+print( "\n");
 
 //
 // All over.

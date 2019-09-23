@@ -1,454 +1,439 @@
-// Package parser is the package which is responsible for parsing user-scripts.
-//
-// The input to the parser is the text of the script to be parsed, and the
-// output will be a series of Operations - these operations live in the
-// runtime package so they can be shared between this parser and the evaluator
-// which actually executes them.
+// Package parser consumes tokens from the lexer and returns a
+// program as a set of AST-nodes.
 package parser
 
 import (
 	"fmt"
-	"os"
+	"strconv"
+	"strings"
 
+	"github.com/skx/evalfilter/ast"
 	"github.com/skx/evalfilter/lexer"
-	"github.com/skx/evalfilter/runtime"
 	"github.com/skx/evalfilter/token"
 )
 
-// Parser holds the state for the parser.
-type Parser struct {
+// prefix Parse function
+// infix parse function
+type (
+	prefixParseFn func() ast.Expression
+	infixParseFn  func(ast.Expression) ast.Expression
+)
 
-	// Script is the text of the script the user wishes to run.
-	Script string
+// precedence order
+const (
+	_ int = iota
+	LOWEST
+	ASSIGN // =
+	EQUALS // == or !=
+	CMP
+	LESSGREATER // > or <
+	SUM         // + or -
+	PRODUCT     // * or /
+	POWER       // **
+	MOD         // %
+	PREFIX      // -X or !X
+	CALL        // myFunction(X)
+	INDEX       // array[index], map[key]
+)
+
+// each token precedence
+var precedences = map[token.Type]int{
+	token.ASSIGN:    ASSIGN,
+	token.EQ:        EQUALS,
+	token.NOT_EQ:    EQUALS,
+	token.LT:        LESSGREATER,
+	token.LT_EQUALS: LESSGREATER,
+	token.GT:        LESSGREATER,
+	token.GT_EQUALS: LESSGREATER,
+	token.CONTAINS:  LESSGREATER,
+	token.MISSING:   LESSGREATER,
+	token.PLUS:      SUM,
+	token.MINUS:     SUM,
+	token.SLASH:     PRODUCT,
+	token.ASTERISK:  PRODUCT,
+	token.AND:       CMP,
+	token.OR:        CMP,
+	token.LPAREN:    CALL,
 }
 
-// New creates a new parser-object, which will operate upon the script
-// supplied by the caller.
-func New(script string) *Parser {
+// Parser object
+type Parser struct {
+	// l is our lexer
+	l *lexer.Lexer
 
-	p := &Parser{
-		Script: script,
-	}
+	// prevToken holds the previous token from our lexer.
+	// (used for "++" + "--")
+	prevToken token.Token
+
+	// curToken holds the current token from our lexer.
+	curToken token.Token
+
+	// peekToken holds the next token which will come from the lexer.
+	peekToken token.Token
+
+	// errors holds parsing-errors.
+	errors []string
+
+	// prefixParseFns holds a map of parsing methods for
+	// prefix-based syntax.
+	prefixParseFns map[token.Type]prefixParseFn
+
+	// infixParseFns holds a map of parsing methods for
+	// infix-based syntax.
+	infixParseFns map[token.Type]infixParseFn
+}
+
+// New returns our new parser-object.
+func New(l *lexer.Lexer) *Parser {
+	p := &Parser{l: l, errors: []string{}}
+	p.nextToken()
+	p.nextToken()
+
+	p.prefixParseFns = make(map[token.Type]prefixParseFn)
+	p.registerPrefix(token.IDENT, p.parseIdentifier)
+	p.registerPrefix(token.ILLEGAL, p.parseIllegal)
+	p.registerPrefix(token.INT, p.parseIntegerLiteral)
+	p.registerPrefix(token.FLOAT, p.parseFloatLiteral)
+	p.registerPrefix(token.TRUE, p.parseBoolean)
+	p.registerPrefix(token.FALSE, p.parseBoolean)
+	p.registerPrefix(token.BANG, p.parsePrefixExpression)
+	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
+	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
+	p.registerPrefix(token.IF, p.parseIfExpression)
+	p.registerPrefix(token.STRING, p.parseStringLiteral)
+
+	p.infixParseFns = make(map[token.Type]infixParseFn)
+	p.registerInfix(token.ASSIGN, p.parseAssignExpression)
+	p.registerInfix(token.PLUS, p.parseInfixExpression)
+	p.registerInfix(token.MINUS, p.parseInfixExpression)
+	p.registerInfix(token.SLASH, p.parseInfixExpression)
+	p.registerInfix(token.ASTERISK, p.parseInfixExpression)
+	p.registerInfix(token.EQ, p.parseInfixExpression)
+	p.registerInfix(token.OR, p.parseInfixExpression)
+	p.registerInfix(token.AND, p.parseInfixExpression)
+	p.registerInfix(token.NOT_EQ, p.parseInfixExpression)
+	p.registerInfix(token.LT, p.parseInfixExpression)
+	p.registerInfix(token.GT, p.parseInfixExpression)
+	p.registerInfix(token.LT_EQUALS, p.parseInfixExpression)
+	p.registerInfix(token.GT_EQUALS, p.parseInfixExpression)
+	p.registerInfix(token.CONTAINS, p.parseInfixExpression)
+	p.registerInfix(token.MISSING, p.parseInfixExpression)
+	p.registerInfix(token.LPAREN, p.parseCallExpression)
 
 	return p
 }
 
-// Parse is the method which reads the script we've been given in our
-// constructor and returns a series of operations to be carried out by
-// the main Evaluator package.
-//
-// The parser is simple because we have no control-flow, and no need to
-// worry about nested-blocks, variables, etc.
-func (p *Parser) Parse() ([]runtime.Operation, error) {
+// registerPrefix registers a function for handling a prefix-based statement
+func (p *Parser) registerPrefix(tokenType token.Type, fn prefixParseFn) {
+	p.prefixParseFns[tokenType] = fn
+}
 
-	//
-	// The operations we return
-	//
-	var ops []runtime.Operation
+// registerInfix registers a function for handling a infix-based statement
+func (p *Parser) registerInfix(tokenType token.Type, fn infixParseFn) {
+	p.infixParseFns[tokenType] = fn
+}
 
-	//
-	// Create a lexer to process our script.
-	//
-	l := lexer.NewLexer(p.Script)
+// Errors return stored errors
+func (p *Parser) Errors() []string {
+	return p.errors
+}
 
-	//
-	// Process all the tokens forever, until we hit the end of file.
-	//
-	tok := l.NextToken()
+// peekError raises an error if the next token is not the expected type.
+func (p *Parser) peekError(t token.Type) {
+	msg := fmt.Sprintf("expected next token to be %s, got %s instead around line %d", t, p.curToken.Type, p.l.GetLine())
+	p.errors = append(p.errors, msg)
+}
 
-	for tok.Type != token.EOF {
+// nextToken moves to our next token from the lexer.
+func (p *Parser) nextToken() {
+	p.prevToken = p.curToken
+	p.curToken = p.peekToken
+	p.peekToken = p.l.NextToken()
+}
 
-		//
-		// Parse the next statement.
-		//
-		op, err := p.parseOperation(tok, l)
-		if err != nil {
-			return ops, err
+// ParseProgram used to parse the whole program
+func (p *Parser) ParseProgram() *ast.Program {
+	program := &ast.Program{}
+	program.Statements = []ast.Statement{}
+	for p.curToken.Type != token.EOF && p.curToken.Type != token.ILLEGAL {
+		stmt := p.parseStatement()
+		if stmt != nil {
+			program.Statements = append(program.Statements, stmt)
+		} else {
+			fmt.Printf("Nil statement\n")
 		}
-
-		//
-		// Append it to our list.
-		//
-		ops = append(ops, op)
-
-		//
-		// Proceed onto the next token.
-		//
-		tok = l.NextToken()
+		p.nextToken()
 	}
-
-	//
-	// Parsed with no error.
-	//
-	return ops, nil
+	return program
 }
 
-// parseIf is our biggest method; it parses an if-expression.
-func (p *Parser) parseIF(l *lexer.Lexer) (runtime.Operation, error) {
-
-	//
-	// The general form is:
-	//
-	//  IF ( LEFT TEST RIGHT ) { RETURN YY; }
-	//
-	// e.g. "if ( Count == 3 ) { return true; }"
-	//
-	// However there is a second form which is designed for the use
-	// of functions:
-	//
-	//   IF ( function() ) ..
-	//
-	// We tell them apart by looking at the tokens we receive.
-	//
-	var left runtime.Argument
-	var right runtime.Argument
-	var op string
-
-	//
-	// We build up a list of expressions
-	//
-	var expr []runtime.IfExpression
-	exprType := "and"
-
-	//
-	// skip the (
-	//
-	skip := l.NextToken()
-	if skip.Literal != "(" {
-		return &runtime.IfOperation{}, fmt.Errorf("expected '(' got %v", skip)
-	}
-
-expr:
-	//
-	// Get the first operand.
-	//
-	t := l.NextToken()
-	left = p.tokenToArgument(t, l)
-
-	//
-	// Get the operator.
-	//
-	t = l.NextToken()
-	op = t.Literal
-
-	//
-	// In the general case we'd have:
-	//
-	//   IF ( LEFT OP RIGHT )
-	//
-	// But remember we also allow:
-	//
-	//   IF ( FUNCTION() )
-	//
-	// If we've been given the second form our `op` token will be `)`,
-	// because the `OP` & `RIGHT` tokens will not be present.
-	//
-	// If that is the case we fake values.
-	//
-	if op == ")" {
-
-		//
-		// I feel bad.  But not that bad.
-		//
-		// Here we skip parsing the right-operand
-		// leaving `Right` and `Op` at their default
-		// values
-		//
-		expr = append(expr, runtime.IfExpression{Left: left})
-		goto block
-	}
-
-	//
-	// OK we're in the three-argument form, so we
-	// get the right operand.
-	//
-	t = l.NextToken()
-	right = p.tokenToArgument(t, l)
-
-	//
-	// Add on the expression
-	//
-	expr = append(expr, runtime.IfExpression{Left: left, Right: right, Op: op})
-
-	//
-	// Loop?
-	//
-	skip = l.NextToken()
-	if skip.Literal == ")" {
-		goto block
-	}
-	if skip.Type == token.AND {
-		exprType = "and"
-		goto expr
-	}
-	if skip.Type == token.OR {
-		exprType = "or"
-		goto expr
-	}
-	return &runtime.IfOperation{}, fmt.Errorf("unterminated if expression: %v", skip)
-block:
-	// skip the {
-	skip = l.NextToken()
-	if skip.Literal != "{" {
-		return &runtime.IfOperation{}, fmt.Errorf("expected '{' got %v", skip)
-	}
-
-	//
-	// The list of statements to execute when the if-statement matches,
-	// or fails to match.
-	//
-	var True []runtime.Operation
-	var False []runtime.Operation
-
-	// Now we should parse the statement.
-	b := l.NextToken()
-
-true_body:
-	stmt, err := p.parseOperation(b, l)
-	if err != nil {
-		return &runtime.IfOperation{}, err
-	}
-
-	True = append(True, stmt)
-
-	b = l.NextToken()
-	if b.Literal != "}" {
-		goto true_body
-	}
-
-	//
-	// Now look for else
-	//
-	el := l.NextToken()
-	if el.Type != token.ELSE {
-		l.Rewind(el)
-
-		return &runtime.IfOperation{Expressions: expr,
-			ExpressionType: exprType,
-			True:           True,
-			False:          False}, nil
-	}
-
-	// skip the {
-	skip = l.NextToken()
-	if skip.Literal != "{" {
-		return &runtime.IfOperation{}, fmt.Errorf("expected '{' after 'else' got %v", skip)
-	}
-
-	// Now we should parse the statement.
-	b = l.NextToken()
-
-false_body:
-	stmt, err = p.parseOperation(b, l)
-	if err != nil {
-		return &runtime.IfOperation{}, err
-	}
-
-	False = append(False, stmt)
-
-	b = l.NextToken()
-	if b.Literal != "}" {
-		goto false_body
-	}
-
-	return &runtime.IfOperation{Expressions: expr,
-		ExpressionType: exprType,
-		True:           True,
-		False:          False}, nil
-
-}
-
-// Look at the given token, and parse it as an operation.
-//
-// This is abstracted into a routine of its own so that we can
-// either parse the stream of tokens for the full-script, or parse
-// the blocks which is used for `if` statements.
-func (p *Parser) parseOperation(tok token.Token, l *lexer.Lexer) (runtime.Operation, error) {
-
-	switch tok.Type {
-
-	//
-	// `eval`
-	//
-	case token.FUNCALL:
-
-		//
-		// Eval is a special case, because we're basically making
-		// a function-call but throwing away the result.
-		//
-
-		//
-		// Parse the function into a callable argument.
-		//
-		arg := p.tokenToArgument(tok, l)
-
-		//
-		// Now append the eval-operation
-		//
-		return &runtime.EvalOperation{Value: arg}, nil
-
-	//
-	// `if`
-	//
-	case token.IF:
-
-		// The `if` statement is our most complex case, and it
-		// will not get simpler, so it is moved into its own
-		// routine.
-		return p.parseIF(l)
-
-	//
-	// `return`
-	//
+// parseStatement parses a single statement.
+func (p *Parser) parseStatement() ast.Statement {
+	switch p.curToken.Type {
 	case token.RETURN:
-
-		// Get the value this token returns
-		val := l.NextToken()
-
-		// The token after that should be a semi-colon.
-		tmp := l.NextToken()
-		if tmp.Type != token.SEMICOLON {
-			return nil, fmt.Errorf("expected ';' after return-value")
-
-		}
-
-		// Return the operation.
-		return &runtime.ReturnOperation{Value: val.Literal == "true"}, nil
-
-	//
-	// `print`
-	//
-	case token.PRINT:
-
-		//
-		// Here are the arguments we're going to be printing.
-		//
-		var tmp []runtime.Argument
-
-		for {
-			//
-			// We keep printing output until we hit
-			// a semi-colon, or the end of the file.
-			//
-			n := l.NextToken()
-			if n.Type == token.SEMICOLON || n.Type == token.EOF {
-				break
-			}
-
-			//
-			// Skip over any commas
-			//
-			if n.Type == token.COMMA {
-				continue
-			}
-
-			//
-			// Convert the token to an argument.
-			//
-			obj := p.tokenToArgument(n, l)
-
-			//
-			// Add it to our list.
-			//
-			tmp = append(tmp, obj)
-
-		}
-
-		//
-		// Now record the print operation.
-		//
-		return &runtime.PrintOperation{Values: tmp}, nil
-
+		return p.parseReturnStatement()
+	default:
+		return p.parseExpressionStatement()
 	}
-
-	//
-	// If we hit this point we've received input that we don't
-	// recognize - either because it was invalid, or because we've
-	// become unsynced in our token-stream.
-	//
-	return nil, fmt.Errorf("failed to parse token type %s : %s", tok.Type, tok)
 }
 
-// tokenToArgument takes a given token, and converts it to an argument
-// which can be evaluated.
-//
-// There is a minor complication here which is that when we see a
-// token which represents a function-call we need to consume the
-// arguments - recursively.
-//
-// This means we need a reference to our lexer, so we can fetch the
-// next token(s).
-//
-func (p *Parser) tokenToArgument(tok token.Token, lexer *lexer.Lexer) runtime.Argument {
-	var tmp runtime.Argument
+// parseReturnStatement parses a return-statement.
+func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
+	stmt := &ast.ReturnStatement{Token: p.curToken}
+	p.nextToken()
+	stmt.ReturnValue = p.parseExpression(LOWEST)
+	for !p.curTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+	return stmt
+}
 
-	switch tok.Type {
+// no prefix parse function error
+func (p *Parser) noPrefixParseFnError(t token.Type) {
+	msg := fmt.Sprintf("no prefix parse function for %s found around line %d", t, p.l.GetLine())
+	p.errors = append(p.errors, msg)
+}
 
-	case token.FUNCALL:
+// parse Expression Statement
+func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+	stmt := &ast.ExpressionStatement{Token: p.curToken}
+	stmt.Expression = p.parseExpression(LOWEST)
+	for p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+	return stmt
+}
 
-		//
-		// We've got a function.
-		//
-		// There are two cases:
-		//
-		//   Function()
-		//
-		// Or
-		//
-		//   Function( foo, bar , baz .. , bart )
-		//
-		// Either way we handle the parsing the same way, we
-		// consume tokens forever until we hit the trailing `)`.
-		//
-		// If we find commas, which separate arguments, then we
-		// discard them, otherwise we expand the tokens recursively.
-		//
-		// Recursive operations mean we can have a script which
-		// runs `len(len(len(Name)))` if we wish.
-		//
-		var args []runtime.Argument
-
-		for {
-			t := lexer.NextToken()
-
-			// Terminate when we find a right bracket
-			if t.Type == token.RBRACKET {
-				break
-			}
-
-			// Ignore commas - and the opening bracket
-			if t.Type == token.COMMA || t.Type == token.LBRACKET {
-				continue
-			}
-
-			// Add tokens
-			args = append(args, p.tokenToArgument(t, lexer))
-
+func (p *Parser) parseExpression(precedence int) ast.Expression {
+	prefix := p.prefixParseFns[p.curToken.Type]
+	if prefix == nil {
+		p.noPrefixParseFnError(p.curToken.Type)
+		return nil
+	}
+	leftExp := prefix()
+	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
+		infix := p.infixParseFns[p.peekToken.Type]
+		if infix == nil {
+			return leftExp
 		}
+		p.nextToken()
+		leftExp = infix(leftExp)
+	}
+	return leftExp
+}
 
-		// Skip the optional, but expected, trailing ";"
-		skip := lexer.NextToken()
-		if skip.Type != token.SEMICOLON {
-			lexer.Rewind(skip)
-		}
+func (p *Parser) parseIllegal() ast.Expression {
+	msg := fmt.Sprintf("Error parsing program %s", p.curToken.Literal)
+	p.errors = append(p.errors, msg)
+	return nil
+}
 
-		tmp = &runtime.FunctionArgument{Function: tok.Literal,
-			Arguments: args}
-	case token.IDENT:
-		tmp = &runtime.FieldArgument{Field: tok.Literal}
-	case token.VARIABLE:
-		tmp = &runtime.VariableArgument{Name: tok.Literal}
-	case token.STRING, token.NUMBER:
-		tmp = &runtime.StringArgument{Content: tok.Literal}
-	case token.FALSE:
-		tmp = &runtime.BooleanArgument{Content: false}
-	case token.TRUE:
-		tmp = &runtime.BooleanArgument{Content: true}
+// parseIdentifier parses an identifier.
+func (p *Parser) parseIdentifier() ast.Expression {
+	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+}
 
-	default:
-		fmt.Printf("Failed to convert token %v to object - token-type was %s\n", tok, tok.Type)
-		os.Exit(1)
+// parseIntegerLiteral parses an integer literal.
+func (p *Parser) parseIntegerLiteral() ast.Expression {
+	lit := &ast.IntegerLiteral{Token: p.curToken}
+
+	var value int64
+	var err error
+
+	if strings.HasPrefix(p.curToken.Literal, "0b") {
+		value, err = strconv.ParseInt(p.curToken.Literal[2:], 2, 64)
+	} else if strings.HasPrefix(p.curToken.Literal, "0x") {
+		value, err = strconv.ParseInt(p.curToken.Literal[2:], 16, 64)
+	} else {
+		value, err = strconv.ParseInt(p.curToken.Literal, 10, 64)
 	}
 
-	return tmp
+	if err != nil {
+		msg := fmt.Sprintf("could not parse %q as integer around line %d", p.curToken.Literal, p.l.GetLine())
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+	lit.Value = value
+	return lit
+}
+
+// parseFloatLiteral parses a float-literal
+func (p *Parser) parseFloatLiteral() ast.Expression {
+	flo := &ast.FloatLiteral{Token: p.curToken}
+	value, err := strconv.ParseFloat(p.curToken.Literal, 64)
+	if err != nil {
+		msg := fmt.Sprintf("could not parse %q as float around line %d", p.curToken.Literal, p.l.GetLine())
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+	flo.Value = value
+	return flo
+}
+
+// parseBoolean parses a boolean token.
+func (p *Parser) parseBoolean() ast.Expression {
+	return &ast.Boolean{Token: p.curToken, Value: p.curTokenIs(token.TRUE)}
+}
+
+// parsePrefixExpression parses a prefix-based expression.
+func (p *Parser) parsePrefixExpression() ast.Expression {
+	expression := &ast.PrefixExpression{
+		Token:    p.curToken,
+		Operator: p.curToken.Literal,
+	}
+	p.nextToken()
+	expression.Right = p.parseExpression(PREFIX)
+	return expression
+}
+
+// parseInfixExpression parses an infix-based expression.
+func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
+	expression := &ast.InfixExpression{
+		Token:    p.curToken,
+		Operator: p.curToken.Literal,
+		Left:     left,
+	}
+
+	precedence := p.curPrecedence()
+	p.nextToken()
+	expression.Right = p.parseExpression(precedence)
+	return expression
+}
+
+// parseGroupedExpression parses a grouped-expression.
+func (p *Parser) parseGroupedExpression() ast.Expression {
+	p.nextToken()
+
+	exp := p.parseExpression(LOWEST)
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+	return exp
+}
+
+// parseIfCondition parses an if-expression.
+func (p *Parser) parseIfExpression() ast.Expression {
+	expression := &ast.IfExpression{Token: p.curToken}
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+	p.nextToken()
+	expression.Condition = p.parseExpression(LOWEST)
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+	expression.Consequence = p.parseBlockStatement()
+	if p.peekTokenIs(token.ELSE) {
+		p.nextToken()
+		if !p.expectPeek(token.LBRACE) {
+			return nil
+		}
+		expression.Alternative = p.parseBlockStatement()
+	}
+	return expression
+}
+
+// parseBlockStatement parsea a block.
+func (p *Parser) parseBlockStatement() *ast.BlockStatement {
+	block := &ast.BlockStatement{Token: p.curToken}
+	block.Statements = []ast.Statement{}
+	p.nextToken()
+	for !p.curTokenIs(token.RBRACE) {
+		stmt := p.parseStatement()
+		if stmt != nil {
+			block.Statements = append(block.Statements, stmt)
+		}
+		p.nextToken()
+	}
+	return block
+}
+
+// parseStringLiteral parses a string-literal.
+func (p *Parser) parseStringLiteral() ast.Expression {
+	return &ast.StringLiteral{Token: p.curToken, Value: p.curToken.Literal}
+}
+
+// parsearray elements literal
+func (p *Parser) parseExpressionList(end token.Type) []ast.Expression {
+	list := make([]ast.Expression, 0)
+	if p.peekTokenIs(end) {
+		p.nextToken()
+		return list
+	}
+	p.nextToken()
+	list = append(list, p.parseExpression(LOWEST))
+	for p.peekTokenIs(token.COMMA) {
+		p.nextToken()
+		p.nextToken()
+		list = append(list, p.parseExpression(LOWEST))
+	}
+	if !p.expectPeek(end) {
+		return nil
+	}
+	return list
+}
+
+// parseAssignExpression parses a bare assignment, without a `let`.
+func (p *Parser) parseAssignExpression(name ast.Expression) ast.Expression {
+	stmt := &ast.AssignStatement{Token: p.curToken}
+	if n, ok := name.(*ast.Identifier); ok {
+		stmt.Name = n
+	} else {
+		msg := fmt.Sprintf("expected assign token to be IDENT, got %s instead around line %d", name.TokenLiteral(), p.l.GetLine())
+		p.errors = append(p.errors, msg)
+	}
+
+	// Skip over the `=`
+	p.nextToken()
+
+	stmt.Value = p.parseExpression(LOWEST)
+	return stmt
+}
+
+// parseCallExpression parses a function-call expression.
+func (p *Parser) parseCallExpression(function ast.Expression) ast.Expression {
+	exp := &ast.CallExpression{Token: p.curToken, Function: function}
+	exp.Arguments = p.parseExpressionList(token.RPAREN)
+	return exp
+}
+
+// curTokenIs tests if the current token has the given type.
+func (p *Parser) curTokenIs(t token.Type) bool {
+	return p.curToken.Type == t
+}
+
+// peekTokenIs tests if the next token has the given type.
+func (p *Parser) peekTokenIs(t token.Type) bool {
+	return p.peekToken.Type == t
+}
+
+// expectPeek validates the next token is of the given type,
+// and advances if so.  If it is not an error is stored.
+func (p *Parser) expectPeek(t token.Type) bool {
+	if p.peekTokenIs(t) {
+		p.nextToken()
+		return true
+	}
+
+	p.peekError(t)
+	return false
+}
+
+// peekPrecedence looks up the next token precedence.
+func (p *Parser) peekPrecedence() int {
+	if p, ok := precedences[p.peekToken.Type]; ok {
+		return p
+	}
+	return LOWEST
+}
+
+// curPrecedence looks up the current token precedence.
+func (p *Parser) curPrecedence() int {
+	if p, ok := precedences[p.curToken.Type]; ok {
+		return p
+	}
+	return LOWEST
 }

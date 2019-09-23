@@ -13,8 +13,7 @@ import (
 	"strings"
 
 	"github.com/skx/evalfilter"
-	"github.com/skx/evalfilter/environment"
-	"github.com/skx/evalfilter/runtime"
+	"github.com/skx/evalfilter/object"
 )
 
 //
@@ -55,16 +54,16 @@ func main() {
 	// Add a custom-function, for demonstration purposes.
 	//
 	eval.AddFunction("dump",
-		func(env *environment.Environment, obj interface{}, args []runtime.Argument) interface{} {
+		func(args []object.Object) object.Object {
 
 			//
 			// Show the arguments we received.
 			//
 			for i, arg := range args {
 
-				fmt.Printf("\tArg %d - %v\n", i, arg.Value(env, obj))
+				fmt.Printf("\tArg %d - %v\n", i, arg.Inspect())
 			}
-			return 0
+			return &object.Integer{Value: 0}
 		})
 
 	//
@@ -143,7 +142,9 @@ func main() {
 		//
 		// Show the script.
 		//
-		fmt.Printf("User %s gave result %v\n\n", name, ret)
+        if ( ret ) { 
+            fmt.Printf("User %s gave result %v\n\n", name, ret)
+        }
 	}
 
 	//

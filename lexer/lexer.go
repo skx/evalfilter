@@ -1,10 +1,11 @@
-// Package lexer implements a simple lexer, which will parse
-// user-scripts to be executed by evalfilter.
+// Package lexer contains our simple lexer.
+//
+// The lexer returns tokens from a (string) input, as a series of Token
+// objects.
 package lexer
 
 import (
 	"errors"
-	"strings"
 
 	"github.com/skx/evalfilter/token"
 )
@@ -17,24 +18,40 @@ type Lexer struct {
 	// The next character position
 	readPosition int
 
-	// The current character
+	//The current character
 	ch rune
 
-	// The input string we're reading from.
+	// A rune slice of our input string
 	characters []rune
-
-	// If we need to rewind a token we can do that here.
-	rewind token.Token
 }
 
-// NewLexer creates a Lexer instance from the specified string input.
-func NewLexer(input string) *Lexer {
+// New creates a Lexer instance from the given string
+func New(input string) *Lexer {
 	l := &Lexer{characters: []rune(input)}
 	l.readChar()
 	return l
 }
 
-// read one forward character
+// GetLine returns the rough line-number of our current position.
+//
+// This is used to report errors in a more humane manner.
+func (l *Lexer) GetLine() int {
+	line := 0
+	chars := len(l.characters)
+	i := 0
+
+	for i < l.readPosition && i < chars {
+
+		if l.characters[i] == rune('\n') {
+			line++
+		}
+
+		i++
+	}
+	return line
+}
+
+// read one forward character.
 func (l *Lexer) readChar() {
 	if l.readPosition >= len(l.characters) {
 		l.ch = rune(0)
@@ -45,24 +62,8 @@ func (l *Lexer) readChar() {
 	l.readPosition++
 }
 
-// Rewind reinserts a token into our stream.
-func (l *Lexer) Rewind(tok token.Token) {
-	l.rewind = tok
-}
-
-// NextToken will read the next token, skipping any white space, and ignoring
-// comments - which begin with `//`.
+// NextToken reads and returns the next token, skipping any white space.
 func (l *Lexer) NextToken() token.Token {
-
-	//
-	// If we've been rewound return that token.
-	//
-	if l.rewind.Literal != "" {
-		tmp := l.rewind
-		l.rewind.Literal = ""
-		return tmp
-	}
-
 	var tok token.Token
 	l.skipWhitespace()
 
@@ -73,9 +74,97 @@ func (l *Lexer) NextToken() token.Token {
 	}
 
 	switch l.ch {
+	case rune('&'):
+		if l.peekChar() == rune('&') {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.AND, Literal: string(ch) + string(l.ch)}
+		}
+	case rune('|'):
+		if l.peekChar() == rune('|') {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.OR, Literal: string(ch) + string(l.ch)}
+		}
 
+	case rune('='):
+		if l.peekChar() == rune('=') {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.EQ, Literal: string(ch) + string(l.ch)}
+		} else {
+			tok = newToken(token.ASSIGN, l.ch)
+		}
+	case rune(';'):
+		tok = newToken(token.SEMICOLON, l.ch)
+	case rune('('):
+		tok = newToken(token.LPAREN, l.ch)
+	case rune(')'):
+		tok = newToken(token.RPAREN, l.ch)
+	case rune(','):
+		tok = newToken(token.COMMA, l.ch)
+	case rune('.'):
+		tok = newToken(token.PERIOD, l.ch)
+	case rune('+'):
+		tok = newToken(token.PLUS, l.ch)
+	case rune('{'):
+		tok = newToken(token.LBRACE, l.ch)
+	case rune('}'):
+		tok = newToken(token.RBRACE, l.ch)
+	case rune('-'):
+		tok = newToken(token.MINUS, l.ch)
+	case rune('/'):
+		tok = newToken(token.SLASH, l.ch)
+	case rune('*'):
+		tok = newToken(token.ASTERISK, l.ch)
+	case rune('<'):
+		if l.peekChar() == rune('=') {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.LT_EQUALS, Literal: string(ch) + string(l.ch)}
+		} else {
+			tok = newToken(token.LT, l.ch)
+		}
+	case rune('>'):
+		if l.peekChar() == rune('=') {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.GT_EQUALS, Literal: string(ch) + string(l.ch)}
+		} else {
+			tok = newToken(token.GT, l.ch)
+		}
+	case rune('~'):
+		if l.peekChar() == rune('=') {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.CONTAINS, Literal: string(ch) + string(l.ch)}
+		}
+
+	case rune('!'):
+		if l.peekChar() == rune('=') {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.NOT_EQ, Literal: string(ch) + string(l.ch)}
+		} else {
+			if l.peekChar() == rune('~') {
+				ch := l.ch
+				l.readChar()
+				tok = token.Token{Type: token.MISSING, Literal: string(ch) + string(l.ch)}
+			} else {
+				tok = newToken(token.BANG, l.ch)
+			}
+		}
 	case rune('"'):
-		str, err := l.readString()
+		str, err := l.readString('"')
+		if err == nil {
+			tok.Type = token.STRING
+			tok.Literal = str
+		} else {
+			tok.Type = token.ILLEGAL
+			tok.Literal = err.Error()
+		}
+	case rune('\''):
+		str, err := l.readString('\'')
 
 		if err == nil {
 			tok.Type = token.STRING
@@ -84,66 +173,34 @@ func (l *Lexer) NextToken() token.Token {
 			tok.Type = token.ILLEGAL
 			tok.Literal = err.Error()
 		}
+	case rune(':'):
+		tok = newToken(token.COLON, l.ch)
 	case rune(0):
 		tok.Literal = ""
 		tok.Type = token.EOF
-	case rune('&'):
-		if l.peekChar() == rune('&') {
-			tok.Literal = "and"
-			tok.Type = token.AND
-			l.readChar()
-		}
-	case rune('|'):
-		if l.peekChar() == rune('|') {
-			tok.Literal = "or"
-			tok.Type = token.OR
-			l.readChar()
-
-		}
-	case rune(';'):
-		tok.Literal = ";"
-		tok.Type = token.SEMICOLON
-	case rune(','):
-		tok.Literal = ","
-		tok.Type = token.COMMA
-	case rune('('):
-		tok.Literal = "("
-		tok.Type = token.LBRACKET
-	case rune(')'):
-		tok.Literal = ")"
-		tok.Type = token.RBRACKET
 	default:
-		if l.ch == '-' || isDigit(l.ch) {
-			return l.readDecimalNumber()
+		if isDigit(l.ch) {
+			return l.readDecimal()
 		}
-
-		//
-		// Here we have something that could be
-		// a literal, or could be a function-call
-		//
-		// peek at the next token to decide.
-		//
 		tok.Literal = l.readIdentifier()
-
-		if l.ch == '(' {
-			tok.Type = token.FUNCALL
-		} else {
-			if strings.HasPrefix(tok.Literal, "$") {
-				tok.Type = token.VARIABLE
-				tok.Literal = tok.Literal[1:]
-			} else {
-				tok.Type = token.LookupIdentifier(tok.Literal)
-			}
-		}
+		tok.Type = token.LookupIdentifier(tok.Literal)
 		return tok
 	}
 	l.readChar()
 	return tok
 }
 
-// read and return the name of an identifier
+// return new token
+func newToken(tokenType token.Type, ch rune) token.Token {
+	return token.Token{Type: tokenType, Literal: string(ch)}
+}
+
+// readIdentifier is designed to read an identifier (name of variable,
+// function, etc).
 func (l *Lexer) readIdentifier() string {
+
 	id := ""
+
 	for isIdentifier(l.ch) {
 		id += string(l.ch)
 		l.readChar()
@@ -151,14 +208,14 @@ func (l *Lexer) readIdentifier() string {
 	return id
 }
 
-// skip white space, consuming input as we go.
+// skip over any white space.
 func (l *Lexer) skipWhitespace() {
 	for isWhitespace(l.ch) {
 		l.readChar()
 	}
 }
 
-// skip comment (until the end of the line).
+// skip a comment (until the end of the line).
 func (l *Lexer) skipComment() {
 	for l.ch != '\n' && l.ch != rune(0) {
 		l.readChar()
@@ -166,19 +223,59 @@ func (l *Lexer) skipComment() {
 	l.skipWhitespace()
 }
 
-// read a quote-terminated string
-func (l *Lexer) readString() (string, error) {
+// read a number.  We only care about numerical digits here, floats will
+// be handled elsewhere.
+func (l *Lexer) readNumber() string {
+
+	id := ""
+
+	for isDigit(l.ch) {
+		id += string(l.ch)
+		l.readChar()
+	}
+	return id
+}
+
+// read a decimal number, either int or floating-point.
+func (l *Lexer) readDecimal() token.Token {
+
+	//
+	// Read an integer-number.
+	//
+	integer := l.readNumber()
+
+	//
+	// If the next token is a `.` we've got a floating-point number.
+	//
+	if l.ch == rune('.') && isDigit(l.peekChar()) {
+
+		// Skip the period
+		l.readChar()
+
+		// Get the float-component.
+		fraction := l.readNumber()
+		return token.Token{Type: token.FLOAT, Literal: integer + "." + fraction}
+	}
+
+	//
+	// Just an integer.
+	//
+	return token.Token{Type: token.INT, Literal: integer}
+}
+
+// read a string, deliminated by the given character.
+func (l *Lexer) readString(delim rune) (string, error) {
 	out := ""
 
 	for {
 		l.readChar()
-		if l.ch == '"' {
-			break
-		}
+
 		if l.ch == rune(0) {
 			return "", errors.New("unterminated string")
 		}
-
+		if l.ch == delim {
+			break
+		}
 		//
 		// Handle \n, \r, \t, \", etc.
 		//
@@ -188,11 +285,17 @@ func (l *Lexer) readString() (string, error) {
 			if l.peekChar() == '\n' {
 				// consume the newline.
 				l.readChar()
+				if l.ch == rune(0) {
+					return "", errors.New("unterminated string")
+				}
 				continue
 			}
 
 			l.readChar()
 
+			if l.ch == rune(0) {
+				return "", errors.New("unterminated string")
+			}
 			if l.ch == rune('n') {
 				l.ch = '\n'
 			}
@@ -216,45 +319,6 @@ func (l *Lexer) readString() (string, error) {
 	return out, nil
 }
 
-// read a decimal / floating-point number
-func (l *Lexer) readDecimalNumber() token.Token {
-
-	//
-	// Read an integer-number.
-	//
-	integer := l.readNumber()
-
-	//
-	// Now we might expect further digits, after a dot:
-	//
-	//   .[digits]  -> Which converts us from an int to a float.
-	//
-	if l.ch == rune('.') && isDigit(l.peekChar()) {
-		//
-		// OK here we think we've got a float.
-		//
-		l.readChar()
-		fraction := l.readNumber()
-		return token.Token{Type: token.NUMBER, Literal: integer + "." + fraction}
-	}
-
-	//
-	// OK just an integer.
-	//
-	return token.Token{Type: token.NUMBER, Literal: integer}
-}
-
-// read a numeric digit
-func (l *Lexer) readNumber() string {
-	str := ""
-
-	for isDigit(l.ch) || (len(str) == 0 && l.ch == '-') {
-		str += string(l.ch)
-		l.readChar()
-	}
-	return str
-}
-
 // peek character
 func (l *Lexer) peekChar() rune {
 	if l.readPosition >= len(l.characters) {
@@ -263,27 +327,47 @@ func (l *Lexer) peekChar() rune {
 	return l.characters[l.readPosition]
 }
 
-// determinate whether `ch` is a character permitted in an identifier or not.
+// determinate ch is identifier or not
 func isIdentifier(ch rune) bool {
-	return !isWhitespace(ch) && !isEmpty(ch) && !isSpecial(ch)
+	return !isDigit(ch) && !isWhitespace(ch) && !isBrace(ch) && !isOperator(ch) && !isComparison(ch) && !isCompound(ch) && !isBrace(ch) && !isParen(ch) && !isEmpty(ch)
 }
 
-// is the character white space?
+// is white space
 func isWhitespace(ch rune) bool {
 	return ch == rune(' ') || ch == rune('\t') || ch == rune('\n') || ch == rune('\r')
 }
 
-// is this a special character?
-func isSpecial(ch rune) bool {
-	return ch == rune(',') || ch == rune(';') || ch == rune('(') || ch == rune(')')
+// is operators
+func isOperator(ch rune) bool {
+	return ch == rune('+') || ch == rune('-') || ch == rune('/') || ch == rune('*')
 }
 
-// is this character empty?
+// is comparison
+func isComparison(ch rune) bool {
+	return ch == rune('=') || ch == rune('!') || ch == rune('>') || ch == rune('<') || ch == rune('~')
+}
+
+// is compound
+func isCompound(ch rune) bool {
+	return ch == rune(',') || ch == rune(':') || ch == rune('"') || ch == rune(';')
+}
+
+// is brace
+func isBrace(ch rune) bool {
+	return ch == rune('{') || ch == rune('}')
+}
+
+// is parenthesis
+func isParen(ch rune) bool {
+	return ch == rune('(') || ch == rune(')')
+}
+
+// is empty
 func isEmpty(ch rune) bool {
 	return rune(0) == ch
 }
 
-// is this character a digit?
+// is Digit
 func isDigit(ch rune) bool {
 	return rune('0') <= ch && ch <= rune('9')
 }

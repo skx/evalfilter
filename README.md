@@ -105,21 +105,21 @@ The engine supports scripts which:
 * You can also add new primitives to the engine.
   * By implementing them in your golang host application.
 * Your host-application can set variables which are accessible to the user-script, with a `$`-prefix.
-  * `if ( $time == "Steve" ) { print "You set the variable 'time' to 'Steve'\n"; }`
+  * `if ( $time == "Steve" ) { print("You set the variable 'time' to 'Steve'\n"); }`
 * Finally there is a `print` primitive to allow you to see what is happening, if you need to.
 
 You'll note that you're referring to structure-fields by name, they are found dynamically via reflection.
 
-`if` conditions can be nested as the following sample shows, and also support an `else` clause.
+`if` conditions can be nested as the following sample shows, and we also support an `else` clause.
 
 
      if ( Count > 10 ) {
-         print "Count is > 10\n";
+         print("Count is > 10\n");
 
          if ( Count > 50 ) {
-              print "The count is super-big!\n";
+              print("The count is super-big!\n");
          } else {
-              print "The count is somewhat high!\n";
+              print("The count is somewhat high!\n");
          }
      }
 
@@ -166,11 +166,9 @@ The following functions are built-in, and available by default:
 
 Your host application can register variables which are accessible to your scripting environment via the `SetVariable` method.  The variables can have their values updated at any time before the call to `Eval` is made.
 
-* **NOTE**: Variables are accessed with a `$`-prefix inside the users' script
-
 For example the following example sets the contents of the variable `time`, and then outputs it.  Every second the output will change, because the value has been updated:
 
-    eval := evalfilter.New(`print "The time is ", $time, "\n";
+    eval := evalfilter.New(`print("The time is ", $time, "\n");
                             return false;`)
 
     for {
@@ -202,6 +200,7 @@ If this solution doesn't quite fit your needs you might investigate:
 * https://github.com/Knetic/govaluate
 * https://github.com/PaesslerAG/gval/
 * https://github.com/antonmedv/expr
+
 
 ## Github Setup
 

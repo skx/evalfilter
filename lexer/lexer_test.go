@@ -6,21 +6,24 @@ import (
 	"github.com/skx/evalfilter/token"
 )
 
-// TestSomeStrings tests that the input of a pair of strings is tokenized
-// appropriately.
-func TestSomeStrings(t *testing.T) {
-	input := `"Steve" , "Kemp"`
+func TestNextToken1(t *testing.T) {
+	input := `=+(){},;`
 
 	tests := []struct {
 		expectedType    token.Type
 		expectedLiteral string
 	}{
-		{token.STRING, "Steve"},
+		{token.ASSIGN, "="},
+		{token.PLUS, "+"},
+		{token.LPAREN, "("},
+		{token.RPAREN, ")"},
+		{token.LBRACE, "{"},
+		{token.RBRACE, "}"},
 		{token.COMMA, ","},
-		{token.STRING, "Kemp"},
+		{token.SEMICOLON, ";"},
 		{token.EOF, ""},
 	}
-	l := NewLexer(input)
+	l := New(input)
 	for i, tt := range tests {
 		tok := l.NextToken()
 		if tok.Type != tt.expectedType {
@@ -32,200 +35,101 @@ func TestSomeStrings(t *testing.T) {
 	}
 }
 
-// TestEscape ensures that strings have escape-characters processed.
-func TestStringEscape(t *testing.T) {
-	input := `"Steve\n\r\\" "Kemp\n\t\n" "Inline \"quotes\"."`
+func TestNextToken2(t *testing.T) {
+	input := `five=5;
+ten =10;
+result = add(five, ten);
+!-/ *5;
+5<10>5;
 
-	tests := []struct {
-		expectedType    token.Type
-		expectedLiteral string
-	}{
-		{token.STRING, "Steve\n\r\\"},
-		{token.STRING, "Kemp\n\t\n"},
-		{token.STRING, "Inline \"quotes\"."},
-		{token.EOF, ""},
-	}
-	l := NewLexer(input)
-	for i, tt := range tests {
-		tok := l.NextToken()
-		if tok.Type != tt.expectedType {
-			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
-		}
-		if tok.Literal != tt.expectedLiteral {
-			t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
-		}
-	}
+if(5<10){
+	return true;
+}else{
+	return false;
 }
-
-// TestIfAnd ensures that an if statement can be handled.
-func TestIfAnd(t *testing.T) {
-
-	tests := []string{
-		`if ( true  &&  true ) { print "OK"; } else { print "FAIL"; }`,
-		`if ( true and true ) { print "OK"; } else { print "FAIL"; }`,
-	}
-
-	for _, input := range tests {
-
-		tests := []struct {
-			expectedType    token.Type
-			expectedLiteral string
-		}{
-			{token.IF, "if"},
-			{token.LBRACKET, "("},
-			{token.TRUE, "true"},
-			{token.AND, "and"},
-			{token.TRUE, "true"},
-			{token.RBRACKET, ")"},
-			{token.IDENT, "{"},
-			{token.PRINT, "print"},
-			{token.STRING, "OK"},
-			{token.SEMICOLON, ";"},
-			{token.IDENT, "}"},
-			{token.ELSE, "else"},
-			{token.IDENT, "{"},
-			{token.PRINT, "print"},
-			{token.STRING, "FAIL"},
-			{token.SEMICOLON, ";"},
-			{token.IDENT, "}"},
-			{token.EOF, ""},
-		}
-		l := NewLexer(input)
-		for i, tt := range tests {
-			tok := l.NextToken()
-			if tok.Type != tt.expectedType {
-				t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
-			}
-			if tok.Literal != tt.expectedLiteral {
-				t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
-			}
-		}
-	}
-}
-
-// TestIfOr ensures that an if statement can be handled.
-func TestIfOr(t *testing.T) {
-
-	tests := []string{
-		`if ( true || true ) { print "OK"; } else { print "FAIL"; }`,
-		`if ( true or true ) { print "OK"; } else { print "FAIL"; }`,
-	}
-
-	for _, input := range tests {
-
-		tests := []struct {
-			expectedType    token.Type
-			expectedLiteral string
-		}{
-			{token.IF, "if"},
-			{token.LBRACKET, "("},
-			{token.TRUE, "true"},
-			{token.OR, "or"},
-			{token.TRUE, "true"},
-			{token.RBRACKET, ")"},
-			{token.IDENT, "{"},
-			{token.PRINT, "print"},
-			{token.STRING, "OK"},
-			{token.SEMICOLON, ";"},
-			{token.IDENT, "}"},
-			{token.ELSE, "else"},
-			{token.IDENT, "{"},
-			{token.PRINT, "print"},
-			{token.STRING, "FAIL"},
-			{token.SEMICOLON, ";"},
-			{token.IDENT, "}"},
-			{token.EOF, ""},
-		}
-		l := NewLexer(input)
-		for i, tt := range tests {
-			tok := l.NextToken()
-			if tok.Type != tt.expectedType {
-				t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
-			}
-			if tok.Literal != tt.expectedLiteral {
-				t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
-			}
-		}
-	}
-}
-
-// TestComments ensures that single-line comments work.
-func TestComments(t *testing.T) {
-	input := `// This is a comment
-"Steve"
-// This is another comment`
-
-	tests := []struct {
-		expectedType    token.Type
-		expectedLiteral string
-	}{
-		{token.STRING, "Steve"},
-		{token.EOF, ""},
-	}
-	l := NewLexer(input)
-	for i, tt := range tests {
-		tok := l.NextToken()
-		if tok.Type != tt.expectedType {
-			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
-		}
-		if tok.Literal != tt.expectedLiteral {
-			t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
-		}
-	}
-}
-
-// TestUnterminated string ensures that an unclosed-string is an error
-func TestUnterminatedString(t *testing.T) {
-	input := `//
-// This is a script
-//
-print "Steve`
-
-	tests := []struct {
-		expectedType    token.Type
-		expectedLiteral string
-	}{
-		{token.PRINT, "print"},
-		{token.ILLEGAL, "unterminated string"},
-		{token.EOF, ""},
-	}
-	l := NewLexer(input)
-	for i, tt := range tests {
-		tok := l.NextToken()
-		if tok.Type != tt.expectedType {
-			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
-		}
-		if tok.Literal != tt.expectedLiteral {
-			t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
-		}
-	}
-}
-
-// TestNumber tests that we can parse numbers.
-func TestNumber(t *testing.T) {
-	input := `//
-// This is a with numbers
-//
-1;
--10;
-23;
-34.54;
+10 == 10;
+10 != 9;
+"foobar"
+"foo bar";
+{"foo":"bar"}
+1.2
+0.5
+0.3
+世界
 `
 	tests := []struct {
 		expectedType    token.Type
 		expectedLiteral string
 	}{
-		{token.NUMBER, "1"},
+		{token.IDENT, "five"},
+		{token.ASSIGN, "="},
+		{token.INT, "5"},
 		{token.SEMICOLON, ";"},
-		{token.NUMBER, "-10"},
+		{token.IDENT, "ten"},
+		{token.ASSIGN, "="},
+		{token.INT, "10"},
 		{token.SEMICOLON, ";"},
-		{token.NUMBER, "23"},
+		{token.IDENT, "result"},
+		{token.ASSIGN, "="},
+		{token.IDENT, "add"},
+		{token.LPAREN, "("},
+		{token.IDENT, "five"},
+		{token.COMMA, ","},
+		{token.IDENT, "ten"},
+		{token.RPAREN, ")"},
 		{token.SEMICOLON, ";"},
-		{token.NUMBER, "34.54"},
+		{token.BANG, "!"},
+		{token.MINUS, "-"},
+		{token.SLASH, "/"},
+		{token.ASTERISK, "*"},
+		{token.INT, "5"},
 		{token.SEMICOLON, ";"},
+		{token.INT, "5"},
+		{token.LT, "<"},
+		{token.INT, "10"},
+		{token.GT, ">"},
+		{token.INT, "5"},
+		{token.SEMICOLON, ";"},
+		{token.IF, "if"},
+		{token.LPAREN, "("},
+		{token.INT, "5"},
+		{token.LT, "<"},
+		{token.INT, "10"},
+		{token.RPAREN, ")"},
+		{token.LBRACE, "{"},
+		{token.RETURN, "return"},
+		{token.TRUE, "true"},
+		{token.SEMICOLON, ";"},
+		{token.RBRACE, "}"},
+		{token.ELSE, "else"},
+		{token.LBRACE, "{"},
+		{token.RETURN, "return"},
+		{token.FALSE, "false"},
+		{token.SEMICOLON, ";"},
+		{token.RBRACE, "}"},
+		{token.INT, "10"},
+		{token.EQ, "=="},
+		{token.INT, "10"},
+		{token.SEMICOLON, ";"},
+		{token.INT, "10"},
+		{token.NOT_EQ, "!="},
+		{token.INT, "9"},
+		{token.SEMICOLON, ";"},
+		{token.STRING, "foobar"},
+		{token.STRING, "foo bar"},
+		{token.SEMICOLON, ";"},
+		{token.LBRACE, "{"},
+		{token.STRING, "foo"},
+		{token.COLON, ":"},
+		{token.STRING, "bar"},
+		{token.RBRACE, "}"},
+		{token.FLOAT, "1.2"},
+		{token.FLOAT, "0.5"},
+		{token.FLOAT, "0.3"},
+		{token.IDENT, "世界"},
 		{token.EOF, ""},
 	}
-	l := NewLexer(input)
+	l := New(input)
 	for i, tt := range tests {
 		tok := l.NextToken()
 		if tok.Type != tt.expectedType {
@@ -237,101 +141,104 @@ func TestNumber(t *testing.T) {
 	}
 }
 
-// TestContinue checks we continue newlines.
-func TestContinue(t *testing.T) {
-	input := `//
-// Long-lines are fine
-//
-print "This is a test \
-which continues";
+func TestUnicodeLexer(t *testing.T) {
+	input := `世界`
+	l := New(input)
+	tok := l.NextToken()
+	if tok.Type != token.IDENT {
+		t.Fatalf("token type wrong, expected=%q, got=%q", token.IDENT, tok.Type)
+	}
+	if tok.Literal != "世界" {
+		t.Fatalf("token literal wrong, expected=%q, got=%q", "世界", tok.Literal)
+	}
+}
+
+func TestSimpleComment(t *testing.T) {
+	input := `=+// This is a comment
+// This is still a comment
+a = 1;
+// This is a final
+// comment on two-lines`
+
+	tests := []struct {
+		expectedType    token.Type
+		expectedLiteral string
+	}{
+		{token.ASSIGN, "="},
+		{token.PLUS, "+"},
+		{token.IDENT, "a"},
+		{token.ASSIGN, "="},
+		{token.INT, "1"},
+		{token.SEMICOLON, ";"},
+		{token.EOF, ""},
+	}
+	l := New(input)
+	for i, tt := range tests {
+		tok := l.NextToken()
+		if tok.Type != tt.expectedType {
+			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
+		}
+		if tok.Literal != tt.expectedLiteral {
+			t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
+		}
+	}
+}
+
+func TestIntegers(t *testing.T) {
+	input := `10 20 33.3`
+
+	tests := []struct {
+		expectedType    token.Type
+		expectedLiteral string
+	}{
+		{token.INT, "10"},
+		{token.INT, "20"},
+		{token.FLOAT, "33.3"},
+		{token.EOF, ""},
+	}
+	l := New(input)
+	for i, tt := range tests {
+		tok := l.NextToken()
+		if tok.Type != tt.expectedType {
+			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
+		}
+		if tok.Literal != tt.expectedLiteral {
+			t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
+		}
+	}
+}
+
+// TestMoreHandling does nothing real, but it bumps our coverage!
+func TestMoreHandling(t *testing.T) {
+	input := `
+t = true;
+f = false;
+
+if ( t && f ) { puts( "What?" ); }
+if ( t || f ) { puts( "What?" ); }
+
+a = 1;
+
+if ( a<3 ) { puts( "Blah!"); }
+if ( a>3 ) { puts( "Blah!"); }
+
+b = 3;
+if ( b <= 3  ) { puts "blah\n" }
+if ( b >= 3  ) { puts "blah\n" }
+
+a = "steve";
+ a = "steve\n";
+ a = "steve\t";
+ a = "steve\r";
+ a = "steve\\";
+ a = "steve\"";
+ c = 3.113£;
+.;
 `
-
-	tests := []struct {
-		expectedType    token.Type
-		expectedLiteral string
-	}{
-		{token.PRINT, "print"},
-		{token.STRING, "This is a test which continues"},
-		{token.SEMICOLON, ";"},
-		{token.EOF, ""},
-	}
-	l := NewLexer(input)
-	for i, tt := range tests {
-		tok := l.NextToken()
-		if tok.Type != tt.expectedType {
-			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
-		}
-		if tok.Literal != tt.expectedLiteral {
-			t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
-		}
-	}
-}
-
-// TestRewind tests that we can rewind our input.
-func TestRewind(t *testing.T) {
-	input := `"Steve" , "Kemp"`
-
-	tests := []struct {
-		expectedType    token.Type
-		expectedLiteral string
-	}{
-		{token.STRING, "Steve"},
-		{token.COMMA, ","},
-		{token.COMMA, ","},
-		{token.STRING, "Kemp"},
-		{token.EOF, ""},
-	}
-
-	rewound := false
-	l := NewLexer(input)
-	for i, tt := range tests {
-		tok := l.NextToken()
-		if tok.Type != tt.expectedType {
-			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
-		}
-		if tok.Literal != tt.expectedLiteral {
-			t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
-		}
-
-		if tok.Type == token.COMMA && !rewound {
-			l.Rewind(tok)
-			rewound = true
-		}
-	}
-}
-
-// TestTypes tests we can see ident, function calls , and variables.
-func TestTypes(t *testing.T) {
-	input := `foo("steve"); $type`
-
-	tests := []struct {
-		expectedType    token.Type
-		expectedLiteral string
-	}{
-		{token.FUNCALL, "foo"},
-		{token.LBRACKET, "("},
-		{token.STRING, "steve"},
-		{token.RBRACKET, ")"},
-		{token.SEMICOLON, ";"},
-		{token.VARIABLE, "type"},
-		{token.EOF, ""},
-	}
-
-	rewound := false
-	l := NewLexer(input)
-	for i, tt := range tests {
-		tok := l.NextToken()
-		if tok.Type != tt.expectedType {
-			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
-		}
-		if tok.Literal != tt.expectedLiteral {
-			t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
-		}
-
-		if tok.Type == token.COMMA && !rewound {
-			l.Rewind(tok)
-			rewound = true
-		}
+	l := New(input)
+	tok := l.NextToken()
+	for tok.Type != token.EOF {
+		tok = l.NextToken()
 	}
 }
 
@@ -340,7 +247,7 @@ func TestEOF(t *testing.T) {
 	input := ` `
 
 	// Parse
-	l := NewLexer(input)
+	l := New(input)
 
 	for {
 		tk := l.NextToken()
