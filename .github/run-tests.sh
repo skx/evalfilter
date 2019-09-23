@@ -16,13 +16,22 @@ if [ -s $t ]; then
 fi
 rm $t
 
-# At this point failures cause aborts
-set -e
 
 # Run the linter
 echo "Launching linter .."
-golint -set_exit_status ./...
+t=$(mktemp)
+golint -set_exit_status ./...| grep -v "CamelCase" > $t
+if [ -s $t ]; then
+    echo "Found errors via 'staticcheck'"
+    cat $t
+    rm $t
+    exit 1
+fi
+rm $t
 echo "Completed linter .."
+
+# At this point failures cause aborts
+set -e
 
 # Run golang tests
 go test ./...
