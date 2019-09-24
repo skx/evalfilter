@@ -212,6 +212,7 @@ go get github.com/skx/evalfilter/cmd/evalfilter
 Once installed you can execute a script against an object with two
 attributes `Name` (string) & `Age` (int).
 
+This can also be used for confirming problems identified via [fuzz-testing](FUZZING.md).
 
 
 ## Alternatives
