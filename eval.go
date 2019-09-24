@@ -483,6 +483,28 @@ func (e *Eval) evalAssignStatement(a *ast.AssignStatement, env *object.Environme
 }
 
 func (e *Eval) isTruthy(obj object.Object) bool {
+
+	//
+	// Is this a boolean object?
+	//
+	// If so look for the stored value.
+	//
+	switch tmp := obj.(type) {
+	case *object.Boolean:
+		return (tmp.Value == true)
+	case *object.String:
+		return (tmp.Value != "")
+	case *object.Null:
+		return false
+	case *object.Integer:
+		return (tmp.Value != 0)
+	case *object.Float:
+		return (tmp.Value != 0.0)
+	}
+
+	//
+	// If not we return based on our constants.
+	//
 	switch obj {
 	case NULL:
 		return false
