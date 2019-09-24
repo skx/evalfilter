@@ -1,3 +1,4 @@
 _examples/passwd/passwd
 _examples/variable/variable
 _examples/state/state
+cmd/evalfilter/evalfilter
