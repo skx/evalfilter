@@ -252,6 +252,57 @@ func TestFunctionInt(t *testing.T) {
 	}
 }
 
+// TestFunctionString calls a function
+func TestFunctionString(t *testing.T) {
+
+	// Dummy structure to test field-access.
+	type Structure struct {
+		Count int
+	}
+
+	// Instance of object
+	o := &Structure{Count: 3}
+
+	type Test struct {
+		Input  string
+		Result bool
+	}
+
+	tests := []Test{
+		{Input: `if ( Str() ) { return true; } return false;`, Result: true},
+		{Input: `if ( Str() == "Steve" ) { return true; } return false;`, Result: true},
+		{Input: `if ( Str() == "Bob" ) { return true; } return false;`, Result: false},
+		{Input: `if ( ! Str() ) { return true; } else { return false; }`, Result: false},
+
+		{Input: `if ( EmptyStr() ) { return true; } return false;`, Result: false},
+		{Input: `if ( EmptyStr() == "Steve" ) { return true; } return false;`, Result: false},
+		{Input: `if ( EmptyStr() == "" ) { return true; } return false;`, Result: true},
+		{Input: `if ( ! EmptyStr() ) { return true; } else { return false; }`, Result: false},
+	}
+
+	for _, tst := range tests {
+
+		obj := New(tst.Input)
+		obj.AddFunction("Str",
+			func(args []object.Object) object.Object {
+				return &object.String{Value: "Steve"}
+			})
+		obj.AddFunction("EmptyStr",
+			func(args []object.Object) object.Object {
+				return &object.String{Value: ""}
+			})
+
+		ret, err := obj.Run(o)
+		if err != nil {
+			t.Fatalf("Found unexpected error running test %s\n", err.Error())
+		}
+
+		if ret != tst.Result {
+			t.Fatalf("Found unexpected result running script %s", tst.Input)
+		}
+	}
+}
+
 // TestBool tests a struct-member can be boolean
 func TestBool(t *testing.T) {
 
