@@ -497,7 +497,6 @@ func (e *Eval) isTruthy(obj object.Object) bool {
 	case *object.Null:
 		return false
 	case *object.Integer:
-		fmt.Printf("Value is %d\n", tmp.Value)
 		return (tmp.Value != 0)
 	case *object.Float:
 		return (tmp.Value != 0.0)
