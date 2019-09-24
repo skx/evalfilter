@@ -15,9 +15,9 @@ func fnLen(args []object.Object) object.Object {
 	sum := 0
 
 	for _, e := range args {
-		switch e.(type) {
+		switch e := e.(type) {
 		case *object.String:
-			sum += utf8.RuneCountInString(e.(*object.String).Value)
+			sum += utf8.RuneCountInString(e.Value)
 		}
 	}
 	return &object.Integer{Value: int64(sum)}
