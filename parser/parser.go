@@ -187,7 +187,6 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	p.nextToken()
 	stmt.ReturnValue = p.parseExpression(LOWEST)
 	p.nextToken()
-
 	if p.curToken.Type != token.SEMICOLON {
 		p.errors = append(p.errors, fmt.Sprintf("expected semicolon after return-value; found token ' %s'", p.curToken.Literal))
 		stmt.ReturnValue = nil
@@ -243,7 +242,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 }
 
 func (p *Parser) parseIllegal() ast.Expression {
-	msg := fmt.Sprintf("Error parsing program %s", p.curToken.Literal)
+	msg := fmt.Sprintf("Illegal token hit parsing program %s", p.curToken.Literal)
 	p.errors = append(p.errors, msg)
 	return nil
 }
@@ -334,11 +333,17 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 // parseIfCondition parses an if-expression.
 func (p *Parser) parseIfExpression() ast.Expression {
 	expression := &ast.IfExpression{Token: p.curToken}
+	if expression == nil {
+		return nil
+	}
 	if !p.expectPeek(token.LPAREN) {
 		return nil
 	}
 	p.nextToken()
 	expression.Condition = p.parseExpression(LOWEST)
+	if expression.Condition == nil {
+		return nil
+	}
 	if !p.expectPeek(token.RPAREN) {
 		return nil
 	}
@@ -374,6 +379,11 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 		}
 		block.Statements = append(block.Statements, stmt)
 		p.nextToken()
+		if p.curToken.Type == token.ILLEGAL {
+			p.errors = append(p.errors, fmt.Sprintf("%s", p.curToken.Literal))
+			return nil
+		}
+
 	}
 	return block
 }

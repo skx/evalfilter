@@ -80,7 +80,7 @@ func (e *Eval) Run(obj interface{}) (bool, error) {
 	// Where there any errors produced by the parser?
 	//
 	if len(e.Parser.Errors()) > 0 {
-		return false, fmt.Errorf("errors parsing script:" +
+		return false, fmt.Errorf("\nErrors parsing script:\n" +
 			strings.Join(e.Parser.Errors(), "\n"))
 	}
 

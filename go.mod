@@ -3,10 +3,13 @@ module github.com/skx/evalfilter
 go 1.12
 
 require (
+	github.com/dvyukov/go-fuzz v0.0.0-20190919153955-532ac05586a1 // indirect
+	github.com/elazarl/go-bindata-assetfs v1.0.0 // indirect
 	github.com/goruby/goruby v0.0.0-20190120152628-43c93d4f2611
 	github.com/kr/pty v1.1.8 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/rogpeppe/go-internal v1.3.2 // indirect
+	github.com/stephens2424/writerset v1.0.2 // indirect
 	golang.org/x/crypto v0.0.0-20190923035154-9ee001bba392 // indirect
 	golang.org/x/lint v0.0.0-20190909230951-414d861bb4ac // indirect
 	golang.org/x/mod v0.1.0 // indirect

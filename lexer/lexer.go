@@ -6,6 +6,7 @@ package lexer
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/skx/evalfilter/token"
 )
@@ -271,7 +272,7 @@ func (l *Lexer) readString(delim rune) (string, error) {
 		l.readChar()
 
 		if l.ch == rune(0) {
-			return "", errors.New("unterminated string")
+			return "", fmt.Errorf("unterminated string")
 		}
 		if l.ch == delim {
 			break
@@ -286,7 +287,7 @@ func (l *Lexer) readString(delim rune) (string, error) {
 				// consume the newline.
 				l.readChar()
 				if l.ch == rune(0) {
-					return "", errors.New("unterminated string")
+					return "", fmt.Errorf("unterminated string")
 				}
 				continue
 			}
