@@ -491,7 +491,7 @@ func (e *Eval) isTruthy(obj object.Object) bool {
 	//
 	switch tmp := obj.(type) {
 	case *object.Boolean:
-		return (tmp.Value == true)
+		return tmp.Value
 	case *object.String:
 		return (tmp.Value != "")
 	case *object.Null:
