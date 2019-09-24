@@ -168,8 +168,8 @@ func TestContains(t *testing.T) {
 	}
 }
 
-// TestFunction calls a function
-func TestFunction(t *testing.T) {
+// TestFunctionBool calls a function
+func TestFunctionBool(t *testing.T) {
 
 	// Dummy structure to test field-access.
 	type Structure struct {
@@ -188,7 +188,7 @@ func TestFunction(t *testing.T) {
 		{Input: `if ( True() ) { return true; } return false;`, Result: true},
 		{Input: `if ( True() == false ) { return true; } return false;`, Result: false},
 		{Input: `if ( True() != false ) { return true; } return false;`, Result: true},
-		{Input: `True(); return false;`, Result: false},
+		{Input: `if ( ! True() ) { return true; } else { return false; }`, Result: false},
 	}
 
 	for _, tst := range tests {
@@ -197,6 +197,48 @@ func TestFunction(t *testing.T) {
 		obj.AddFunction("True",
 			func(args []object.Object) object.Object {
 				return &object.Boolean{Value: true}
+			})
+
+		ret, err := obj.Run(o)
+		if err != nil {
+			t.Fatalf("Found unexpected error running test %s\n", err.Error())
+		}
+
+		if ret != tst.Result {
+			t.Fatalf("Found unexpected result running script")
+		}
+	}
+}
+
+// TestFunctionInt calls a function
+func TestFunctionInt(t *testing.T) {
+
+	// Dummy structure to test field-access.
+	type Structure struct {
+		Count int
+	}
+
+	// Instance of object
+	o := &Structure{Count: 3}
+
+	type Test struct {
+		Input  string
+		Result bool
+	}
+
+	tests := []Test{
+		{Input: `if ( Number() ) { return true; } return false;`, Result: true},
+		{Input: `if ( Number() != 0 ) { return true; } return false;`, Result: true},
+		{Input: `if ( Number() == 3 ) { return true; } return false;`, Result: true},
+		{Input: `if ( ! Number() ) { return true; } else { return false; }`, Result: false},
+	}
+
+	for _, tst := range tests {
+
+		obj := New(tst.Input)
+		obj.AddFunction("Number",
+			func(args []object.Object) object.Object {
+				return &object.Integer{Value: 3}
 			})
 
 		ret, err := obj.Run(o)
