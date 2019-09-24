@@ -9,6 +9,7 @@
   * [Function Invocation](#function-invocation)
     * [Built-In Functions](#built-in-functions)
   * [Variables](#variables)
+  * [Standalone Use](#standalone-use)
   * [Alternatives](#alternatives)
   * [Github Setup](#github-setup)
 
@@ -196,6 +197,21 @@ For example the following example sets the contents of the variable `time`, and 
 
         time.Sleep(1 * time.Second)
     }
+
+
+
+## Standalone Use
+
+If you wish to experiment you can install the standalone driver:
+
+```
+go get github.com/skx/evalfilter/cmd/evalfilter
+
+```
+
+Once installed you can execute a script against an object with two
+attributes `Name` (string) & `Age` (int).
+
 
 
 ## Alternatives
