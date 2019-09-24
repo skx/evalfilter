@@ -157,11 +157,10 @@ func (p *Parser) ParseProgram() *ast.Program {
 	program.Statements = []ast.Statement{}
 	for p.curToken.Type != token.EOF && p.curToken.Type != token.ILLEGAL {
 		stmt := p.parseStatement()
-		if stmt != nil {
-			program.Statements = append(program.Statements, stmt)
-		} else {
-			fmt.Printf("Nil statement\n")
+		if stmt == nil {
+			return nil
 		}
+		program.Statements = append(program.Statements, stmt)
 		p.nextToken()
 	}
 	return program
@@ -171,7 +170,12 @@ func (p *Parser) ParseProgram() *ast.Program {
 func (p *Parser) parseStatement() ast.Statement {
 	switch p.curToken.Type {
 	case token.RETURN:
-		return p.parseReturnStatement()
+		r := p.parseReturnStatement()
+		if r == nil {
+			return nil
+		}
+		return r
+
 	default:
 		return p.parseExpressionStatement()
 	}
@@ -182,9 +186,14 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	stmt := &ast.ReturnStatement{Token: p.curToken}
 	p.nextToken()
 	stmt.ReturnValue = p.parseExpression(LOWEST)
-	for !p.curTokenIs(token.SEMICOLON) {
-		p.nextToken()
+	p.nextToken()
+
+	if p.curToken.Type != token.SEMICOLON {
+		p.errors = append(p.errors, fmt.Sprintf("expected semicolon after return-value; found token ' %s'", p.curToken.Literal))
+		stmt.ReturnValue = nil
+		return nil
 	}
+
 	return stmt
 }
 
@@ -211,6 +220,12 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		return nil
 	}
 	leftExp := prefix()
+
+	// Look for errors
+	if leftExp == nil {
+		return nil
+	}
+
 	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
 		infix := p.infixParseFns[p.peekToken.Type]
 		if infix == nil {
@@ -218,6 +233,11 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		}
 		p.nextToken()
 		leftExp = infix(leftExp)
+
+		// Look for errors
+		if leftExp == nil {
+			return nil
+		}
 	}
 	return leftExp
 }
@@ -326,12 +346,18 @@ func (p *Parser) parseIfExpression() ast.Expression {
 		return nil
 	}
 	expression.Consequence = p.parseBlockStatement()
+	if expression.Consequence == nil {
+		return nil
+	}
 	if p.peekTokenIs(token.ELSE) {
 		p.nextToken()
 		if !p.expectPeek(token.LBRACE) {
 			return nil
 		}
 		expression.Alternative = p.parseBlockStatement()
+		if expression.Alternative == nil {
+			return nil
+		}
 	}
 	return expression
 }
@@ -343,9 +369,10 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	p.nextToken()
 	for !p.curTokenIs(token.RBRACE) {
 		stmt := p.parseStatement()
-		if stmt != nil {
-			block.Statements = append(block.Statements, stmt)
+		if stmt == nil {
+			return nil
 		}
+		block.Statements = append(block.Statements, stmt)
 		p.nextToken()
 	}
 	return block
