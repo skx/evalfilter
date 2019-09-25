@@ -380,7 +380,7 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 		block.Statements = append(block.Statements, stmt)
 		p.nextToken()
 		if p.curToken.Type == token.ILLEGAL {
-			p.errors = append(p.errors, fmt.Sprintf("%s", p.curToken.Literal))
+			p.errors = append(p.errors, p.curToken.Literal)
 			return nil
 		}
 
