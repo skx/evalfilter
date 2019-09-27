@@ -57,6 +57,7 @@ func New(script string) *Eval {
 	// Add our default functions.
 	//
 	e.AddFunction("len", fnLen)
+	e.AddFunction("match", fnMatch)
 	e.AddFunction("print", fnPrint)
 	e.AddFunction("trim", fnTrim)
 

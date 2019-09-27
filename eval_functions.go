@@ -4,6 +4,7 @@ package evalfilter
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"unicode/utf8"
 
@@ -21,6 +22,34 @@ func fnLen(args []object.Object) object.Object {
 		}
 	}
 	return &object.Integer{Value: int64(sum)}
+}
+
+// fnMatch is the implementation of our regex `match` function.
+func fnMatch(args []object.Object) object.Object {
+
+	// We expect two arguments
+	if len(args) != 2 {
+		return &object.Boolean{Value: false}
+	}
+
+	str := args[0].Inspect()
+	reg := args[1].Inspect()
+
+	// Compile the regular expression
+	r, _ := regexp.Compile(reg)
+
+	// Split the input by newline.
+	for _, s := range strings.Split(str, "\n") {
+
+		// Strip leading-trailing whitespace
+		s = strings.TrimSpace(s)
+
+		if r.MatchString(s) {
+			return &object.Boolean{Value: true}
+		}
+	}
+	return &object.Boolean{Value: false}
+
 }
 
 // fnTrim is the implementation of our `trim` function.

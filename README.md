@@ -164,6 +164,10 @@ The following functions are built-in, and available by default:
 
 * `len(field | string)`
   * Returns the length of the given string, or the contents of the given field.
+* `match(field|str, regexp)`
+  * Returns `true` if the specified string matches the given regular expression.
+  * You can make this case-insensitive using `(?i)`, for example:
+    * `if ( match( "Steve" , "(?i)^steve$" ) ) { ... `
 * `trim(field | string)`
   * Returns the given string, or the contents of the given field, with leading/trailing whitespace removed.
 
