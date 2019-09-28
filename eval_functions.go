@@ -61,6 +61,15 @@ func fnTrim(args []object.Object) object.Object {
 	return &object.String{Value: strings.TrimSpace(str)}
 }
 
+// fnType is the implementation of our `type` function.
+func fnType(args []object.Object) object.Object {
+	for _, e := range args {
+		return &object.String{Value: strings.ToLower(fmt.Sprintf("%v", e.Type()))}
+	}
+
+	return &object.String{Value: "null"}
+}
+
 // fnPrint is the implementation of our `print` function.
 func fnPrint(args []object.Object) object.Object {
 	for _, e := range args {

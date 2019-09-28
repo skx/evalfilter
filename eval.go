@@ -60,6 +60,7 @@ func New(script string) *Eval {
 	e.AddFunction("match", fnMatch)
 	e.AddFunction("print", fnPrint)
 	e.AddFunction("trim", fnTrim)
+	e.AddFunction("type", fnType)
 
 	//
 	// Parse the program we were given.
