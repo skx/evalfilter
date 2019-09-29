@@ -110,9 +110,10 @@ The engine supports scripts which:
     * "`if ( Content !~ "some text we dont want" )`"
 * You can also add new primitives to the engine.
   * By implementing them in your golang host application.
-* Your host-application can set variables which are accessible to the user-script, with a `$`-prefix.
-  * `if ( $time == "Steve" ) { print("You set the variable 'time' to 'Steve'\n"); }`
+* Your host-application can set variables which are accessible to the user-script.
+  * `if ( time == "Steve" ) { print("You set 'time' to the value 'Steve'\n"); }`
 * Finally there is a `print` primitive to allow you to see what is happening, if you need to.
+  * This is just one of the built-in functions, but perhaps the most useful.
 
 You'll note that you're referring to structure-fields by name, they are found dynamically via reflection.
 
@@ -140,6 +141,8 @@ For example you might have a list of people, which you wish to filter by the len
       Name string
       Age  int
     }
+
+    // Now here is a list of people-objects.
     people := []Person{
         {"Bob", 31},
         {"John", 42},
@@ -147,7 +150,7 @@ For example you might have a list of people, which you wish to filter by the len
         {"Jenny", 26},
     }
 
-You can filter the list based upon the length of their name via a filter-script like this:
+You can filter the list based upon the length of their name via a script such as this:
 
     // Example filter - we only care about people with "long" names.
     if ( len(Name) > 4 ) { return true ; }
@@ -164,12 +167,19 @@ The following functions are built-in, and available by default:
 
 * `len(field | string)`
   * Returns the length of the given string, or the contents of the given field.
+* `lower(field|value)`
+  * Return the lower-case version of the given input.
 * `match(field|str, regexp)`
   * Returns `true` if the specified string matches the given regular expression.
   * You can make this case-insensitive using `(?i)`, for example:
     * `if ( match( "Steve" , "(?i)^steve$" ) ) { ... `
 * `trim(field | string)`
   * Returns the given string, or the contents of the given field, with leading/trailing whitespace removed.
+* `type(field|value)`
+  * Returns the type of the given field, as a string.
+    * For example `string`, `integer`, `float`, `boolean`, or `null`.
+* `upper(field|value)`
+  * Return the upper-case version of the given input.
 
 
 ## Variables
@@ -178,12 +188,12 @@ Your host application can register variables which are accessible to your script
 
 For example the following example sets the contents of the variable `time`, and then outputs it.  Every second the output will change, because the value has been updated:
 
-    eval := evalfilter.New(`print("The time is ", $time, "\n");
+    eval := evalfilter.New(`print("The time is ", time, "\n");
                             return false;`)
 
     for {
 
-        // Set the variable `$time` to be the seconds past the epoch.
+        // Set the variable `time` to be the seconds past the epoch.
 		eval.SetVariable("time", &object.Integer{Value: time.Now().Unix()})
 
         // Run the script.
@@ -206,15 +216,14 @@ For example the following example sets the contents of the variable `time`, and 
 
 ## Standalone Use
 
-If you wish to experiment you can install the standalone driver:
+If you wish to experiment with script-syntax you can install the standalone driver:
 
 ```
 go get github.com/skx/evalfilter/cmd/evalfilter
 
 ```
 
-Once installed you can execute a script against an object with two
-attributes `Name` (string) & `Age` (int).
+Once installed you can execute a script against an object with two attributes `Name` (string) & `Age` (int).
 
 This can also be used for confirming problems identified via [fuzz-testing](FUZZING.md).
 
