@@ -57,10 +57,12 @@ func New(script string) *Eval {
 	// Add our default functions.
 	//
 	e.AddFunction("len", fnLen)
+	e.AddFunction("lower", fnLower)
 	e.AddFunction("match", fnMatch)
 	e.AddFunction("print", fnPrint)
 	e.AddFunction("trim", fnTrim)
 	e.AddFunction("type", fnType)
+	e.AddFunction("upper", fnUpper)
 
 	//
 	// Parse the program we were given.

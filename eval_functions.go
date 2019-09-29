@@ -24,6 +24,20 @@ func fnLen(args []object.Object) object.Object {
 	return &object.Integer{Value: int64(sum)}
 }
 
+// fnLower is the implementation of our `lower` function.
+func fnLower(args []object.Object) object.Object {
+
+	out := ""
+
+	// Join all input arguments
+	for _, arg := range args {
+		val := fmt.Sprintf("%v", arg.Inspect())
+
+		out += strings.ToLower(val)
+	}
+	return &object.String{Value: out}
+}
+
 // fnMatch is the implementation of our regex `match` function.
 func fnMatch(args []object.Object) object.Object {
 
@@ -76,4 +90,17 @@ func fnPrint(args []object.Object) object.Object {
 		fmt.Printf("%s", e.Inspect())
 	}
 	return &object.Integer{Value: 0}
+}
+
+// fnUpper is the implementation of our `upper` function.
+func fnUpper(args []object.Object) object.Object {
+	out := ""
+
+	// Join all input arguments
+	for _, arg := range args {
+		val := fmt.Sprintf("%v", arg.Inspect())
+		out += strings.ToUpper(val)
+	}
+	return &object.String{Value: out}
+
 }
