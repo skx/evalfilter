@@ -165,20 +165,20 @@ This example is contained in [example_function_test.go](example_function_test.go
 
 The following functions are built-in, and available by default:
 
-* `len(field | string)`
-  * Returns the length of the given string, or the contents of the given field.
-* `lower(field|value)`
+* `len(field | value)`
+  * Returns the length of the given value, or the contents of the given field.
+* `lower(field | value)`
   * Return the lower-case version of the given input.
-* `match(field|str, regexp)`
-  * Returns `true` if the specified string matches the given regular expression.
+* `match(field | str, regexp)`
+  * Returns `true` if the specified string matches the supplied regular expression.
   * You can make this case-insensitive using `(?i)`, for example:
     * `if ( match( "Steve" , "(?i)^steve$" ) ) { ... `
 * `trim(field | string)`
   * Returns the given string, or the contents of the given field, with leading/trailing whitespace removed.
-* `type(field|value)`
+* `type(field | value)`
   * Returns the type of the given field, as a string.
     * For example `string`, `integer`, `float`, `boolean`, or `null`.
-* `upper(field|value)`
+* `upper(field | value)`
   * Return the upper-case version of the given input.
 
 
@@ -188,13 +188,15 @@ Your host application can register variables which are accessible to your script
 
 For example the following example sets the contents of the variable `time`, and then outputs it.  Every second the output will change, because the value has been updated:
 
-    eval := evalfilter.New(`print("The time is ", time, "\n");
-                            return false;`)
+    eval := evalfilter.New(`
+                print("The time is ", time, "\n");
+                return false;
+            `)
 
     for {
 
         // Set the variable `time` to be the seconds past the epoch.
-		eval.SetVariable("time", &object.Integer{Value: time.Now().Unix()})
+        eval.SetVariable("time", &object.Integer{Value: time.Now().Unix()})
 
         // Run the script.
         ret, err := eval.Run(nil)
