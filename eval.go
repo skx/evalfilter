@@ -125,6 +125,7 @@ func (e *Eval) SetVariable(name string, value object.Object) {
 
 // EvalIt is our core function for evaluating nodes.
 func (e *Eval) EvalIt(node ast.Node, env *object.Environment) object.Object {
+
 	switch node := node.(type) {
 
 	//Statements
@@ -145,7 +146,11 @@ func (e *Eval) EvalIt(node ast.Node, env *object.Environment) object.Object {
 		if e.isError(right) {
 			return right
 		}
-		return e.evalPrefixExpression(node.Operator, right)
+		res := e.evalPrefixExpression(node.Operator, right)
+		if e.isError(res) {
+			fmt.Fprintf(os.Stderr, "%s\n", res.Inspect())
+		}
+		return (res)
 	case *ast.InfixExpression:
 		left := e.EvalIt(node.Left, env)
 		if e.isError(left) {
@@ -184,9 +189,16 @@ func (e *Eval) EvalIt(node ast.Node, env *object.Environment) object.Object {
 			return function
 		}
 		args := e.evalExpression(node.Arguments, env)
-		if len(args) == 1 && e.isError(args[0]) {
-			return args[0]
+
+		// See if any of our arguments are errors.
+		for i, a := range args {
+			if e.isError(a) {
+				fmt.Fprintf(os.Stderr, "Argument %d to function `%s` is an error - %s\n", i, node.Function, a.Inspect())
+				return nil
+			}
 		}
+
+		// Call the function.
 		res := e.applyFunction(env, function, args)
 		if e.isError(res) {
 			fmt.Fprintf(os.Stderr, "Error calling `%s` : %s\n", node.Function, res.Inspect())
@@ -642,6 +654,14 @@ func (e *Eval) applyFunction(env *object.Environment, fn object.Object, args []o
 
 	// Cast it into the correct type, and then invoke it.
 	out := res.(func(args []object.Object) object.Object)
+
+	// Are any of our arguments an error?
+	for _, arg := range args {
+		if arg == nil || e.isError(arg) {
+			fmt.Printf("Not calling function `%s`, as argument is an error.\n", fn.Inspect())
+			return arg
+		}
+	}
 	ret := (out(args))
 
 	return ret
