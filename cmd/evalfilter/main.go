@@ -1,72 +1,36 @@
-// This example reads the contents of the file `/etc/passwd`, then
-// processes the entries found within it.
+//
+// Entry-point to the CLI service.
+//
 
 package main
 
 import (
+	"context"
+	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
+	"runtime/debug"
 
-	"github.com/skx/evalfilter"
+	"github.com/google/subcommands"
 )
 
 //
-// ObjectInstance is what we'll run the script against.
-//
-type ObjectInstance struct {
-	Name string
-	Age  int
-}
-
-//
-// Entry-point
+// Setup our sub-commands and use them.
 //
 func main() {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Panic at the disco: \n" + string(debug.Stack()))
+		}
+	}()
 
-	v := &ObjectInstance{Name: "Steve Kemp", Age: 100}
+	subcommands.Register(subcommands.HelpCommand(), "")
+	subcommands.Register(subcommands.FlagsCommand(), "")
+	subcommands.Register(subcommands.CommandsCommand(), "")
+	subcommands.Register(&lexCmd{}, "")
+	subcommands.Register(&runCmd{}, "")
 
-	//
-	// We require a single argument, which is the name of
-	// a script to parse.
-	//
-	if len(os.Args[1:]) != 1 {
-		fmt.Printf("Usage: %s script.file\n", os.Args[0])
-		return
-	}
-
-	//
-	// Load the contents of the given file.
-	//
-	fmt.Printf("Loading %s\n", os.Args[1])
-	content, err := ioutil.ReadFile(os.Args[1])
-	if err != nil {
-		fmt.Printf("Failed to load %s %s\n", os.Args[1], err)
-		return
-	}
-
-	//
-	// Create an evaluator, with the script inside it.
-	//
-	eval := evalfilter.New(string(content))
-
-	//
-	// Run our script
-	//
-	ret, err := eval.Run(v)
-	if err != nil {
-		fmt.Printf("Failed to run script:%s\n", err.Error())
-		return
-	}
-
-	//
-	// Show the result
-	//
-	if ret {
-		fmt.Printf("Script result %v\n\n", ret)
-	}
-
-	//
-	// All done
-	//
+	flag.Parse()
+	ctx := context.Background()
+	os.Exit(int(subcommands.Execute(ctx)))
 }
