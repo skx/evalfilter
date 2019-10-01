@@ -1,0 +1,21 @@
+//
+// This is a simple on-call script.
+//
+
+
+if ( Channel !~ "_alerts" ) {
+    print("The channel is not important\n");
+    return false;
+}
+
+//
+// Ignore messages from Staff
+//
+if ( Author == "Alice" ) { return false; }
+if ( Author == "Bob" ) { return false; }
+if ( Author == "Chris" ) { return false; }
+if ( Author == "Diane" ) { return false; }
+
+
+print( "Raising alert!\n");
+return true;
