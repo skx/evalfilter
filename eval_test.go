@@ -430,3 +430,76 @@ func TestObjectToBool(t *testing.T) {
 		}
 	}
 }
+
+// TestOperations makes tests against operations of various types.
+//
+// This is because we differentiate between "int OP int", "float OP int",
+// and "int OP float".
+func TestOperations(t *testing.T) {
+
+	type Test struct {
+		Input  string
+		Result bool
+	}
+
+	tests := []Test{
+
+		// int OP int
+		{Input: `if ( 1 + 2 * 3 == 7 ) { return true; }`, Result: true},
+		{Input: `if ( 1 % 3 == 1 ) { return true; }`, Result: true},
+		{Input: `if ( 2 % 3 == 2 ) { return true; }`, Result: true},
+		{Input: `if ( 3 % 3 == 0 ) { return true; }`, Result: true},
+		{Input: `if ( 2 ** 3  == 8 ) { return true; }`, Result: true},
+		{Input: `if ( √9 == 3 ) { return true; }`, Result: true},
+		{Input: `if ( √9.0 == 3 ) { return true; }`, Result: true},
+
+		// int OP float
+		{Input: `if ( 1 + 2.0 == 3.0 ) { return true; }`, Result: true},
+		{Input: `if ( 1 - 1.0 == 0.0 ) { return true; }`, Result: true},
+		{Input: `if ( 3 / 3.0 == 1.0 ) { return true; }`, Result: true},
+		{Input: `if ( 3 % 3.0 == 0 ) { return true; }`, Result: true},
+		{Input: `if ( 1 ** 3.0 == 1.0 ) { return true; }`, Result: true},
+		{Input: `if ( 2 * 3.0 == 6.0 ) { return true; }`, Result: true},
+		{Input: `if ( 1 == 1.0 ) { return true; }`, Result: true},
+		{Input: `if ( 1 != 2.0 ) { return true; }`, Result: true},
+		{Input: `if ( 1 < 2.0 ) { return true; }`, Result: true},
+		{Input: `if ( 1 <= 1.0 ) { return true; }`, Result: true},
+		{Input: `if ( 10 > 2.0 ) { return true; }`, Result: true},
+		{Input: `if ( 10 >= 2.0 ) { return true; }`, Result: true},
+
+		// float OP float
+		{Input: `if ( 3.0 % 3.0 == 0 ) { return true; }`, Result: true},
+		{Input: `if ( 3.0 * 3 == 9.0 ) { return true; }`, Result: true},
+		{Input: `if ( 1.0 ** 3.0 == 1.0 ) { return true; }`, Result: true},
+		// float - int
+		{Input: `if ( 1.0 == 1 ) { return true; }`, Result: true},
+		{Input: `if ( 1.0 != 20 ) { return true; }`, Result: true},
+		{Input: `if ( 1.0 < 20 ) { return true; }`, Result: true},
+		{Input: `if ( 1.0 <= 1 ) { return true; }`, Result: true},
+		{Input: `if ( 10.0 > 2 ) { return true; }`, Result: true},
+		{Input: `if ( 10.0 >= 3 ) { return true; }`, Result: true},
+		{Input: `if ( 1.0 < 2.0 ) { return true; }`, Result: true},
+		{Input: `if ( 1.0 <= 1.0 ) { return true; }`, Result: true},
+		{Input: `if ( 10.0 > 2.0 ) { return true; }`, Result: true},
+		{Input: `if ( 10.0 >= 2.0 ) { return true; }`, Result: true},
+		{Input: `if ( 1.0 + 2 == 3.0 ) { return true; }`, Result: true},
+		{Input: `if ( 1.0 - 1 == 0.0 ) { return true; }`, Result: true},
+		{Input: `if ( 3.0 / 3 == 1.0 ) { return true; }`, Result: true},
+		{Input: `if ( 3.0 % 3 == 0 ) { return true; }`, Result: true},
+		{Input: `if ( 1.0 ** 3 == 1.0 ) { return true; }`, Result: true},
+	}
+
+	for _, tst := range tests {
+
+		obj := New(tst.Input)
+
+		ret, err := obj.Run(nil)
+		if err != nil {
+			t.Fatalf("Found unexpected error running test '%s' - %s\n", tst.Input, err.Error())
+		}
+
+		if ret != tst.Result {
+			t.Fatalf("Found unexpected result running script: %s", tst.Input)
+		}
+	}
+}
