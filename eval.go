@@ -321,17 +321,9 @@ func (e *Eval) evalBooleanInfixExpression(operator string, left, right object.Ob
 	r := &object.String{Value: string(right.Inspect())}
 
 	switch operator {
-	case "<":
-		return e.evalStringInfixExpression(operator, l, r)
 	case "==":
 		return e.evalStringInfixExpression(operator, l, r)
 	case "!=":
-		return e.evalStringInfixExpression(operator, l, r)
-	case "<=":
-		return e.evalStringInfixExpression(operator, l, r)
-	case ">":
-		return e.evalStringInfixExpression(operator, l, r)
-	case ">=":
 		return e.evalStringInfixExpression(operator, l, r)
 	default:
 		return e.newError("unknown operator: %s %s %s",
@@ -385,9 +377,9 @@ func (e *Eval) evalFloatInfixExpression(operator string, left, right object.Obje
 	case "/":
 		return &object.Float{Value: leftVal / rightVal}
 	case "%":
-		return &object.Float{Value: float64(int(left.(*object.Float).Value) % int(right.(*object.Float).Value))}
+		return &object.Float{Value: float64(int(leftVal) % int(rightVal))}
 	case "**":
-		return &object.Float{Value: float64(math.Pow(float64(leftVal), float64(rightVal)))}
+		return &object.Float{Value: float64(math.Pow(leftVal, rightVal))}
 	case "<":
 		return e.nativeBoolToBooleanObject(leftVal < rightVal)
 	case "<=":
@@ -450,6 +442,10 @@ func (e *Eval) evalIntegerFloatInfixExpression(operator string, left, right obje
 		return &object.Float{Value: leftVal - rightVal}
 	case "*":
 		return &object.Float{Value: leftVal * rightVal}
+	case "%":
+		return &object.Float{Value: float64(int(leftVal) % int(rightVal))}
+	case "**":
+		return &object.Float{Value: float64(math.Pow(leftVal, rightVal))}
 	case "/":
 		return &object.Float{Value: leftVal / rightVal}
 	case "<":
@@ -492,8 +488,6 @@ func (e *Eval) evalStringInfixExpression(operator string, left, right object.Obj
 	case "!~":
 		return e.nativeBoolToBooleanObject(!strings.Contains(l.Value, r.Value))
 	case "+":
-		return &object.String{Value: l.Value + r.Value}
-	case "+=":
 		return &object.String{Value: l.Value + r.Value}
 	}
 
@@ -648,7 +642,7 @@ func (e *Eval) applyFunction(env *object.Environment, fn object.Object, args []o
 	// Get the function
 	res, ok := e.Functions[fn.Inspect()]
 	if !ok {
-		fmt.Printf("Failed to find function \n")
+		fmt.Fprintf(os.Stderr, "Failed to find function \n")
 		return (&object.String{Value: "Function not found " + fn.Inspect()})
 	}
 
@@ -658,7 +652,7 @@ func (e *Eval) applyFunction(env *object.Environment, fn object.Object, args []o
 	// Are any of our arguments an error?
 	for _, arg := range args {
 		if arg == nil || e.isError(arg) {
-			fmt.Printf("Not calling function `%s`, as argument is an error.\n", fn.Inspect())
+			fmt.Fprintf(os.Stderr, "Not calling function `%s`, as argument is an error.\n", fn.Inspect())
 			return arg
 		}
 	}

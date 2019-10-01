@@ -7,7 +7,7 @@ import (
 )
 
 func TestNextToken1(t *testing.T) {
-	input := `=+(){},;`
+	input := `=+√%(){},;~= !~"`
 
 	tests := []struct {
 		expectedType    token.Type
@@ -15,12 +15,17 @@ func TestNextToken1(t *testing.T) {
 	}{
 		{token.ASSIGN, "="},
 		{token.PLUS, "+"},
+		{token.SQRT, "√"},
+		{token.MOD, "%"},
 		{token.LPAREN, "("},
 		{token.RPAREN, ")"},
 		{token.LBRACE, "{"},
 		{token.RBRACE, "}"},
 		{token.COMMA, ","},
 		{token.SEMICOLON, ";"},
+		{token.CONTAINS, "~="},
+		{token.MISSING, "!~"},
+		{token.ILLEGAL, "unterminated string"},
 		{token.EOF, ""},
 	}
 	l := New(input)
@@ -40,7 +45,7 @@ func TestNextToken2(t *testing.T) {
 ten =10;
 result = add(five, ten);
 !-/ *5;
-5<10>5;
+5 < 10 > 5 ** 6;
 
 if(5<10){
 	return true;
@@ -56,6 +61,8 @@ if(5<10){
 0.5
 0.3
 世界
+'steve'
+'
 `
 	tests := []struct {
 		expectedType    token.Type
@@ -89,6 +96,8 @@ if(5<10){
 		{token.INT, "10"},
 		{token.GT, ">"},
 		{token.INT, "5"},
+		{token.POW, "**"},
+		{token.INT, "6"},
 		{token.SEMICOLON, ";"},
 		{token.IF, "if"},
 		{token.LPAREN, "("},
@@ -127,6 +136,8 @@ if(5<10){
 		{token.FLOAT, "0.5"},
 		{token.FLOAT, "0.3"},
 		{token.IDENT, "世界"},
+		{token.STRING, "steve"},
+		{token.ILLEGAL, "unterminated string"},
 		{token.EOF, ""},
 	}
 	l := New(input)
@@ -185,7 +196,8 @@ a = 1;
 }
 
 func TestIntegers(t *testing.T) {
-	input := `10 20 33.3`
+	input := `10 20 33.3 "steve\
+`
 
 	tests := []struct {
 		expectedType    token.Type
@@ -194,6 +206,7 @@ func TestIntegers(t *testing.T) {
 		{token.INT, "10"},
 		{token.INT, "20"},
 		{token.FLOAT, "33.3"},
+		{token.ILLEGAL, "unterminated string"},
 		{token.EOF, ""},
 	}
 	l := New(input)
@@ -227,14 +240,19 @@ if ( b <= 3  ) { puts "blah\n" }
 if ( b >= 3  ) { puts "blah\n" }
 
 a = "steve";
+.
  a = "steve\n";
  a = "steve\t";
  a = "steve\r";
  a = "steve\\";
  a = "steve\"";
  c = 3.113£;
-.;
-`
+ a = "steve\
+ kemp";
+ b = "steve\
+\n\a\b\r\n\t
+
+\`
 	l := New(input)
 	tok := l.NextToken()
 	for tok.Type != token.EOF {
@@ -244,7 +262,7 @@ a = "steve";
 
 // TestEOF handles testing bound-checking
 func TestEOF(t *testing.T) {
-	input := ` `
+	input := ` "\`
 
 	// Parse
 	l := New(input)
