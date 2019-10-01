@@ -225,9 +225,16 @@ go get github.com/skx/evalfilter/cmd/evalfilter
 
 ```
 
-Once installed you can execute a script against an object with two attributes `Name` (string) & `Age` (int).
+This driver allows you to supply:
 
-This can also be used for confirming problems identified via [fuzz-testing](FUZZING.md).
+1.  A JSON object.
+2.  A script to run against that object.
+
+You can run those interactively to see what happens, for example in the `cmd/evalfilter` directory:
+
+     ./evalfilter run -json on-call.json on-call.script
+
+This driver an also be used to reproduce any problems identified via [fuzz-testing](FUZZING.md).
 
 
 ## Alternatives
