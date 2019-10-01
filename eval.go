@@ -603,8 +603,29 @@ func (e *Eval) evalIdentifier(node *ast.Identifier, env *object.Environment) obj
 	// Otherwise we need to perform a structure lookup.
 	//
 	if e.Object != nil {
+
 		ref := reflect.ValueOf(e.Object)
-		field := reflect.Indirect(ref).FieldByName(name)
+
+		//
+		// The field we find by reflection.
+		//
+		var field reflect.Value
+
+		//
+		// Are we dealing with a map?
+		//
+		if ref.Kind() == reflect.Map {
+			for _, key := range ref.MapKeys() {
+				if key.Interface() == name {
+
+					field = ref.MapIndex(key).Elem()
+					break
+				}
+			}
+		} else {
+
+			field = reflect.Indirect(ref).FieldByName(name)
+		}
 
 		switch field.Kind() {
 		case reflect.Int, reflect.Int64:
