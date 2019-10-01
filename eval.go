@@ -3,6 +3,7 @@ package evalfilter
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"reflect"
 	"strings"
@@ -231,6 +232,8 @@ func (e *Eval) evalPrefixExpression(operator string, right object.Object) object
 		return e.evalBangOperatorExpression(right)
 	case "-":
 		return e.evalMinusPrefixOperatorExpression(right)
+	case "√":
+		return e.evalSqrt(right)
 	default:
 		return e.newError("unknown operator: %s%s", operator, right.Type())
 	}
@@ -257,6 +260,17 @@ func (e *Eval) evalMinusPrefixOperatorExpression(right object.Object) object.Obj
 		return &object.Float{Value: -obj.Value}
 	default:
 		return e.newError("unknown operator: -%s", right.Type())
+	}
+}
+
+func (e *Eval) evalSqrt(right object.Object) object.Object {
+	switch obj := right.(type) {
+	case *object.Integer:
+		return &object.Float{Value: math.Sqrt(float64(obj.Value))}
+	case *object.Float:
+		return &object.Float{Value: math.Sqrt(obj.Value)}
+	default:
+		return e.newError("unknown √-operator for type %s", right.Type())
 	}
 }
 
@@ -325,6 +339,10 @@ func (e *Eval) evalIntegerInfixExpression(operator string, left, right object.Ob
 		return &object.Integer{Value: leftVal * rightVal}
 	case "/":
 		return &object.Integer{Value: leftVal / rightVal}
+	case "%":
+		return &object.Integer{Value: leftVal % rightVal}
+	case "**":
+		return &object.Integer{Value: int64(math.Pow(float64(leftVal), float64(rightVal)))}
 	case "<":
 		return e.nativeBoolToBooleanObject(leftVal < rightVal)
 	case "<=":
@@ -354,6 +372,10 @@ func (e *Eval) evalFloatInfixExpression(operator string, left, right object.Obje
 		return &object.Float{Value: leftVal * rightVal}
 	case "/":
 		return &object.Float{Value: leftVal / rightVal}
+	case "%":
+		return &object.Float{Value: float64(int(left.(*object.Float).Value) % int(right.(*object.Float).Value))}
+	case "**":
+		return &object.Float{Value: float64(math.Pow(float64(leftVal), float64(rightVal)))}
 	case "<":
 		return e.nativeBoolToBooleanObject(leftVal < rightVal)
 	case "<=":
@@ -384,6 +406,10 @@ func (e *Eval) evalFloatIntegerInfixExpression(operator string, left, right obje
 		return &object.Float{Value: leftVal * rightVal}
 	case "/":
 		return &object.Float{Value: leftVal / rightVal}
+	case "%":
+		return &object.Float{Value: float64(int(leftVal) % int(rightVal))}
+	case "**":
+		return &object.Float{Value: float64(math.Pow(leftVal, rightVal))}
 	case "<":
 		return e.nativeBoolToBooleanObject(leftVal < rightVal)
 	case "<=":

@@ -51,6 +51,8 @@ var precedences = map[token.Type]int{
 	token.MINUS:     SUM,
 	token.SLASH:     PRODUCT,
 	token.ASTERISK:  PRODUCT,
+	token.POW:       POWER,
+	token.MOD:       MOD,
 	token.AND:       CMP,
 	token.OR:        CMP,
 	token.LPAREN:    CALL,
@@ -97,6 +99,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.TRUE, p.parseBoolean)
 	p.registerPrefix(token.FALSE, p.parseBoolean)
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
+	p.registerPrefix(token.SQRT, p.parsePrefixExpression)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.IF, p.parseIfExpression)
@@ -106,7 +109,9 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.ASSIGN, p.parseAssignExpression)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
 	p.registerInfix(token.MINUS, p.parseInfixExpression)
+	p.registerInfix(token.MOD, p.parseInfixExpression)
 	p.registerInfix(token.SLASH, p.parseInfixExpression)
+	p.registerInfix(token.POW, p.parseInfixExpression)
 	p.registerInfix(token.ASTERISK, p.parseInfixExpression)
 	p.registerInfix(token.EQ, p.parseInfixExpression)
 	p.registerInfix(token.OR, p.parseInfixExpression)
