@@ -340,6 +340,8 @@ func TestBool(t *testing.T) {
 	tests := []Test{
 		{Input: `if ( Valid ) { return true; } return false;`, Result: true},
 		{Input: `if ( Valid == true ) { return true; } return false;`, Result: true},
+		{Input: `if ( !Valid == false ) { return true; } return false;`, Result: true},
+		{Input: `if ( !!Valid ) { return true; } return false;`, Result: true},
 	}
 
 	for _, tst := range tests {
