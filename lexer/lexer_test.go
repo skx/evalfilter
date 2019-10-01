@@ -280,3 +280,34 @@ func TestEOF(t *testing.T) {
 		t.Fatalf("peeking past the EOF didn't give us nil")
 	}
 }
+
+// TestLine handles testing that line-lengths work.
+func TestLine(t *testing.T) {
+	input := `
+"line 1",
+"line 2",
+"line 3,\
+`
+
+	// Parse
+	l := New(input)
+
+	line := 1
+
+	for {
+		tk := l.NextToken()
+		if tk.Type == token.EOF {
+			break
+		}
+		if tk.Type == token.STRING {
+
+			found := l.GetLine()
+
+			if found != line {
+				t.Fatalf("Invalid line number %d vs %d\n", line, l.GetLine())
+			}
+			line += 1
+		}
+	}
+
+}

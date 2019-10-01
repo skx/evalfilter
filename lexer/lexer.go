@@ -296,9 +296,6 @@ func (l *Lexer) readString(delim rune) (string, error) {
 			if l.peekChar() == '\n' {
 				// consume the newline.
 				l.readChar()
-				if l.ch == rune(0) {
-					return "", fmt.Errorf("unterminated string")
-				}
 				continue
 			}
 
