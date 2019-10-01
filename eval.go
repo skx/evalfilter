@@ -3,6 +3,7 @@ package evalfilter
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"reflect"
 	"strings"
@@ -124,6 +125,7 @@ func (e *Eval) SetVariable(name string, value object.Object) {
 
 // EvalIt is our core function for evaluating nodes.
 func (e *Eval) EvalIt(node ast.Node, env *object.Environment) object.Object {
+
 	switch node := node.(type) {
 
 	//Statements
@@ -144,7 +146,11 @@ func (e *Eval) EvalIt(node ast.Node, env *object.Environment) object.Object {
 		if e.isError(right) {
 			return right
 		}
-		return e.evalPrefixExpression(node.Operator, right)
+		res := e.evalPrefixExpression(node.Operator, right)
+		if e.isError(res) {
+			fmt.Fprintf(os.Stderr, "%s\n", res.Inspect())
+		}
+		return (res)
 	case *ast.InfixExpression:
 		left := e.EvalIt(node.Left, env)
 		if e.isError(left) {
@@ -183,9 +189,16 @@ func (e *Eval) EvalIt(node ast.Node, env *object.Environment) object.Object {
 			return function
 		}
 		args := e.evalExpression(node.Arguments, env)
-		if len(args) == 1 && e.isError(args[0]) {
-			return args[0]
+
+		// See if any of our arguments are errors.
+		for i, a := range args {
+			if e.isError(a) {
+				fmt.Fprintf(os.Stderr, "Argument %d to function `%s` is an error - %s\n", i, node.Function, a.Inspect())
+				return nil
+			}
 		}
+
+		// Call the function.
 		res := e.applyFunction(env, function, args)
 		if e.isError(res) {
 			fmt.Fprintf(os.Stderr, "Error calling `%s` : %s\n", node.Function, res.Inspect())
@@ -231,6 +244,8 @@ func (e *Eval) evalPrefixExpression(operator string, right object.Object) object
 		return e.evalBangOperatorExpression(right)
 	case "-":
 		return e.evalMinusPrefixOperatorExpression(right)
+	case "√":
+		return e.evalSqrt(right)
 	default:
 		return e.newError("unknown operator: %s%s", operator, right.Type())
 	}
@@ -257,6 +272,17 @@ func (e *Eval) evalMinusPrefixOperatorExpression(right object.Object) object.Obj
 		return &object.Float{Value: -obj.Value}
 	default:
 		return e.newError("unknown operator: -%s", right.Type())
+	}
+}
+
+func (e *Eval) evalSqrt(right object.Object) object.Object {
+	switch obj := right.(type) {
+	case *object.Integer:
+		return &object.Float{Value: math.Sqrt(float64(obj.Value))}
+	case *object.Float:
+		return &object.Float{Value: math.Sqrt(obj.Value)}
+	default:
+		return e.newError("unknown √-operator for type %s", right.Type())
 	}
 }
 
@@ -325,6 +351,10 @@ func (e *Eval) evalIntegerInfixExpression(operator string, left, right object.Ob
 		return &object.Integer{Value: leftVal * rightVal}
 	case "/":
 		return &object.Integer{Value: leftVal / rightVal}
+	case "%":
+		return &object.Integer{Value: leftVal % rightVal}
+	case "**":
+		return &object.Integer{Value: int64(math.Pow(float64(leftVal), float64(rightVal)))}
 	case "<":
 		return e.nativeBoolToBooleanObject(leftVal < rightVal)
 	case "<=":
@@ -354,6 +384,10 @@ func (e *Eval) evalFloatInfixExpression(operator string, left, right object.Obje
 		return &object.Float{Value: leftVal * rightVal}
 	case "/":
 		return &object.Float{Value: leftVal / rightVal}
+	case "%":
+		return &object.Float{Value: float64(int(left.(*object.Float).Value) % int(right.(*object.Float).Value))}
+	case "**":
+		return &object.Float{Value: float64(math.Pow(float64(leftVal), float64(rightVal)))}
 	case "<":
 		return e.nativeBoolToBooleanObject(leftVal < rightVal)
 	case "<=":
@@ -384,6 +418,10 @@ func (e *Eval) evalFloatIntegerInfixExpression(operator string, left, right obje
 		return &object.Float{Value: leftVal * rightVal}
 	case "/":
 		return &object.Float{Value: leftVal / rightVal}
+	case "%":
+		return &object.Float{Value: float64(int(leftVal) % int(rightVal))}
+	case "**":
+		return &object.Float{Value: float64(math.Pow(leftVal, rightVal))}
 	case "<":
 		return e.nativeBoolToBooleanObject(leftVal < rightVal)
 	case "<=":
@@ -616,6 +654,14 @@ func (e *Eval) applyFunction(env *object.Environment, fn object.Object, args []o
 
 	// Cast it into the correct type, and then invoke it.
 	out := res.(func(args []object.Object) object.Object)
+
+	// Are any of our arguments an error?
+	for _, arg := range args {
+		if arg == nil || e.isError(arg) {
+			fmt.Printf("Not calling function `%s`, as argument is an error.\n", fn.Inspect())
+			return arg
+		}
+	}
 	ret := (out(args))
 
 	return ret
