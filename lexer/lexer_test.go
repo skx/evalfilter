@@ -306,7 +306,7 @@ func TestLine(t *testing.T) {
 			if found != line {
 				t.Fatalf("Invalid line number %d vs %d\n", line, l.GetLine())
 			}
-			line += 1
+			line++
 		}
 	}
 
