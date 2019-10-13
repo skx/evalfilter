@@ -123,6 +123,18 @@ func (e *Eval) SetVariable(name string, value object.Object) {
 	e.Environment.Set(name, value)
 }
 
+// GetVariable retrieves the contents of a variable which has been
+// set within a user-script.
+//
+// If the variable hasn't been set then the null-value will be returned
+func (e *Eval) GetVariable(name string) object.Object {
+	value, ok := e.Environment.Get(name)
+	if ok {
+		return value
+	}
+	return NULL
+}
+
 // EvalIt is our core function for evaluating nodes.
 func (e *Eval) EvalIt(node ast.Node, env *object.Environment) object.Object {
 

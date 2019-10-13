@@ -1,5 +1,6 @@
 // This example demonstrates that we can keep state persistent
 // across runs.
+//
 
 package main
 
@@ -7,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/skx/evalfilter"
+	"github.com/skx/evalfilter/object"
 )
 
 //
@@ -37,6 +39,12 @@ if ( ! count ) {
 }
 
 //
+// Set a variable which we'll fetch back from our host application,
+// via 'eval.GetVariable()'.
+//
+loop = count;
+
+//
 // If we've been invoked this many times we will return 'true'.
 //
 if ( count >= 10 )  {
@@ -63,7 +71,14 @@ return false;
 			fmt.Printf("Failed to run script: %s\n", err.Error())
 			return
 		}
-		fmt.Printf("%d -> %v\n", i, ret)
+
+		//
+		// Get the value of the variable `loop` which has
+		// been set by the script.
+		//
+		loop := eval.GetVariable("loop")
+
+		fmt.Printf("%d -> %v [loop:%d]\n", i, ret, loop.(*object.Integer).Value)
 
 		i++
 	}
