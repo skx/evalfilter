@@ -176,8 +176,11 @@ func (bs *BlockStatement) TokenLiteral() string { return bs.Token.Literal }
 // String returns this object as a string.
 func (bs *BlockStatement) String() string {
 	var out bytes.Buffer
+
+	out.WriteString("\n{\n")
 	for _, s := range bs.Statements {
 		out.WriteString(s.String())
 	}
+	out.WriteString("\n}\n")
 	return out.String()
 }

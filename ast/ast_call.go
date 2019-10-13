@@ -34,6 +34,6 @@ func (ce *CallExpression) String() string {
 	out.WriteString(ce.Function.String())
 	out.WriteString("(")
 	out.WriteString(strings.Join(args, ", "))
-	out.WriteString(")")
+	out.WriteString(");\n")
 	return out.String()
 }

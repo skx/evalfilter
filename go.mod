@@ -5,6 +5,7 @@ go 1.12
 require (
 	github.com/dvyukov/go-fuzz v0.0.0-20190919153955-532ac05586a1 // indirect
 	github.com/elazarl/go-bindata-assetfs v1.0.0 // indirect
+	github.com/google/subcommands v1.0.1
 	github.com/goruby/goruby v0.0.0-20190120152628-43c93d4f2611
 	github.com/kr/pty v1.1.8 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
