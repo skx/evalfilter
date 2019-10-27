@@ -329,8 +329,8 @@ func (e *Eval) evalInfixExpression(operator string, left, right object.Object) o
 // boolean operations
 func (e *Eval) evalBooleanInfixExpression(operator string, left, right object.Object) object.Object {
 	// convert the bools to strings.
-	l := &object.String{Value: string(left.Inspect())}
-	r := &object.String{Value: string(right.Inspect())}
+	l := &object.String{Value: left.Inspect()}
+	r := &object.String{Value: right.Inspect()}
 
 	switch operator {
 	case "==":
@@ -391,7 +391,7 @@ func (e *Eval) evalFloatInfixExpression(operator string, left, right object.Obje
 	case "%":
 		return &object.Float{Value: float64(int(leftVal) % int(rightVal))}
 	case "**":
-		return &object.Float{Value: float64(math.Pow(leftVal, rightVal))}
+		return &object.Float{Value: math.Pow(leftVal, rightVal)}
 	case "<":
 		return e.nativeBoolToBooleanObject(leftVal < rightVal)
 	case "<=":
@@ -425,7 +425,7 @@ func (e *Eval) evalFloatIntegerInfixExpression(operator string, left, right obje
 	case "%":
 		return &object.Float{Value: float64(int(leftVal) % int(rightVal))}
 	case "**":
-		return &object.Float{Value: float64(math.Pow(leftVal, rightVal))}
+		return &object.Float{Value: math.Pow(leftVal, rightVal)}
 	case "<":
 		return e.nativeBoolToBooleanObject(leftVal < rightVal)
 	case "<=":
@@ -457,7 +457,7 @@ func (e *Eval) evalIntegerFloatInfixExpression(operator string, left, right obje
 	case "%":
 		return &object.Float{Value: float64(int(leftVal) % int(rightVal))}
 	case "**":
-		return &object.Float{Value: float64(math.Pow(leftVal, rightVal))}
+		return &object.Float{Value: math.Pow(leftVal, rightVal)}
 	case "/":
 		return &object.Float{Value: leftVal / rightVal}
 	case "<":
