@@ -6,7 +6,7 @@ import (
 	"github.com/skx/evalfilter/object"
 )
 
-// ExampleCustomFunction demonstrates how you can add a custom function
+// ExampleExample demonstrates how you can add a custom function
 // to your host-application, which is available to filter scripts.
 //
 // In this example we add the function `length`, which will calculate the
@@ -16,7 +16,7 @@ import (
 // We use this function to output only those users with names greater
 // than four characters in length.
 //
-func ExampleCustomFunction() {
+func ExampleExample() {
 
 	//
 	// This is the structure our script will operate upon.
