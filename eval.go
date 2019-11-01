@@ -103,8 +103,17 @@ func (e *Eval) Run(obj interface{}) (bool, error) {
 	}
 
 	//
-	// Ok we ran, and returned a value, convert that
-	// to a boolean value.
+	// Is the return-value an error?  If so report that.
+	//
+	if out.Type() == object.ERROR_OBJ {
+		return false, fmt.Errorf("%s", out.Inspect())
+	}
+
+	//
+	// Otherwise we ran without any error, and returned
+	// a value.
+	//
+	// Convert that result to a boolean value.
 	//
 	return e.isTruthy(out), nil
 }
