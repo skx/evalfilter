@@ -505,3 +505,38 @@ func TestOperations(t *testing.T) {
 		}
 	}
 }
+
+// TestAndOr ensure that `and` + `or` work in the real world
+// https://github.com/skx/evalfilter/issues/31
+func TestAndOr(t *testing.T) {
+
+	// Test structure
+	type Params struct {
+		Origin  string
+		Country string
+		Value   int
+		Adults  int
+	}
+
+	// Instance of structure with known values
+	var d Params
+	d.Origin = "Mow"
+	d.Country = "RU"
+	d.Adults = 1
+	d.Value = 100
+
+	// Test-script
+	src := `(Origin == "MOW" || Country == "RU") && (Value > 100 || Adults == 1)`
+	obj := New(src)
+
+	// Run
+	ret, err := obj.Run(d)
+	if err != nil {
+		t.Fatalf("Found unexpected error running test - %s\n", err.Error())
+	}
+
+	if !ret {
+		t.Fatalf("Found unexpected result running script.")
+	}
+
+}
