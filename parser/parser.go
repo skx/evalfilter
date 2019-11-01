@@ -24,6 +24,7 @@ const (
 	_ int = iota
 	LOWEST
 	ASSIGN // =
+	COND   // OR or AND
 	EQUALS // == or !=
 	CMP
 	LESSGREATER // > or <
@@ -53,8 +54,8 @@ var precedences = map[token.Type]int{
 	token.ASTERISK:  PRODUCT,
 	token.POW:       POWER,
 	token.MOD:       MOD,
-	token.AND:       CMP,
-	token.OR:        CMP,
+	token.AND:       COND,
+	token.OR:        COND,
 	token.LPAREN:    CALL,
 }
 
