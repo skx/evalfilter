@@ -14,10 +14,16 @@ import (
 	"github.com/skx/evalfilter/object"
 )
 
+// StackSize holds our stack-size.
 const StackSize = 2048
 
+// True is our global "true" object.
 var True = &object.Boolean{Value: true}
+
+// False is our global "false" object.
 var False = &object.Boolean{Value: false}
+
+// Null is our global "false" object.
 var Null = &object.Null{}
 
 // VM is the structure which holds our state.
@@ -99,7 +105,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			val := vm.pop()
 
 			vm.environment.Set(name.Inspect(), val)
-			ip += 1
+			ip++
 
 			// maths & comparisions
 		case code.OpAdd, code.OpSub, code.OpMul, code.OpDiv, code.OpMod, code.OpPower, code.OpLess, code.OpLessEqual, code.OpGreater, code.OpGreaterEqual, code.OpEqual, code.OpNotEqual, code.OpMatches, code.OpNotMatches, code.OpAnd, code.OpOr:
@@ -107,7 +113,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			if err != nil {
 				return nil, err
 			}
-			ip += 1
+			ip++
 
 			// !true -> false
 		case code.OpBang:
@@ -115,7 +121,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			if err != nil {
 				return nil, err
 			}
-			ip += 1
+			ip++
 
 			// -1
 		case code.OpMinus:
@@ -123,7 +129,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			if err != nil {
 				return nil, err
 			}
-			ip += 1
+			ip++
 
 			// square root
 		case code.OpRoot:
@@ -131,7 +137,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			if err != nil {
 				return nil, err
 			}
-			ip += 1
+			ip++
 
 			// Boolean literal
 		case code.OpTrue:
@@ -139,7 +145,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			if err != nil {
 				return nil, err
 			}
-			ip += 1
+			ip++
 
 			// Boolean literal
 		case code.OpFalse:
@@ -147,7 +153,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			if err != nil {
 				return nil, err
 			}
-			ip += 1
+			ip++
 
 			// return from script
 		case code.OpReturn:
