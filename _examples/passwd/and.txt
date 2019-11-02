@@ -6,7 +6,7 @@
 //
 // Look for `nobody` with a high Uid.
 //
-if ( ( Username == "nobody" ) && ( Uid > "1000" ) ) {
+if ( Username == "nobody" &&  Uid > "1000"  ) {
   print( "**********************************************************************\n");
   return true;
 }

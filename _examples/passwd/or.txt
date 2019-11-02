@@ -6,7 +6,7 @@
 //
 // Look for either username.
 //
-if ( ( Username == "bin" ) || ( Username == "sys" ) ) {
+if ( Username == "bin" || Username == "sys" ) {
   print( "**********************************************************************\n");
   return true;
 }
