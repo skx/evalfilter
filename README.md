@@ -34,7 +34,14 @@ To give you a quick feel for how things look you could consult:
 
 ## API Stability
 
-The API will remain as is for any 1.x.x release.
+The API will remain as-is for given major release number.  Currently we've had two major releases:
+
+* 1.x.x
+  * Initial design which parsed source into an AST then walked it.
+* 2.x.x
+  * Updated design which parses the source into an AST, then generates bytecode to execute when the script is run.
+
+The second release was implemented to perform a significant speedup.
 
 
 ## Sample Use
