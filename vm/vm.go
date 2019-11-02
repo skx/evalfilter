@@ -1,4 +1,4 @@
-// The vm package implements a simple virtual machine.
+// Package vm implements a simple virtual machine.
 //
 // We're constructed with a set of opcodes, and we process those forever,
 // until we hit a `return` statement which terminates our run.
@@ -213,7 +213,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("Unhandled return!")
+	return nil, fmt.Errorf("missing return at the end of the script")
 }
 
 // Push a value upon our stack.
