@@ -36,6 +36,15 @@ return false;
 `)
 
 	//
+	// Prepare the script
+	//
+	err := eval.Prepare()
+	if err != nil {
+		fmt.Printf("Failed to compile script: %s\n", err.Error())
+		return
+	}
+
+	//
 	// Loop forever.
 	//
 	for {

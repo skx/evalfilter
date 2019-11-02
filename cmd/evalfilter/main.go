@@ -28,6 +28,7 @@ func main() {
 	subcommands.Register(subcommands.FlagsCommand(), "")
 	subcommands.Register(subcommands.CommandsCommand(), "")
 	subcommands.Register(&lexCmd{}, "")
+	subcommands.Register(&bytecodeCmd{}, "")
 	subcommands.Register(&parseCmd{}, "")
 	subcommands.Register(&runCmd{}, "")
 

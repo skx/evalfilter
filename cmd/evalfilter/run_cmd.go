@@ -84,6 +84,15 @@ func (p *runCmd) Run(file string) {
 	eval := evalfilter.New(string(dat))
 
 	//
+	// Prepare
+	//
+	err = eval.Prepare()
+	if err != nil {
+		fmt.Printf("Error compiling:%s\n", err.Error())
+		return
+	}
+
+	//
 	// Run the script.
 	//
 	ret, err := eval.Run(obj)

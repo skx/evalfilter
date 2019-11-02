@@ -1,24 +1,23 @@
 // Package evalfilter allows running a user-supplied script against an object.
+//
+// We're constructed with a program, and internally we parse that to an
+// abstract syntax-tree, then we walk that tree to generate a series of
+// bytecodes.
+//
+// The bytecode is then executed via the VM-package.
 package evalfilter
 
 import (
+	"encoding/binary"
 	"fmt"
-	"math"
-	"os"
-	"reflect"
 	"strings"
 
 	"github.com/skx/evalfilter/ast"
+	"github.com/skx/evalfilter/code"
 	"github.com/skx/evalfilter/lexer"
 	"github.com/skx/evalfilter/object"
 	"github.com/skx/evalfilter/parser"
-)
-
-// pre-defined objects; Null, True and False
-var (
-	FALSE = &object.Boolean{Value: false}
-	NULL  = &object.Null{}
-	TRUE  = &object.Boolean{Value: true}
+	"github.com/skx/evalfilter/vm"
 )
 
 // Eval is our public-facing structure which stores our state.
@@ -35,11 +34,18 @@ type Eval struct {
 	// Environment
 	Environment *object.Environment
 
-	// User-supplied functions
-	Functions map[string]interface{}
+	//
+	// This is work in progress.
+	//
 
-	// Object we operate upon
-	Object interface{}
+	// constants compiled
+	constants []object.Object
+
+	// bytecode we generate
+	instructions code.Instructions
+
+	// the machine we drive
+	machine *vm.VM
 }
 
 // New creates a new instance of the evaluator.
@@ -50,7 +56,6 @@ func New(script string) *Eval {
 	//
 	e := &Eval{
 		Environment: object.NewEnvironment(),
-		Functions:   make(map[string]interface{}),
 		Parser:      parser.New(lexer.New(script)),
 	}
 
@@ -66,14 +71,84 @@ func New(script string) *Eval {
 	e.AddFunction("upper", fnUpper)
 
 	//
+	// Return it.
+	//
+	return e
+}
+
+// Prepare is the second function the caller must invoke, it compiles
+// the user-supplied program to its final-form.
+func (e *Eval) Prepare() error {
+
+	//
 	// Parse the program we were given.
 	//
 	e.Program = e.Parser.ParseProgram()
 
 	//
-	// Return it.
+	// Where there any errors produced by the parser?
 	//
-	return e
+	// If so report that.
+	//
+	if len(e.Parser.Errors()) > 0 {
+		return fmt.Errorf("\nErrors parsing script:\n" +
+			strings.Join(e.Parser.Errors(), "\n"))
+	}
+
+	//
+	// Evaluate the program, recursively.
+	//
+	err := e.Compile(e.Program)
+
+	//
+	// If there were errors then return them.
+	//
+	if err != nil {
+		return err
+	}
+
+	//
+	// Otherwise construct a VM and save it.
+	//
+	e.machine = vm.New(e.constants, e.instructions, e.Environment)
+
+	//
+	// All done.
+	return nil
+}
+
+// Dump causes our bytecode to be dumped
+func (e *Eval) Dump() error {
+
+	i := 0
+	fmt.Printf("Bytecode:\n")
+
+	for i < len(e.instructions) {
+
+		// opcode
+		op := e.instructions[i]
+
+		//
+		str := code.String(code.Opcode(op))
+
+		fmt.Printf("%06d - %s [OpCode:%d] ", i, str, op)
+
+		if op < byte(code.OpCodeSingleArg) {
+			fmt.Printf("%d\n", code.ReadUint16(e.instructions[i+1:]))
+			i += 2
+		} else {
+			fmt.Printf("\n")
+		}
+
+		i += 1
+	}
+
+	// constants
+	fmt.Printf("\n\nConstants:\n")
+	for i, n := range e.constants {
+		fmt.Printf("%d - %v\n", i, n)
+	}
+	return nil
 }
 
 // Run takes the program which was passed in the constructor, and
@@ -82,48 +157,37 @@ func New(script string) *Eval {
 func (e *Eval) Run(obj interface{}) (bool, error) {
 
 	//
-	// Where there any errors produced by the parser?
+	// Launch the program in the VM.
 	//
-	if len(e.Parser.Errors()) > 0 {
-		return false, fmt.Errorf("\nErrors parsing script:\n" +
-			strings.Join(e.Parser.Errors(), "\n"))
-	}
+	out, err := e.machine.Run(obj)
 
 	//
-	// Store the object we're working against.
+	// Show the result.
 	//
-	e.Object = obj
-
-	//
-	// Evaluate the program, recursively.
-	//
-	out := e.EvalIt(e.Program, e.Environment)
-	if out == nil {
-		return false, nil
-	}
+	//	fmt.Printf("Result: %v\n", out)
 
 	//
 	// Is the return-value an error?  If so report that.
 	//
+	if err != nil {
+		return false, err
+	}
 	if out.Type() == object.ERROR_OBJ {
 		return false, fmt.Errorf("%s", out.Inspect())
 	}
 
 	//
-	// Otherwise we ran without any error, and returned
-	// a value.
+	// Otherwise convert the result to a boolean, and return it.
 	//
-	// Convert that result to a boolean value.
-	//
-	return e.isTruthy(out), nil
+	return e.isTruthy(out), err
+
 }
 
 // AddFunction adds a function to our runtime.
 //
 // Once a function has been added it may be used by the filter script.
 func (e *Eval) AddFunction(name string, fun interface{}) {
-	e.Environment.Set(name, &object.String{Value: name})
-	e.Functions[name] = fun
+	e.Environment.SetFunction(name, fun)
 }
 
 // SetVariable adds, or updates, a variable which will be available
@@ -141,419 +205,286 @@ func (e *Eval) GetVariable(name string) object.Object {
 	if ok {
 		return value
 	}
-	return NULL
+	return &object.Null{}
 }
 
-// EvalIt is our core function for evaluating nodes.
-func (e *Eval) EvalIt(node ast.Node, env *object.Environment) object.Object {
+// Compile is core-code for converting the AST into a series of bytecodes.
+func (e *Eval) Compile(node ast.Node) error {
 
 	switch node := node.(type) {
 
-	// Statements
 	case *ast.Program:
-		return e.evalProgram(node, env)
-	case *ast.ExpressionStatement:
-		return e.EvalIt(node.Expression, env)
-
-	// Expressions
-	case *ast.IntegerLiteral:
-		return &object.Integer{Value: node.Value}
-	case *ast.FloatLiteral:
-		return &object.Float{Value: node.Value}
-	case *ast.Boolean:
-		return e.nativeBoolToBooleanObject(node.Value)
-
-	case *ast.PrefixExpression:
-		right := e.EvalIt(node.Right, env)
-		if e.isError(right) {
-			return right
-		}
-		res := e.evalPrefixExpression(node.Operator, right)
-		if e.isError(res) {
-			fmt.Fprintf(os.Stderr, "%s\n", res.Inspect())
-		}
-		return (res)
-	case *ast.InfixExpression:
-		left := e.EvalIt(node.Left, env)
-		if e.isError(left) {
-			return left
-		}
-		right := e.EvalIt(node.Right, env)
-		if e.isError(right) {
-			return right
-		}
-		res := e.evalInfixExpression(node.Operator, left, right)
-		if e.isError(res) {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", res.Inspect())
-		}
-		return (res)
-
-	case *ast.BlockStatement:
-		return e.evalBlockStatement(node, env)
-
-	// `if`, `return`, assignment
-	case *ast.IfExpression:
-		return e.evalIfExpression(node, env)
-
-	case *ast.ReturnStatement:
-		val := e.EvalIt(node.ReturnValue, env)
-		if e.isError(val) {
-			return val
-		}
-		return &object.ReturnValue{Value: val}
-
-	// identifiers (names / field-members)
-	case *ast.Identifier:
-		return e.evalIdentifier(node, env)
-
-	// function-calls
-	case *ast.CallExpression:
-		function := e.EvalIt(node.Function, env)
-		if e.isError(function) {
-			return function
-		}
-		args := e.evalExpression(node.Arguments, env)
-
-		// See if any of our arguments are errors.
-		for i, a := range args {
-			if e.isError(a) {
-				fmt.Fprintf(os.Stderr, "Argument %d to function `%s` is an error - %s\n", i, node.Function, a.Inspect())
-				return nil
+		for _, s := range node.Statements {
+			err := e.Compile(s)
+			if err != nil {
+				return err
 			}
 		}
 
-		// Call the function.
-		res := e.applyFunction(env, function, args)
-		if e.isError(res) {
-			fmt.Fprintf(os.Stderr, "Error calling `%s` : %s\n", node.Function, res.Inspect())
+	case *ast.BlockStatement:
+		for _, s := range node.Statements {
+			err := e.Compile(s)
+			if err != nil {
+				return err
+			}
 		}
-		return res
+
+	case *ast.Boolean:
+		if node.Value {
+			e.emit(code.OpTrue)
+		} else {
+			e.emit(code.OpFalse)
+		}
+
+	case *ast.FloatLiteral:
+		str := &object.Float{Value: node.Value}
+		e.emit(code.OpConstant, e.addConstant(str))
+
+	case *ast.IntegerLiteral:
+		integer := &object.Integer{Value: node.Value}
+		e.emit(code.OpConstant, e.addConstant(integer))
+
 	case *ast.StringLiteral:
-		return &object.String{Value: node.Value}
+		str := &object.String{Value: node.Value}
+		e.emit(code.OpConstant, e.addConstant(str))
+
+	case *ast.ReturnStatement:
+		err := e.Compile(node.ReturnValue)
+		if err != nil {
+			return err
+		}
+		e.emit(code.OpReturn)
+
+	case *ast.ExpressionStatement:
+		err := e.Compile(node.Expression)
+		if err != nil {
+			return err
+		}
+
+	case *ast.InfixExpression:
+		err := e.Compile(node.Left)
+		if err != nil {
+			return err
+		}
+
+		err = e.Compile(node.Right)
+		if err != nil {
+			return err
+		}
+
+		switch node.Operator {
+		case "+":
+			e.emit(code.OpAdd)
+		case "-":
+			e.emit(code.OpSub)
+		case "*":
+			e.emit(code.OpMul)
+		case "/":
+			e.emit(code.OpDiv)
+		case "%":
+			e.emit(code.OpMod)
+		case "**":
+			e.emit(code.OpPower)
+		case "<":
+			e.emit(code.OpLess)
+		case "<=":
+			e.emit(code.OpLessEqual)
+		case ">":
+			e.emit(code.OpGreater)
+		case ">=":
+			e.emit(code.OpGreaterEqual)
+		case "==":
+			e.emit(code.OpEqual)
+		case "!=":
+			e.emit(code.OpNotEqual)
+		case "~=":
+			e.emit(code.OpMatches)
+		case "!~":
+			e.emit(code.OpNotMatches)
+		case "&&":
+			e.emit(code.OpAnd)
+		case "||":
+			e.emit(code.OpOr)
+		default:
+			return fmt.Errorf("unknown operator %s", node.Operator)
+		}
+
+	case *ast.PrefixExpression:
+		err := e.Compile(node.Right)
+		if err != nil {
+			return err
+		}
+
+		switch node.Operator {
+		case "!":
+			e.emit(code.OpBang)
+		case "-":
+			e.emit(code.OpMinus)
+		case "√":
+			e.emit(code.OpRoot)
+		default:
+			return fmt.Errorf("unknown operator %s", node.Operator)
+		}
+
+	case *ast.IfExpression:
+		err := e.Compile(node.Condition)
+		if err != nil {
+			return err
+		}
+
+		// Emit an `OpJumpIfFalse` with a bogus value
+		jumpNotTruthyPos := e.emit(code.OpJumpIfFalse, 9999)
+
+		err = e.Compile(node.Consequence)
+		if err != nil {
+			return err
+		}
+
+		// Emit an `OpJump` with a bogus value
+		jumpPos := e.emit(code.OpJump, 9999)
+
+		afterConsequencePos := len(e.instructions)
+		e.changeOperand(jumpNotTruthyPos, afterConsequencePos)
+
+		if node.Alternative != nil {
+			err := e.Compile(node.Alternative)
+			if err != nil {
+				return err
+			}
+
+		}
+
+		afterAlternativePos := len(e.instructions)
+		e.changeOperand(jumpPos, afterAlternativePos)
+
 	case *ast.AssignStatement:
-		return e.evalAssignStatement(node, env)
+
+		// Get the value
+		err := e.Compile(node.Value)
+		if err != nil {
+			return err
+		}
+
+		// Store the name
+		str := &object.String{Value: node.Name.String()}
+		e.emit(code.OpConstant, e.addConstant(str))
+
+		// And make it work.
+		e.emit(code.OpSet)
+
+	case *ast.Identifier:
+		str := &object.String{Value: node.Value}
+		e.emit(code.OpLookup, e.addConstant(str))
+
+	case *ast.CallExpression:
+
+		//
+		// call to print(1) will have the stack setup as:
+		//
+		//  1
+		//  print
+		//  call 1
+		//
+		// call to print( "steve", "kemp" ) will have:
+		//
+		//  "steve"
+		//  "kemp"
+		//  "print"
+		//  call 2
+		//
+		args := len(node.Arguments)
+		for _, a := range node.Arguments {
+
+			err := e.Compile(a)
+			if err != nil {
+				return err
+			}
+		}
+
+		// call - has the string on the stack
+		str := &object.String{Value: node.Function.String()}
+		e.emit(code.OpConstant, e.addConstant(str))
+
+		// then a call instruction with the number of args.
+		e.emit(code.OpCall, args)
+
 	default:
-		fmt.Fprintf(os.Stderr, "Unknown AST-type: %t %v\n", node, node)
+		return fmt.Errorf("unknown node type %T %v", node, node)
 	}
 	return nil
 }
 
-// eval block statement
-func (e *Eval) evalBlockStatement(block *ast.BlockStatement, env *object.Environment) object.Object {
-	var result object.Object
-	for _, statement := range block.Statements {
-		result = e.EvalIt(statement, env)
-		if result != nil {
-			rt := result.Type()
-			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ {
-				return result
-			}
-		}
-	}
-	return result
+// addConstant adds a constant to the pool
+func (e *Eval) addConstant(obj object.Object) int {
+
+	//
+	// TODO - pretend we're using atoms.
+	//
+	// Search the pool to see if the constant is already
+	// present, with the same value.
+	//
+	// If it is we'll save time by using it only once.
+	//
+	e.constants = append(e.constants, obj)
+	return len(e.constants) - 1
 }
 
-// for performance, using single instance of boolean
-func (e *Eval) nativeBoolToBooleanObject(input bool) *object.Boolean {
-	if input {
-		return TRUE
+// emit generates a bytecode operation, and adds it to our program-array.
+func (e *Eval) emit(op code.Opcode, operands ...int) int {
+
+	ins := make([]byte, 1)
+	ins[0] = byte(op)
+
+	if len(operands) == 1 {
+
+		// Make a buffer for the arg
+		b := make([]byte, 2)
+		binary.BigEndian.PutUint16(b, uint16(operands[0]))
+
+		// append
+		ins = append(ins, b...)
 	}
-	return FALSE
+
+	posNewInstruction := len(e.instructions)
+	e.instructions = append(e.instructions, ins...)
+
+	return posNewInstruction
 }
 
-// eval prefix expression
-func (e *Eval) evalPrefixExpression(operator string, right object.Object) object.Object {
-	switch operator {
-	case "!":
-		return e.evalBangOperatorExpression(right)
-	case "-":
-		return e.evalMinusPrefixOperatorExpression(right)
-	case "√":
-		return e.evalSqrt(right)
-	default:
-		return e.newError("unknown operator: %s%s", operator, right.Type())
-	}
+// changeOperand is designed to patch the operand of
+// and instruction.  It is basically used to rewrite the target
+// of our jump instructions in the handling of `if`.
+func (e *Eval) changeOperand(opPos int, operand int) {
+
+	// get the opcode
+	op := code.Opcode(e.instructions[opPos])
+
+	// make a new buffer for the opcode
+	ins := make([]byte, 1)
+	ins[0] = byte(op)
+
+	// Make a buffer for the arg
+	b := make([]byte, 2)
+	binary.BigEndian.PutUint16(b, uint16(operand))
+
+	// append argument
+	ins = append(ins, b...)
+
+	// replace
+	e.replaceInstruction(opPos, ins)
 }
 
-func (e *Eval) evalBangOperatorExpression(right object.Object) object.Object {
-	switch right {
-	case TRUE:
-		return FALSE
-	case FALSE:
-		return TRUE
-	case NULL:
-		return TRUE
-	default:
-		return FALSE
-	}
-}
+// replaceInstruction rewrites the instruction at the given
+// bytecode position.
+func (e *Eval) replaceInstruction(pos int, newInstruction []byte) {
+	ins := e.instructions
 
-func (e *Eval) evalMinusPrefixOperatorExpression(right object.Object) object.Object {
-	switch obj := right.(type) {
-	case *object.Integer:
-		return &object.Integer{Value: -obj.Value}
-	case *object.Float:
-		return &object.Float{Value: -obj.Value}
-	default:
-		return e.newError("unknown operator: -%s", right.Type())
-	}
-}
-
-func (e *Eval) evalSqrt(right object.Object) object.Object {
-	switch obj := right.(type) {
-	case *object.Integer:
-		return &object.Float{Value: math.Sqrt(float64(obj.Value))}
-	case *object.Float:
-		return &object.Float{Value: math.Sqrt(obj.Value)}
-	default:
-		return e.newError("unknown √-operator for type %s", right.Type())
-	}
-}
-
-func (e *Eval) evalInfixExpression(operator string, left, right object.Object) object.Object {
-
-	switch {
-	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
-		return e.evalIntegerInfixExpression(operator, left, right)
-	case left.Type() == object.FLOAT_OBJ && right.Type() == object.FLOAT_OBJ:
-		return e.evalFloatInfixExpression(operator, left, right)
-	case left.Type() == object.FLOAT_OBJ && right.Type() == object.INTEGER_OBJ:
-		return e.evalFloatIntegerInfixExpression(operator, left, right)
-	case left.Type() == object.INTEGER_OBJ && right.Type() == object.FLOAT_OBJ:
-		return e.evalIntegerFloatInfixExpression(operator, left, right)
-	case left.Type() == object.STRING_OBJ && right.Type() == object.STRING_OBJ:
-		return e.evalStringInfixExpression(operator, left, right)
-	case operator == "&&":
-		// if left is false skip right
-		l := e.objectToNativeBoolean(left)
-		if !l {
-			return FALSE
-		}
-		r := e.objectToNativeBoolean(right)
-		return e.nativeBoolToBooleanObject(r)
-	case operator == "||":
-		// if left is true skip right
-		l := e.objectToNativeBoolean(left)
-		if l {
-			return TRUE
-		}
-		r := e.objectToNativeBoolean(right)
-		return e.nativeBoolToBooleanObject(r)
-	case left.Type() == object.BOOLEAN_OBJ && right.Type() == object.BOOLEAN_OBJ:
-		return e.evalBooleanInfixExpression(operator, left, right)
-	case left.Type() != right.Type():
-		return e.newError("type mismatch: %s %s %s",
-			left.Type(), operator, right.Type())
-	default:
-		return e.newError("unknown operator: %s %s %s",
-			left.Type(), operator, right.Type())
+	for i := 0; i < len(newInstruction); i++ {
+		ins[pos+i] = newInstruction[i]
 	}
 }
 
-// boolean operations
-func (e *Eval) evalBooleanInfixExpression(operator string, left, right object.Object) object.Object {
-	// convert the bools to strings.
-	l := &object.String{Value: left.Inspect()}
-	r := &object.String{Value: right.Inspect()}
-
-	switch operator {
-	case "==":
-		return e.evalStringInfixExpression(operator, l, r)
-	case "!=":
-		return e.evalStringInfixExpression(operator, l, r)
-	default:
-		return e.newError("unknown operator: %s %s %s",
-			left.Type(), operator, right.Type())
-	}
-}
-
-func (e *Eval) evalIntegerInfixExpression(operator string, left, right object.Object) object.Object {
-	leftVal := left.(*object.Integer).Value
-	rightVal := right.(*object.Integer).Value
-	switch operator {
-	case "+":
-		return &object.Integer{Value: leftVal + rightVal}
-	case "-":
-		return &object.Integer{Value: leftVal - rightVal}
-	case "*":
-		return &object.Integer{Value: leftVal * rightVal}
-	case "/":
-		return &object.Integer{Value: leftVal / rightVal}
-	case "%":
-		return &object.Integer{Value: leftVal % rightVal}
-	case "**":
-		return &object.Integer{Value: int64(math.Pow(float64(leftVal), float64(rightVal)))}
-	case "<":
-		return e.nativeBoolToBooleanObject(leftVal < rightVal)
-	case "<=":
-		return e.nativeBoolToBooleanObject(leftVal <= rightVal)
-	case ">":
-		return e.nativeBoolToBooleanObject(leftVal > rightVal)
-	case ">=":
-		return e.nativeBoolToBooleanObject(leftVal >= rightVal)
-	case "==":
-		return e.nativeBoolToBooleanObject(leftVal == rightVal)
-	case "!=":
-		return e.nativeBoolToBooleanObject(leftVal != rightVal)
-	default:
-		return e.newError("unknown operator: %s %s %s",
-			left.Type(), operator, right.Type())
-	}
-}
-func (e *Eval) evalFloatInfixExpression(operator string, left, right object.Object) object.Object {
-	leftVal := left.(*object.Float).Value
-	rightVal := right.(*object.Float).Value
-	switch operator {
-	case "+":
-		return &object.Float{Value: leftVal + rightVal}
-	case "-":
-		return &object.Float{Value: leftVal - rightVal}
-	case "*":
-		return &object.Float{Value: leftVal * rightVal}
-	case "/":
-		return &object.Float{Value: leftVal / rightVal}
-	case "%":
-		return &object.Float{Value: float64(int(leftVal) % int(rightVal))}
-	case "**":
-		return &object.Float{Value: math.Pow(leftVal, rightVal)}
-	case "<":
-		return e.nativeBoolToBooleanObject(leftVal < rightVal)
-	case "<=":
-		return e.nativeBoolToBooleanObject(leftVal <= rightVal)
-	case ">":
-		return e.nativeBoolToBooleanObject(leftVal > rightVal)
-	case ">=":
-		return e.nativeBoolToBooleanObject(leftVal >= rightVal)
-	case "==":
-		return e.nativeBoolToBooleanObject(leftVal == rightVal)
-	case "!=":
-		return e.nativeBoolToBooleanObject(leftVal != rightVal)
-	default:
-		return e.newError("unknown operator: %s %s %s",
-			left.Type(), operator, right.Type())
-	}
-}
-
-func (e *Eval) evalFloatIntegerInfixExpression(operator string, left, right object.Object) object.Object {
-	leftVal := left.(*object.Float).Value
-	rightVal := float64(right.(*object.Integer).Value)
-	switch operator {
-	case "+":
-		return &object.Float{Value: leftVal + rightVal}
-	case "-":
-		return &object.Float{Value: leftVal - rightVal}
-	case "*":
-		return &object.Float{Value: leftVal * rightVal}
-	case "/":
-		return &object.Float{Value: leftVal / rightVal}
-	case "%":
-		return &object.Float{Value: float64(int(leftVal) % int(rightVal))}
-	case "**":
-		return &object.Float{Value: math.Pow(leftVal, rightVal)}
-	case "<":
-		return e.nativeBoolToBooleanObject(leftVal < rightVal)
-	case "<=":
-		return e.nativeBoolToBooleanObject(leftVal <= rightVal)
-	case ">":
-		return e.nativeBoolToBooleanObject(leftVal > rightVal)
-	case ">=":
-		return e.nativeBoolToBooleanObject(leftVal >= rightVal)
-	case "==":
-		return e.nativeBoolToBooleanObject(leftVal == rightVal)
-	case "!=":
-		return e.nativeBoolToBooleanObject(leftVal != rightVal)
-	default:
-		return e.newError("unknown operator: %s %s %s",
-			left.Type(), operator, right.Type())
-	}
-}
-
-func (e *Eval) evalIntegerFloatInfixExpression(operator string, left, right object.Object) object.Object {
-	leftVal := float64(left.(*object.Integer).Value)
-	rightVal := right.(*object.Float).Value
-	switch operator {
-	case "+":
-		return &object.Float{Value: leftVal + rightVal}
-	case "-":
-		return &object.Float{Value: leftVal - rightVal}
-	case "*":
-		return &object.Float{Value: leftVal * rightVal}
-	case "%":
-		return &object.Float{Value: float64(int(leftVal) % int(rightVal))}
-	case "**":
-		return &object.Float{Value: math.Pow(leftVal, rightVal)}
-	case "/":
-		return &object.Float{Value: leftVal / rightVal}
-	case "<":
-		return e.nativeBoolToBooleanObject(leftVal < rightVal)
-	case "<=":
-		return e.nativeBoolToBooleanObject(leftVal <= rightVal)
-	case ">":
-		return e.nativeBoolToBooleanObject(leftVal > rightVal)
-	case ">=":
-		return e.nativeBoolToBooleanObject(leftVal >= rightVal)
-	case "==":
-		return e.nativeBoolToBooleanObject(leftVal == rightVal)
-	case "!=":
-		return e.nativeBoolToBooleanObject(leftVal != rightVal)
-	default:
-		return e.newError("unknown operator: %s %s %s",
-			left.Type(), operator, right.Type())
-	}
-}
-
-func (e *Eval) evalStringInfixExpression(operator string, left, right object.Object) object.Object {
-	l := left.(*object.String)
-	r := right.(*object.String)
-
-	switch operator {
-	case "==":
-		return e.nativeBoolToBooleanObject(l.Value == r.Value)
-	case "!=":
-		return e.nativeBoolToBooleanObject(l.Value != r.Value)
-	case ">=":
-		return e.nativeBoolToBooleanObject(l.Value >= r.Value)
-	case ">":
-		return e.nativeBoolToBooleanObject(l.Value > r.Value)
-	case "<=":
-		return e.nativeBoolToBooleanObject(l.Value <= r.Value)
-	case "<":
-		return e.nativeBoolToBooleanObject(l.Value < r.Value)
-	case "~=":
-		return e.nativeBoolToBooleanObject(strings.Contains(l.Value, r.Value))
-	case "!~":
-		return e.nativeBoolToBooleanObject(!strings.Contains(l.Value, r.Value))
-	case "+":
-		return &object.String{Value: l.Value + r.Value}
-	}
-
-	return e.newError("unknown operator: %s %s %s",
-		left.Type(), operator, right.Type())
-}
-
-func (e *Eval) evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Object {
-	condition := e.EvalIt(ie.Condition, env)
-	if e.isError(condition) {
-		return condition
-	}
-	if e.isTruthy(condition) {
-		return e.EvalIt(ie.Consequence, env)
-	} else if ie.Alternative != nil {
-		return e.EvalIt(ie.Alternative, env)
-	} else {
-		return NULL
-	}
-}
-
-func (e *Eval) evalAssignStatement(a *ast.AssignStatement, env *object.Environment) (val object.Object) {
-	evaluated := e.EvalIt(a.Value, env)
-	if e.isError(evaluated) {
-		return evaluated
-	}
-	env.Set(a.Name.String(), evaluated)
-	return evaluated
-}
-
+// isTruthy tests whether the given object is "true".
 func (e *Eval) isTruthy(obj object.Object) bool {
 
 	//
@@ -572,173 +503,6 @@ func (e *Eval) isTruthy(obj object.Object) bool {
 		return (tmp.Value != 0)
 	case *object.Float:
 		return (tmp.Value != 0.0)
-	}
-
-	//
-	// If not we return based on our constants.
-	//
-	switch obj {
-	case NULL:
-		return false
-	case TRUE:
-		return true
-	case FALSE:
-		return false
-	default:
-		return true
-	}
-}
-
-func (e *Eval) evalProgram(program *ast.Program, env *object.Environment) object.Object {
-	var result object.Object
-	for _, statement := range program.Statements {
-		result = e.EvalIt(statement, env)
-		switch result := result.(type) {
-		case *object.ReturnValue:
-			return result.Value
-		case *object.Error:
-			return result
-		}
-	}
-	return result
-}
-
-func (e *Eval) newError(format string, a ...interface{}) *object.Error {
-	return &object.Error{Message: fmt.Sprintf(format, a...)}
-}
-
-func (e *Eval) isError(obj object.Object) bool {
-	if obj != nil {
-		return obj.Type() == object.ERROR_OBJ
-	}
-	return false
-}
-
-func (e *Eval) evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object {
-
-	//
-	// Can we get a value from the environment?
-	//
-	// If so return it.
-	//
-
-	//
-	// Note that for legacy purposes we might have a leading `$`
-	// on our variable-names.
-	//
-	// If so remove it.
-	//
-	name := node.Value
-	name = strings.TrimPrefix(name, "$")
-
-	if val, ok := env.Get(name); ok {
-		return val
-	}
-
-	//
-	// Otherwise we need to perform a structure lookup.
-	//
-	if e.Object != nil {
-
-		ref := reflect.ValueOf(e.Object)
-
-		//
-		// The field we find by reflection.
-		//
-		var field reflect.Value
-
-		//
-		// Are we dealing with a map?
-		//
-		if ref.Kind() == reflect.Map {
-			for _, key := range ref.MapKeys() {
-				if key.Interface() == name {
-
-					field = ref.MapIndex(key).Elem()
-					break
-				}
-			}
-		} else {
-
-			field = reflect.Indirect(ref).FieldByName(name)
-		}
-
-		switch field.Kind() {
-		case reflect.Int, reflect.Int64:
-			return &object.Integer{Value: field.Int()}
-		case reflect.Float32, reflect.Float64:
-			return &object.Float{Value: field.Float()}
-		case reflect.String:
-			return &object.String{Value: field.String()}
-		case reflect.Bool:
-			return &object.Boolean{Value: field.Bool()}
-		}
-	}
-
-	// Not found
-	return NULL
-}
-
-func (e *Eval) evalExpression(exps []ast.Expression, env *object.Environment) []object.Object {
-	var result []object.Object
-	for _, exp := range exps {
-		evaluated := e.EvalIt(exp, env)
-		if e.isError(evaluated) {
-			return []object.Object{evaluated}
-		}
-		result = append(result, evaluated)
-	}
-	return result
-}
-
-//
-// Here is where we call a user-supplied function.
-//
-func (e *Eval) applyFunction(env *object.Environment, fn object.Object, args []object.Object) object.Object {
-
-	// Get the function
-	res, ok := e.Functions[fn.Inspect()]
-	if !ok {
-		fmt.Fprintf(os.Stderr, "Failed to find function \n")
-		return (&object.String{Value: "Function not found " + fn.Inspect()})
-	}
-
-	// Cast it into the correct type, and then invoke it.
-	out := res.(func(args []object.Object) object.Object)
-
-	// Are any of our arguments an error?
-	for _, arg := range args {
-		if arg == nil || e.isError(arg) {
-			fmt.Fprintf(os.Stderr, "Not calling function `%s`, as argument is an error.\n", fn.Inspect())
-			return arg
-		}
-	}
-	ret := (out(args))
-
-	return ret
-}
-
-func (e *Eval) objectToNativeBoolean(o object.Object) bool {
-	if r, ok := o.(*object.ReturnValue); ok {
-		o = r.Value
-	}
-	switch obj := o.(type) {
-	case *object.Boolean:
-		return obj.Value
-	case *object.String:
-		return obj.Value != ""
-	case *object.Null:
-		return false
-	case *object.Integer:
-		if obj.Value == 0 {
-			return false
-		}
-		return true
-	case *object.Float:
-		if obj.Value == 0.0 {
-			return false
-		}
-		return true
 	default:
 		return true
 	}
