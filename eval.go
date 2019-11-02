@@ -149,19 +149,20 @@ func (e *Eval) EvalIt(node ast.Node, env *object.Environment) object.Object {
 
 	switch node := node.(type) {
 
-	//Statements
+	// Statements
 	case *ast.Program:
 		return e.evalProgram(node, env)
 	case *ast.ExpressionStatement:
 		return e.EvalIt(node.Expression, env)
 
-	//Expressions
+	// Expressions
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
 	case *ast.FloatLiteral:
 		return &object.Float{Value: node.Value}
 	case *ast.Boolean:
 		return e.nativeBoolToBooleanObject(node.Value)
+
 	case *ast.PrefixExpression:
 		right := e.EvalIt(node.Right, env)
 		if e.isError(right) {
@@ -193,12 +194,14 @@ func (e *Eval) EvalIt(node ast.Node, env *object.Environment) object.Object {
 	// `if`, `return`, assignment
 	case *ast.IfExpression:
 		return e.evalIfExpression(node, env)
+
 	case *ast.ReturnStatement:
 		val := e.EvalIt(node.ReturnValue, env)
 		if e.isError(val) {
 			return val
 		}
 		return &object.ReturnValue{Value: val}
+
 	// identifiers (names / field-members)
 	case *ast.Identifier:
 		return e.evalIdentifier(node, env)
@@ -321,9 +324,21 @@ func (e *Eval) evalInfixExpression(operator string, left, right object.Object) o
 	case left.Type() == object.STRING_OBJ && right.Type() == object.STRING_OBJ:
 		return e.evalStringInfixExpression(operator, left, right)
 	case operator == "&&":
-		return e.nativeBoolToBooleanObject(e.objectToNativeBoolean(left) && e.objectToNativeBoolean(right))
+		// if left is false skip right
+		l := e.objectToNativeBoolean(left)
+		if !l {
+			return FALSE
+		}
+		r := e.objectToNativeBoolean(right)
+		return e.nativeBoolToBooleanObject(r)
 	case operator == "||":
-		return e.nativeBoolToBooleanObject(e.objectToNativeBoolean(left) || e.objectToNativeBoolean(right))
+		// if left is true skip right
+		l := e.objectToNativeBoolean(left)
+		if l {
+			return TRUE
+		}
+		r := e.objectToNativeBoolean(right)
+		return e.nativeBoolToBooleanObject(r)
 	case left.Type() == object.BOOLEAN_OBJ && right.Type() == object.BOOLEAN_OBJ:
 		return e.evalBooleanInfixExpression(operator, left, right)
 	case left.Type() != right.Type():
