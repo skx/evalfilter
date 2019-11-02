@@ -55,6 +55,11 @@ func TestLess(t *testing.T) {
 
 		obj := New(tst.Input)
 
+		p := obj.Prepare()
+		if p != nil {
+			t.Fatalf("Failed to compile")
+		}
+
 		ret, err := obj.Run(object)
 		if err != nil {
 			t.Fatalf("Found unexpected error running test '%s' - %s\n", tst.Input, err.Error())
@@ -93,6 +98,11 @@ func TestMore(t *testing.T) {
 	for _, tst := range tests {
 
 		obj := New(tst.Input)
+
+		p := obj.Prepare()
+		if p != nil {
+			t.Fatalf("Failed to compile")
+		}
 
 		ret, err := obj.Run(object)
 		if err != nil {
@@ -136,6 +146,11 @@ func TestEq(t *testing.T) {
 
 		obj := New(tst.Input)
 
+		p := obj.Prepare()
+		if p != nil {
+			t.Fatalf("Failed to compile")
+		}
+
 		ret, err := obj.Run(object)
 		if err != nil {
 			t.Fatalf("Found unexpected error running test %s\n", err.Error())
@@ -174,6 +189,11 @@ func TestContains(t *testing.T) {
 
 		obj := New(tst.Input)
 
+		p := obj.Prepare()
+		if p != nil {
+			t.Fatalf("Failed to compile")
+		}
+
 		ret, err := obj.Run(object)
 		if err != nil {
 			t.Fatalf("Found unexpected error running test %s\n", err.Error())
@@ -211,6 +231,12 @@ func TestFunctionBool(t *testing.T) {
 	for _, tst := range tests {
 
 		obj := New(tst.Input)
+
+		p := obj.Prepare()
+		if p != nil {
+			t.Fatalf("Failed to compile")
+		}
+
 		obj.AddFunction("True",
 			func(args []object.Object) object.Object {
 				return &object.Boolean{Value: true}
@@ -253,6 +279,12 @@ func TestFunctionInt(t *testing.T) {
 	for _, tst := range tests {
 
 		obj := New(tst.Input)
+
+		p := obj.Prepare()
+		if p != nil {
+			t.Fatalf("Failed to compile")
+		}
+
 		obj.AddFunction("Number",
 			func(args []object.Object) object.Object {
 				return &object.Integer{Value: 3}
@@ -300,6 +332,12 @@ func TestFunctionString(t *testing.T) {
 	for _, tst := range tests {
 
 		obj := New(tst.Input)
+
+		p := obj.Prepare()
+		if p != nil {
+			t.Fatalf("Failed to compile")
+		}
+
 		obj.AddFunction("Str",
 			func(args []object.Object) object.Object {
 				return &object.String{Value: "Steve"}
@@ -348,6 +386,11 @@ func TestBool(t *testing.T) {
 
 		obj := New(tst.Input)
 
+		p := obj.Prepare()
+		if p != nil {
+			t.Fatalf("Failed to compile")
+		}
+
 		ret, err := obj.Run(object)
 		if err != nil {
 			t.Fatalf("Found unexpected error running test '%s' - %s\n", tst.Input, err.Error())
@@ -375,6 +418,12 @@ func TestVariable(t *testing.T) {
 	for _, tst := range tests {
 
 		obj := New(tst.Input)
+
+		p := obj.Prepare()
+		if p != nil {
+			t.Fatalf("Failed to compile:%s", p.Error())
+		}
+
 		obj.SetVariable("name", &object.String{Value: "Steve"})
 
 		ret, err := obj.Run(nil)
@@ -384,51 +433,6 @@ func TestVariable(t *testing.T) {
 
 		if ret != tst.Result {
 			t.Fatalf("Found unexpected result running script")
-		}
-	}
-}
-
-// TestObjectToBool tests our Object -> boolean results work as expected.
-func TestObjectToBool(t *testing.T) {
-
-	type Test struct {
-		Object object.Object
-		Result bool
-	}
-	var x object.Object
-
-	tests := []Test{
-		// Bool
-		{Object: &object.Boolean{Value: true}, Result: true},
-		{Object: &object.Boolean{Value: false}, Result: false},
-
-		// Int
-		{Object: &object.Integer{Value: 10}, Result: true},
-		{Object: &object.Integer{Value: 0}, Result: false},
-
-		// Float
-		{Object: &object.Float{Value: 1.30}, Result: true},
-		{Object: &object.Float{Value: 0.0}, Result: false},
-
-		// String
-		{Object: &object.String{Value: "Steve"}, Result: true},
-		{Object: &object.String{Value: ""}, Result: false},
-
-		// Misc
-		{Object: &object.ReturnValue{Value: &object.Boolean{Value: true}}, Result: true},
-		{Object: &object.ReturnValue{Value: &object.Boolean{Value: false}}, Result: false},
-		{Object: &object.ReturnValue{Value: &object.String{Value: ""}}, Result: false},
-		{Object: &object.ReturnValue{Value: &object.String{Value: "not-empty"}}, Result: true},
-		{Object: &object.Null{}, Result: false},
-		{Object: x, Result: true},
-	}
-
-	for _, tst := range tests {
-
-		obj := New("")
-
-		if obj.objectToNativeBoolean(tst.Object) != tst.Result {
-			t.Fatalf("Found unexpected error running test '%s'\n", tst.Object.Inspect())
 		}
 	}
 }
@@ -495,6 +499,11 @@ func TestOperations(t *testing.T) {
 
 		obj := New(tst.Input)
 
+		p := obj.Prepare()
+		if p != nil {
+			t.Fatalf("Failed to compile")
+		}
+
 		ret, err := obj.Run(nil)
 		if err != nil {
 			t.Fatalf("Found unexpected error running test '%s' - %s\n", tst.Input, err.Error())
@@ -526,8 +535,13 @@ func TestAndOr(t *testing.T) {
 	d.Value = 100
 
 	// Test-script
-	src := `(Origin == "MOW" || Country == "RU") && (Value > 100 || Adults == 1)`
+	src := `(Origin == "MOW" || Country == "RU") && (Value > 100 || Adults == 1) { return true; } else { return false; }`
 	obj := New(src)
+
+	p := obj.Prepare()
+	if p != nil {
+		t.Fatalf("Failed to compile")
+	}
 
 	// Run
 	ret, err := obj.Run(d)
