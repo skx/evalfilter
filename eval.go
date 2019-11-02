@@ -135,7 +135,7 @@ func (e *Eval) Run(obj interface{}) (bool, error) {
 	//
 	// Show the result.
 	//
-	fmt.Printf("Result: %v\n", out)
+	//	fmt.Printf("Result: %v\n", out)
 
 	//
 	// Is the return-value an error?  If so report that.
