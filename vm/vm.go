@@ -285,10 +285,10 @@ func (vm *VM) executeBinaryOperation(op code.Opcode) error {
 	case left.Type() == object.BOOLEAN_OBJ && right.Type() == object.BOOLEAN_OBJ:
 		return vm.evalBooleanInfixExpression(op, left, right)
 	case left.Type() != right.Type():
-		return fmt.Errorf("type mismatch: %s %s %s",
+		return fmt.Errorf("type mismatch: %s %v %s",
 			left.Type(), op, right.Type())
 	default:
-		return fmt.Errorf("unknown operator: %s %s %s",
+		return fmt.Errorf("unknown operator: %s %v %s",
 			left.Type(), op, right.Type())
 	}
 
@@ -326,7 +326,7 @@ func (vm *VM) evalIntegerInfixExpression(op code.Opcode, left, right object.Obje
 	case code.OpNotEqual:
 		vm.push(vm.nativeBoolToBooleanObject(leftVal != rightVal))
 	default:
-		return (fmt.Errorf("unknown operator: %s %s %s", left.Type(), op, right.Type()))
+		return (fmt.Errorf("unknown operator: %s %v %s", left.Type(), op, right.Type()))
 	}
 
 	return nil
@@ -363,7 +363,7 @@ func (vm *VM) evalFloatInfixExpression(op code.Opcode, left, right object.Object
 	case code.OpNotEqual:
 		vm.push(vm.nativeBoolToBooleanObject(leftVal != rightVal))
 	default:
-		return (fmt.Errorf("unknown operator: %s %s %s", left.Type(), op, right.Type()))
+		return (fmt.Errorf("unknown operator: %s %v %s", left.Type(), op, right.Type()))
 	}
 
 	return nil
@@ -400,7 +400,7 @@ func (vm *VM) evalFloatIntegerInfixExpression(op code.Opcode, left, right object
 	case code.OpNotEqual:
 		vm.push(vm.nativeBoolToBooleanObject(leftVal != rightVal))
 	default:
-		return (fmt.Errorf("unknown operator: %s %s %s", left.Type(), op, right.Type()))
+		return (fmt.Errorf("unknown operator: %s %v %s", left.Type(), op, right.Type()))
 	}
 
 	return nil
@@ -437,7 +437,7 @@ func (vm *VM) evalIntegerFloatInfixExpression(op code.Opcode, left, right object
 	case code.OpNotEqual:
 		vm.push(vm.nativeBoolToBooleanObject(leftVal != rightVal))
 	default:
-		return (fmt.Errorf("unknown operator: %s %s %s", left.Type(), op, right.Type()))
+		return (fmt.Errorf("unknown operator: %s %v %s", left.Type(), op, right.Type()))
 	}
 
 	return nil
@@ -468,7 +468,7 @@ func (vm *VM) evalStringInfixExpression(op code.Opcode, left object.Object, righ
 	case code.OpAdd:
 		vm.push(&object.String{Value: l.Value + r.Value})
 	default:
-		return (fmt.Errorf("unknown operator: %s %s %s", left.Type(), op, right.Type()))
+		return (fmt.Errorf("unknown operator: %s %v %s", left.Type(), op, right.Type()))
 	}
 
 	return nil
