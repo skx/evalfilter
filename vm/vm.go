@@ -64,9 +64,9 @@ func New(constants []object.Object, bytecode []byte, env *object.Environment) *V
 func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
 	ip := 0
-	len := len(vm.bytecode)
+	ln := len(vm.bytecode)
 
-	for ip < len {
+	for ip < ln {
 
 		op := code.Opcode(vm.bytecode[ip])
 
@@ -188,6 +188,10 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			for args > 0 {
 				fArgs = append(fArgs, vm.pop())
 				args--
+			}
+
+			for left, right := 0, len(fArgs)-1; left < right; left, right = left+1, right-1 {
+				fArgs[left], fArgs[right] = fArgs[right], fArgs[left]
 			}
 
 			// Get the function we're to invoke
