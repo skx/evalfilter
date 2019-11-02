@@ -329,10 +329,21 @@ func (e *Eval) Compile(node ast.Node) error {
 		e.changeOperand(jumpPos, afterAlternativePos)
 
 	case *ast.AssignStatement:
-		return fmt.Errorf("AssignStatement not handled, local variables are broken")
+
+		// Get the value
+		err := e.Compile(node.Value)
+		if err != nil {
+			return err
+		}
+
+		// Store the name
+		str := &object.String{Value: node.Name.String()}
+		e.emit(code.OpConstant, e.addConstant(str))
+
+		// And make it work.
+		e.emit(code.OpSet)
 
 	case *ast.Identifier:
-		// TODO: This handles fields, but not variables.
 		str := &object.String{Value: node.Value}
 		e.emit(code.OpLookup, e.addConstant(str))
 

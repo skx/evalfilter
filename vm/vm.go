@@ -93,6 +93,14 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			val := vm.lookup(obj, name)
 			vm.push(val)
 
+			// Set a variable by name
+		case code.OpSet:
+			name := vm.pop()
+			val := vm.pop()
+
+			vm.environment.Set(name.Inspect(), val)
+			ip += 1
+
 			// maths & comparisions
 		case code.OpAdd, code.OpSub, code.OpMul, code.OpDiv, code.OpMod, code.OpPower, code.OpLess, code.OpLessEqual, code.OpGreater, code.OpGreaterEqual, code.OpEqual, code.OpNotEqual, code.OpMatches, code.OpNotMatches, code.OpAnd, code.OpOr:
 			err := vm.executeBinaryOperation(op)
@@ -594,6 +602,19 @@ func (vm *VM) isTruthy(obj object.Object) bool {
 
 // lookup the name of the given field/map-member.
 func (vm *VM) lookup(obj interface{}, name string) object.Object {
+
+	//
+	// Remove legacy "$" prefix, if present.
+	//
+	name = strings.TrimPrefix(name, "$")
+
+	//
+	// Look for this as a variable before
+	// looking for field values.
+	//
+	if val, ok := vm.environment.Get(name); ok {
+		return val
+	}
 
 	if obj != nil {
 

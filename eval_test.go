@@ -535,7 +535,7 @@ func TestAndOr(t *testing.T) {
 	d.Value = 100
 
 	// Test-script
-	src := `(Origin == "MOW" || Country == "RU") && (Value > 100 || Adults == 1) { return true; } else { return false; }`
+	src := `if ( (Origin == "MOW" || Country == "RU") && (Value > 100 || Adults == 1) ) { return true; } else { return false; }`
 	obj := New(src)
 
 	p := obj.Prepare()
