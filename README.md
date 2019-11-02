@@ -41,7 +41,20 @@ The API will remain as-is for given major release number.  Currently we've had t
 * 2.x.x
   * Updated design which parses the source into an AST, then generates bytecode to execute when the script is run.
 
-The second release was implemented to perform a significant speedup.
+The second release was implemented to perform a significant speedup, if you wish to run a local benchmark you should be able to do so as follows:
+
+```
+$ go test -test.bench=evalfilter -benchtime=10s -run=^t
+goos: linux
+goarch: amd64
+pkg: github.com/skx/evalfilter
+Benchmark_evalfilter_complex-4   	 5000000	      3895 ns/op
+Benchmark_evalfilter_simple-4    	500000000	        25.6 ns/op
+PASS
+ok  	github.com/skx/evalfilter	38.934s
+```
+
+
 
 
 ## Sample Use
