@@ -94,7 +94,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			vm.push(val)
 
 			// maths & comparisions
-		case code.OpAdd, code.OpSub, code.OpMul, code.OpDiv, code.OpLess, code.OpLessEqual, code.OpGreater, code.OpGreaterEqual, code.OpEqual, code.OpNotEqual, code.OpMatches, code.OpNotMatches, code.OpAnd, code.OpOr:
+		case code.OpAdd, code.OpSub, code.OpMul, code.OpDiv, code.OpMod, code.OpPower, code.OpLess, code.OpLessEqual, code.OpGreater, code.OpGreaterEqual, code.OpEqual, code.OpNotEqual, code.OpMatches, code.OpNotMatches, code.OpAnd, code.OpOr:
 			err := vm.executeBinaryOperation(op)
 			if err != nil {
 				return nil, err
@@ -558,14 +558,35 @@ func (vm *VM) nativeBoolToBooleanObject(input bool) *object.Boolean {
 
 // Does the given object contain a "true-like" value?
 func (vm *VM) isTruthy(obj object.Object) bool {
-	switch obj := obj.(type) {
 
+	//
+	// Is this a boolean object?
+	//
+	// If so look for the stored value.
+	//
+	switch tmp := obj.(type) {
 	case *object.Boolean:
-		return obj.Value
-
+		return tmp.Value
+	case *object.String:
+		return (tmp.Value != "")
 	case *object.Null:
 		return false
+	case *object.Integer:
+		return (tmp.Value != 0)
+	case *object.Float:
+		return (tmp.Value != 0.0)
+	}
 
+	//
+	// If not we return based on our constants.
+	//
+	switch obj {
+	case Null:
+		return false
+	case True:
+		return true
+	case False:
+		return false
 	default:
 		return true
 	}
