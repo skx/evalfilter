@@ -128,19 +128,20 @@ func (e *Eval) Dump() error {
 		// opcode
 		op := e.instructions[i]
 
-		//
+		// as a string
 		str := code.String(code.Opcode(op))
 
 		fmt.Printf("%06d - %s [OpCode:%d] ", i, str, op)
 
+		// show arg
 		if op < byte(code.OpCodeSingleArg) {
-			fmt.Printf("%d\n", code.ReadUint16(e.instructions[i+1:]))
+			fmt.Printf("%d", code.ReadUint16(e.instructions[i+1:]))
 			i += 2
-		} else {
-			fmt.Printf("\n")
 		}
 
-		i += 1
+		fmt.Printf("\n")
+
+		i++
 	}
 
 	// constants
