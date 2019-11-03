@@ -14,13 +14,12 @@ type Type string
 
 // pre-defined constant Type
 const (
-	INTEGER_OBJ      = "INTEGER"
-	FLOAT_OBJ        = "FLOAT"
-	BOOLEAN_OBJ      = "BOOLEAN"
-	NULL_OBJ         = "NULL"
-	RETURN_VALUE_OBJ = "RETURN_VALUE"
-	ERROR_OBJ        = "ERROR"
-	STRING_OBJ       = "STRING"
+	INTEGER_OBJ = "INTEGER"
+	FLOAT_OBJ   = "FLOAT"
+	BOOLEAN_OBJ = "BOOLEAN"
+	NULL_OBJ    = "NULL"
+	ERROR_OBJ   = "ERROR"
+	STRING_OBJ  = "STRING"
 )
 
 // Object is the interface that all of our various object-types must implmenet.

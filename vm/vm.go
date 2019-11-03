@@ -554,9 +554,7 @@ func (vm *VM) executeSquareRoot() error {
 
 // convert an object to a native (go) boolean
 func (vm *VM) objectToNativeBoolean(o object.Object) bool {
-	if r, ok := o.(*object.ReturnValue); ok {
-		o = r.Value
-	}
+
 	switch obj := o.(type) {
 	case *object.Boolean:
 		return obj.Value
