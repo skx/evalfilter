@@ -49,8 +49,9 @@ type Eval struct {
 	constants []object.Object
 
 	// bytecode we generate
-	instructions []byte
+	instructions code.Instructions
 
+	// the machine we drive
 	machine *vm.VM
 }
 

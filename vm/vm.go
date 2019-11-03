@@ -35,7 +35,7 @@ type VM struct {
 	constants []object.Object
 
 	// bytecode contains the actual instructions we'll execute
-	bytecode []byte
+	bytecode code.Instructions
 
 	// stack stores our stack.
 	// We're a stack-based virtual machine so this is used for many
@@ -51,7 +51,7 @@ type VM struct {
 }
 
 // New constructs a new virtual machine.
-func New(constants []object.Object, bytecode []byte, env *object.Environment) *VM {
+func New(constants []object.Object, bytecode code.Instructions, env *object.Environment) *VM {
 
 	return &VM{
 		constants:   constants,
@@ -69,8 +69,9 @@ func New(constants []object.Object, bytecode []byte, env *object.Environment) *V
 // the supplied bytecode - the latter is an error.
 func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
+	// Sanity-check
 	if len(vm.bytecode) < 1 {
-		return nil, fmt.Errorf("bytecode is empty; did you forget to call evalfilter.Prepare?")
+		return nil, fmt.Errorf("bytecode is empty.  Did you forget to call evalfilter.Prepare?")
 	}
 
 	ip := 0
