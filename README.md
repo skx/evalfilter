@@ -28,9 +28,9 @@ The `evalfilter` library provides the means to embed a small scripting engine in
 
 The scripting language is C-like, and allows you to _filter_ objects, with the general expectation that a script will return `true` or `false` allowing you to decide what to do after running it.
 
-In terms of implementation the script is first split into [tokens](tokens/tokens.go) by the [lexer](lexer/lexer.go), then that is [parsed](parser/parser.go).  Once the script has been parsed into an AST it is compiled into a set of [bytecode](code/code.go) operations.
+In terms of implementation the script is first split into [tokens](token/token.go) by the [lexer](lexer/lexer.go), then that is [parsed](parser/parser.go) into an abstract-syntax-tree.  Once the AST exists it is walked, and a series of [bytecode](code/code.go) operations are generated.  All of this happens in the `Prepare` method.
 
-Finally once you're ready to invoke your script against a particular object the bytecode is intepreted by a simple [virtual machine](vm/vm.go).
+Once you're ready to execute the script against a particular object the bytecode is intepreted by a simple [virtual machine](vm/vm.go) in the `Run` method.
 
 
 
