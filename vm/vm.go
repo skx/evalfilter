@@ -112,7 +112,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			vm.environment.Set(name.Inspect(), val)
 			ip++
 
-			// maths & comparisions
+			// maths & comparisons
 		case code.OpAdd, code.OpSub, code.OpMul, code.OpDiv, code.OpMod, code.OpPower, code.OpLess, code.OpLessEqual, code.OpGreater, code.OpGreaterEqual, code.OpEqual, code.OpNotEqual, code.OpMatches, code.OpNotMatches, code.OpAnd, code.OpOr:
 			err := vm.executeBinaryOperation(op)
 			if err != nil {
