@@ -3,59 +3,52 @@
 [![license](https://img.shields.io/github/license/skx/evalfilter.svg)](https://github.com/skx/evalfilter/blob/master/LICENSE)
 
 * [eval-filter](#eval-filter)
+  * [Overview](#overview)
+  * [Use Cases](#use-cases)
+  * [Sample Usage](#sample-usage)
   * [API Stability](#api-stability)
-  * [Sample Usecase](#sample-usecase)
   * [Scripting Facilities](#scripting-facilities)
-  * [Function Invocation](#function-invocation)
-     * [Built-In Functions](#built-in-functions)
-  * [Variables](#variables)
+	 * [Built-In Functions](#built-in-functions)
+     * [Variables](#variables)
   * [Standalone Use](#standalone-use)
   * [Benchmarking](#benchmarking)
   * [Github Setup](#github-setup)
-
 
 
 # eval-filter
 
 The evalfilter package provides an embeddable evaluation-engine, which allows simple logic which might otherwise be hardwired into your golang application to be delegated to (user-written) script(s).
 
-There is no shortage of embeddable languages which are available to the golang world, this library is intended to be less complex, allowing only simple tests to be made against structures/objects.  That said the flexibility present means that if you don't need full scripting support this might just be sufficient for your needs.
-
-* The backstory behind this project is explained in [this blog-post](https://blog.steve.fi/a_slack_hack.html)
-
-To give you a quick feel for how things look you could consult:
-
-* [example_test.go](example_test.go).
-  * This filters a list of people by their age.
-* [example_function_test.go](example_function_test.go).
-  * This exports a function from the golang-host application to the script.
-  * Then uses that to filter a list of people.
-* Some other simple examples are available beneath the [_examples/](_examples/) directory.
+There is no shortage of embeddable languages which are available to the golang world, this library is intended to be a simple one, allowing simple tests to be made against structures/objects.
 
 
-## API Stability
+## Overview
 
-The API will remain as-is for given major release number, so far we've had we've had two major releases:
+The `evalfilter` library provides the means to embed a small scripting engine in your golang application (which is known as the host application).
 
-* 1.x.x
-  * The initial implementation which parsed script into an AST then walked it.
-* 2.x.x
-  * The updated design which parses the given script into an AST, then generates bytecode to execute when the script is actually run.
+The scripting language is C-like, and allows you to _filter_ objects, with the general expectation that a script will return `true` or `false` allowing you to decide what to do after running it.
 
-The second release was implemented to perform a significant speedup for the case where the same script might be reused multiple times.
+In terms of implementation the script is first split into [tokens](tokens/tokens.go) by the [lexer](lexer/lexer.go), then that is [parsed](parser/parser.go).  Once the script has been parsed into an AST it is compiled into a set of [bytecode](code/code.go) operations.
+
+Finally once you're ready to invoke your script against a particular object the bytecode is intepreted by a simple [virtual machine](vm/vm.go).
 
 
-## Sample Usecase
 
-You might have a chat-bot which listens to incoming messages and runs "something interesting" when specific messages are seen.  You don't necessarily need to have a full-scripting language, you just need to allow a user to specify whether the interesting-action should occur, on a per-message basis.
+## Use Cases
+
+The backstory behind this project is explained in [this blog-post](https://blog.steve.fi/a_slack_hack.html), but in brief I wanted to read incoming Slack messages and react to specific ones to carry out an action.
+
+The expectation was that non-developers might want to change the matching of messages, without having to know how to rebuild my application, or understand Go.  So the logic was moved into a script and this evaluation engine was born.
+
+This is a pretty good use for an evaluation engine and operation was pretty simple:
 
 * Create an instance of the `evalfilter`.
-* Load the user's script.
+* Load the user's script, which will let messages be matched.
 * For each incoming message run the script against it.
   * If it returns `true` you know you should carry out your interesting activity.
   * Otherwise you will not.
 
-Assume you have a structure describing your incoming messages which looks something like this:
+To make this more concrete we'll pretend we have the following structure to describe incoming messages:
 
     type Message struct {
         Author  string
@@ -64,7 +57,7 @@ Assume you have a structure describing your incoming messages which looks someth
         Sent    time.Time
     }
 
-The user could now write following script to let you know that the incoming message was interesting:
+The user could now write the following script to test if an incoming message was worth reacting to:
 
     //
     // You can see that comments are prefixed with "//".
@@ -95,8 +88,34 @@ The user could now write following script to let you know that the incoming mess
     //
     return false;
 
-You'll notice that we don't define the _object_ here, because it is implied that the script operates upon a single instance of a particular structure, whatever that might be.   That means `Author` is implicitly the author-field of the message object, which the `Run` method was invoked with.
+You'll notice that we don't define the _object_ here, because it is implied that the script operates upon a single instance of the `Message` structure.   That means `Author` is implicitly the author-field of the message object, which the `Run` method was invoked with.
 
+
+
+## Sample Usage
+
+To give you a quick feel for how things look you could consult:
+
+* [example_test.go](example_test.go).
+  * This filters a list of people by their age.
+* [example_function_test.go](example_function_test.go).
+  * This exports a function from the golang-host application to the script.
+  * The new function is then used to filter a list of people.
+
+Other examples are available beneath the [_examples/](_examples/) directory, and there is a general-purpose utility located in [cmd/evalfilter](cmd/evalfilter) which allows you to examine bytecode, tokens, and run scripts.
+
+
+
+## API Stability
+
+The API will remain as-is for given major release number, so far we've had we've had two major releases:
+
+* 1.x.x
+  * The initial implementation which parsed script into an AST then walked it.
+* 2.x.x
+  * The updated design which parses the given script into an AST, then generates bytecode to execute when the script is actually run.
+
+The second release was implemented to perform a significant speedup for the case where the same script might be reused multiple times.
 
 
 ## Scripting Facilities
@@ -125,37 +144,9 @@ You'll note that you're referring to structure-fields by name, they are found dy
 
 
 
-## Function Invocation
-
-In addition to operating upon the fields of an object/structure literally you can also call functions with them.
-
-For example you might have a list of people, which you wish to filter by the length of their names:
-
-    // People have "name" + "age" attributes
-    type Person struct {
-      Name string
-      Age  int
-    }
-
-    // Now here is a list of people-objects.
-    people := []Person{
-        {"Bob", 31},
-        {"John", 42},
-        {"Michael", 17},
-        {"Jenny", 26},
-    }
-
-You can filter the list based upon the length of their name via a script such as this:
-
-    // Example filter - we only care about people with "long" names.
-    if ( len(Name) > 4 ) { return true; } else { return false; }
-
-This example is contained in [example_function_test.go](example_function_test.go) if you wish to see the complete code.
-
-
 ### Built-In Functions
 
-The following functions are built-in and available by default:
+As we noted earlier you can export functions from your host-application and make them available to the scripting environment, as demonstrated in the [example_function_test.go](example_function_test.go) sample, but of course there are some built-in functions which are always available:
 
 * `len(field | value)`
   * Returns the length of the given value, or the contents of the given field.
@@ -176,7 +167,7 @@ The following functions are built-in and available by default:
 
 ## Variables
 
-Your host application can register variables which are accessible to your scripting environment via the `SetVariable` method.  The variables can have their values updated at any time before the call to `Eval` is made.
+Your host application can also register variables which are accessible to your scripting environment via the `SetVariable` method.  The variables can have their values updated at any time before the call to `Eval` is made.
 
 For example the following example sets the contents of the variable `time`, and then outputs it.  Every second the output will change, because the value has been updated:
 
