@@ -20,13 +20,6 @@ import (
 	"github.com/skx/evalfilter/vm"
 )
 
-// pre-defined objects; Null, True and False
-var (
-	FALSE = &object.Boolean{Value: false}
-	NULL  = &object.Null{}
-	TRUE  = &object.Boolean{Value: true}
-)
-
 // Eval is our public-facing structure which stores our state.
 type Eval struct {
 	// Input script
@@ -212,7 +205,7 @@ func (e *Eval) GetVariable(name string) object.Object {
 	if ok {
 		return value
 	}
-	return NULL
+	return &object.Null{}
 }
 
 // Compile is core-code for converting the AST into a series of bytecodes.
@@ -458,33 +451,9 @@ func (e *Eval) emit(op code.Opcode, operands ...int) int {
 	return posNewInstruction
 }
 
-//
-// Here is where we call a user-supplied function.
-//
-// func (e *Eval) applyFunction(env *object.Environment, fn object.Object, args []object.Object) object.Object {
-
-// 	// Get the function
-// 	res, ok := e.Functions[fn.Inspect()]
-// 	if !ok {
-// 		fmt.Fprintf(os.Stderr, "Failed to find function \n")
-// 		return (&object.String{Value: "Function not found " + fn.Inspect()})
-// 	}
-
-// 	// Cast it into the correct type, and then invoke it.
-// 	out := res.(func(args []object.Object) object.Object)
-
-// 	// Are any of our arguments an error?
-// 	for _, arg := range args {
-// 		if arg == nil || e.isError(arg) {
-// 			fmt.Fprintf(os.Stderr, "Not calling function `%s`, as argument is an error.\n", fn.Inspect())
-// 			return arg
-// 		}
-// 	}
-// 	ret := (out(args))
-
-// 	return ret
-// }
-
+// changeOperand is designed to patch the operand of
+// and instruction.  It is basically used to rewrite the target
+// of our jump instructions in the handling of `if`.
 func (e *Eval) changeOperand(opPos int, operand int) {
 
 	// get the opcode
@@ -505,6 +474,8 @@ func (e *Eval) changeOperand(opPos int, operand int) {
 	e.replaceInstruction(opPos, ins)
 }
 
+// replaceInstruction rewrites the instruction at the given
+// bytecode position.
 func (e *Eval) replaceInstruction(pos int, newInstruction []byte) {
 	ins := e.instructions
 
@@ -513,6 +484,7 @@ func (e *Eval) replaceInstruction(pos int, newInstruction []byte) {
 	}
 }
 
+// isTruthy tests whether the given object is "true".
 func (e *Eval) isTruthy(obj object.Object) bool {
 
 	//
@@ -531,18 +503,6 @@ func (e *Eval) isTruthy(obj object.Object) bool {
 		return (tmp.Value != 0)
 	case *object.Float:
 		return (tmp.Value != 0.0)
-	}
-
-	//
-	// If not we return based on our constants.
-	//
-	switch obj {
-	case NULL:
-		return false
-	case TRUE:
-		return true
-	case FALSE:
-		return false
 	default:
 		return true
 	}
