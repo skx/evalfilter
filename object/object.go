@@ -1,4 +1,12 @@
 // Package object contains our core-definitions for objects.
+//
+// Our scripting language supports several different object-types:
+//
+// * Integer number.
+// * Floating-point number.
+// * String
+// * Boolean values (true, or false).
+// * Null
 package object
 
 // Type describes the type of an object.

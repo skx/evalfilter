@@ -1,9 +1,9 @@
-// Package code contains the instructions that we use.
+// Package code contains definitions of the bytecode instruction.
 //
 // The instructions are used in two different ways, first of all the
 // compiler will generate them as it walks the AST which resulted from
 // parsing the users' program.  Secondly the virtual machine itself
-// will intepret instructions.
+// will intepret those instructions.
 package code
 
 import "encoding/binary"

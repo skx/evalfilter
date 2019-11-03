@@ -1,7 +1,8 @@
-// Package lexer contains our simple lexer.
+// Package lexer contains our lexer.
 //
-// The lexer returns tokens from a (string) input, as a series of Token
-// objects.
+// The lexer returns tokens from a (string) input.  These tokens are then
+// parsed as a program to generate an AST, which is used to emit bytecode
+// instructions ready for evaluation.
 package lexer
 
 import (

@@ -30,14 +30,15 @@ var Null = &object.Null{}
 type VM struct {
 
 	// constants holds constants in the program source
-	// for example the script "1 + 3;"  refers to two
+	// for example the script "1 + 3;" contains two
 	// numeric constants "1" and "3".
 	constants []object.Object
 
-	// bytecode contains the actual instructions we'll execute
+	// bytecode contains the actual instructions we'll execute.
 	bytecode code.Instructions
 
 	// stack stores our stack.
+	//
 	// We're a stack-based virtual machine so this is used for many
 	// many of our internal facilities.
 	stack []object.Object

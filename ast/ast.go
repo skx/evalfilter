@@ -1,8 +1,9 @@
-// Package ast contains an AST-like set of objects which can be
-// used to evaluate a program.
+// Package ast contains the structures we use for generating an AST
+// of a program.
 //
 // The AST is built up by our parser, via a series of tokens read
-// from the user-script.
+// from the user-script.  This is then walked to generate bytecode
+// which is ultimately executed.
 package ast
 
 import (
