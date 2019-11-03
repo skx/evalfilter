@@ -30,7 +30,7 @@ The scripting language is C-like, and allows you to _filter_ objects, with the g
 
 In terms of implementation the script is first split into [tokens](token/token.go) by the [lexer](lexer/lexer.go), then that is [parsed](parser/parser.go) into an abstract-syntax-tree.  Once the AST exists it is walked, and a series of [bytecode](code/code.go) operations are generated.  All of this happens in the `Prepare` method.
 
-Once you're ready to execute the script against a particular object the bytecode is intepreted by a simple [virtual machine](vm/vm.go) in the `Run` method.
+Once you're ready to execute the script against a particular object the bytecode is intepreted by a simple [virtual machine](vm/vm.go) in the `Run` method.  As this is a stack-based virtual machine, rather than a register-based one, we have a [stack](stack/stack.go) implementation which is used by the intepreter.
 
 
 
