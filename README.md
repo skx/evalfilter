@@ -117,7 +117,7 @@ The engine supports scripts which:
     * "`if ( Content !~ "some text we dont want" )`"
 * You can also add new primitives to the engine.
   * By implementing them in your golang host application.
-* Your host-application can also set variables which are accessible to the user-script.
+  * Your host-application can also set variables which are accessible to the user-script.
 * Finally there is a `print` primitive to allow you to see what is happening, if you need to.
   * This is just one of the built-in functions, but perhaps the most useful.
 
@@ -148,17 +148,14 @@ For example you might have a list of people, which you wish to filter by the len
 You can filter the list based upon the length of their name via a script such as this:
 
     // Example filter - we only care about people with "long" names.
-    if ( len(Name) > 4 ) { return true ; }
-
-    // Since we return false the caller will know to ignore people here.
-    return false;
+    if ( len(Name) > 4 ) { return true; } else { return false; }
 
 This example is contained in [example_function_test.go](example_function_test.go) if you wish to see the complete code.
 
 
 ### Built-In Functions
 
-The following functions are built-in, and available by default:
+The following functions are built-in and available by default:
 
 * `len(field | value)`
   * Returns the length of the given value, or the contents of the given field.
