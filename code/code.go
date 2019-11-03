@@ -88,6 +88,8 @@ func ReadUint16(ins Instructions) uint16 {
 	return binary.BigEndian.Uint16(ins)
 }
 
+// String converts the given opcode to a string.
+// This is useful for diagnostics.
 func String(op Opcode) string {
 
 	switch op {
