@@ -51,6 +51,15 @@ func main() {
 	eval := evalfilter.New(string(content))
 
 	//
+	// Prepare the script
+	//
+	err = eval.Prepare()
+	if err != nil {
+		fmt.Printf("Failed to compile script: %s\n", err.Error())
+		return
+	}
+
+	//
 	// Add a custom-function, for demonstration purposes.
 	//
 	eval.AddFunction("dump",
@@ -142,9 +151,9 @@ func main() {
 		//
 		// Show the script.
 		//
-        if ( ret ) { 
-            fmt.Printf("User %s gave result %v\n\n", name, ret)
-        }
+		if ret {
+			fmt.Printf("User %s gave result %v\n\n", name, ret)
+		}
 	}
 
 	//

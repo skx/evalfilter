@@ -43,6 +43,15 @@ return false;
 	eval := New(script)
 
 	//
+	// Prepare the evaluator.
+	//
+	err := eval.Prepare()
+	if err != nil {
+		fmt.Printf("Failed to compile the code:%s\n", err.Error())
+		return
+	}
+
+	//
 	// Process each person.
 	//
 	for _, entry := range people {

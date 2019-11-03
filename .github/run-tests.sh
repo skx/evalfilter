@@ -5,9 +5,9 @@
 go get -u golang.org/x/lint/golint
 go get -u honnef.co/go/tools/cmd/staticcheck
 
-# Run the static-check tool - we ignore errors in goserver/static.go
+# Run the static-check tool - we ignore some errors
 t=$(mktemp)
-staticcheck -checks all ./... | grep -v "no Go files in" | grep -v CamelCase> $t
+staticcheck -checks all ./...  | grep -v CamelCase> $t
 if [ -s $t ]; then
     echo "Found errors via 'staticcheck'"
     cat $t

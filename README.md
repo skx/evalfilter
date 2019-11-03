@@ -4,13 +4,13 @@
 
 * [eval-filter](#eval-filter)
   * [API Stability](#api-stability)
-  * [Sample Use](#sample-use)
+  * [Sample Usecase](#sample-usecase)
   * [Scripting Facilities](#scripting-facilities)
   * [Function Invocation](#function-invocation)
-    * [Built-In Functions](#built-in-functions)
+     * [Built-In Functions](#built-in-functions)
   * [Variables](#variables)
   * [Standalone Use](#standalone-use)
-  * [Alternatives](#alternatives)
+  * [Benchmarking](#benchmarking)
   * [Github Setup](#github-setup)
 
 
@@ -32,12 +32,20 @@ To give you a quick feel for how things look you could consult:
   * Then uses that to filter a list of people.
 * Some other simple examples are available beneath the [_examples/](_examples/) directory.
 
+
 ## API Stability
 
-The API will remain as is for any 1.x.x release.
+The API will remain as-is for given major release number, so far we've had we've had two major releases:
+
+* 1.x.x
+  * The initial implementation which parsed script into an AST then walked it.
+* 2.x.x
+  * The updated design which parses the given script into an AST, then generates bytecode to execute when the script is actually run.
+
+The second release was implemented to perform a significant speedup for the case where the same script might be reused multiple times.
 
 
-## Sample Use
+## Sample Usecase
 
 You might have a chat-bot which listens to incoming messages and runs "something interesting" when specific messages are seen.  You don't necessarily need to have a full-scripting language, you just need to allow a user to specify whether the interesting-action should occur, on a per-message basis.
 
@@ -63,7 +71,6 @@ The user could now write following script to let you know that the incoming mess
     //
     // This script is invoked by your Golang application as a filter,
     // the intent is that the user's script will terminate with either:
-    //
     //   return false;
     // or
     //   return true;
@@ -73,7 +80,7 @@ The user could now write following script to let you know that the incoming mess
     //
 
     //
-    // If we have a message from Steve it is "interesting"!
+    // If we have a message from Steve it is interesting!
     //
     if ( Author == "Steve" ) { return true; }
 
@@ -110,25 +117,13 @@ The engine supports scripts which:
     * "`if ( Content !~ "some text we dont want" )`"
 * You can also add new primitives to the engine.
   * By implementing them in your golang host application.
-* Your host-application can set variables which are accessible to the user-script.
-  * `if ( time == "Steve" ) { print("You set 'time' to the value 'Steve'\n"); }`
+  * Your host-application can also set variables which are accessible to the user-script.
 * Finally there is a `print` primitive to allow you to see what is happening, if you need to.
   * This is just one of the built-in functions, but perhaps the most useful.
 
-You'll note that you're referring to structure-fields by name, they are found dynamically via reflection.
-
-`if` conditions can be nested as the following sample shows, and we also support an `else` clause.
+You'll note that you're referring to structure-fields by name, they are found dynamically via reflection.  The  `if` conditions can be nested, and also support an `else` clause.
 
 
-     if ( Count > 10 ) {
-         print("Count is > 10\n");
-
-         if ( Count > 50 ) {
-              print("The count is super-big!\n");
-         } else {
-              print("The count is somewhat high!\n");
-         }
-     }
 
 ## Function Invocation
 
@@ -153,17 +148,14 @@ For example you might have a list of people, which you wish to filter by the len
 You can filter the list based upon the length of their name via a script such as this:
 
     // Example filter - we only care about people with "long" names.
-    if ( len(Name) > 4 ) { return true ; }
-
-    // Since we return false the caller will know to ignore people here.
-    return false;
+    if ( len(Name) > 4 ) { return true; } else { return false; }
 
 This example is contained in [example_function_test.go](example_function_test.go) if you wish to see the complete code.
 
 
 ### Built-In Functions
 
-The following functions are built-in, and available by default:
+The following functions are built-in and available by default:
 
 * `len(field | value)`
   * Returns the length of the given value, or the contents of the given field.
@@ -193,27 +185,21 @@ For example the following example sets the contents of the variable `time`, and 
                 return false;
             `)
 
+    eval.Prepare()
+
     for {
 
         // Set the variable `time` to be the seconds past the epoch.
         eval.SetVariable("time", &object.Integer{Value: time.Now().Unix()})
 
         // Run the script.
-        ret, err := eval.Run(nil)
-
-        // If there are errors - abort
-        if err != nil {
-            panic(err)
-        }
-
-        // Show the result
-        fmt.Printf("Script gave result %v\n", ret)
+        eval.Run(nil)
 
         // Update every second.
-
         time.Sleep(1 * time.Second)
     }
 
+This example is available, with error-checking, in [_examples/variable/](_examples/variable/).
 
 
 ## Standalone Use
@@ -225,25 +211,33 @@ go get github.com/skx/evalfilter/cmd/evalfilter
 
 ```
 
-This driver allows you to supply:
+The driver has a number of sub-commands to allow you to test a script, for example viewing the parse-tree, the byecode, or even running a script against a JSON object.
 
-1.  A JSON object.
-2.  A script to run against that object.
-
-You can run those interactively to see what happens, for example in the `cmd/evalfilter` directory:
+For example in the [cmd/evalfilter](cmd/evalfilter) directory you might run:
 
      ./evalfilter run -json on-call.json on-call.script
 
-This driver an also be used to reproduce any problems identified via [fuzz-testing](FUZZING.md).
+This will test a script against a JSON object, allowing you to experiment with changing either.  This driver an also be used to reproduce any problems identified via [fuzz-testing](FUZZING.md).
 
 
-## Alternatives
+## Benchmarking
 
-If this solution doesn't quite fit your needs you might investigate:
+If you wish to run a local benchmark you should be able to do so as follows:
 
-* https://github.com/Knetic/govaluate
-* https://github.com/PaesslerAG/gval/
-* https://github.com/antonmedv/expr
+```
+$ go test -test.bench=evalfilter -benchtime=10s -run=^t
+goos: linux
+goarch: amd64
+pkg: github.com/skx/evalfilter
+Benchmark_evalfilter_complex-4   	 5000000	      3895 ns/op
+Benchmark_evalfilter_simple-4    	500000000	        25.6 ns/op
+PASS
+ok  	github.com/skx/evalfilter	38.934s
+```
+
+Neither example there is completely representative, but it will give you
+an idea of the speed.  In the majority of cases the speed of the evaluation
+engine will be acceptible.
 
 
 ## Github Setup
