@@ -127,7 +127,7 @@ func (e *Eval) Prepare() error {
 func (e *Eval) Dump() error {
 
 	i := 0
-	fmt.Printf("\nBytecode:\n")
+	fmt.Printf("Bytecode:\n")
 
 	for i < len(e.instructions) {
 
@@ -152,7 +152,7 @@ func (e *Eval) Dump() error {
 	// constants
 	fmt.Printf("\n\nConstants:\n")
 	for i, n := range e.constants {
-		fmt.Printf("%d - %V\n", i, n)
+		fmt.Printf("%d - %v\n", i, n)
 	}
 	return nil
 }
