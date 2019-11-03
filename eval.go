@@ -131,12 +131,29 @@ func (e *Eval) Dump() error {
 		// as a string
 		str := code.String(code.Opcode(op))
 
-		fmt.Printf("%06d - %s [OpCode:%d] ", i, str, op)
+		fmt.Printf("%06d\t%s\t", i, str)
 
 		// show arg
 		if op < byte(code.OpCodeSingleArg) {
-			fmt.Printf("%d", code.ReadUint16(e.instructions[i+1:]))
+
+			arg := code.ReadUint16(e.instructions[i+1:])
+			fmt.Printf("%d", arg)
+
 			i += 2
+
+			//
+			// Show the values, as comments, to make the
+			// bytecode more human-readable.
+			//
+			if code.Opcode(op) == code.OpConstant {
+				fmt.Printf("\t\t// load constant: %v", e.constants[arg])
+			}
+			if code.Opcode(op) == code.OpLookup {
+				fmt.Printf("\t\t// lookup field: %v", e.constants[arg])
+			}
+			if code.Opcode(op) == code.OpCall {
+				fmt.Printf("\t\t\t// call function with %d arguments", arg)
+			}
 		}
 
 		fmt.Printf("\n")
