@@ -5,9 +5,11 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	"github.com/google/subcommands"
-	"github.com/skx/evalfilter"
+	"github.com/skx/evalfilter/lexer"
+	"github.com/skx/evalfilter/parser"
 )
 
 //
@@ -49,21 +51,28 @@ func (p *parseCmd) Parse(file string) {
 	//
 	// Create the helper
 	//
-	eval := evalfilter.New(string(dat))
+	parse := parser.New(lexer.New(string(dat)))
 
 	//
-	// Prepare
+	// Parse the program
 	//
-	err = eval.Prepare()
-	if err != nil {
-		fmt.Printf("Error compiling:%s\n", err.Error())
+	program := parse.ParseProgram()
+
+	//
+	// Where there any errors produced by the parser?
+	//
+	// If so report that.
+	//
+	if len(parse.Errors()) > 0 {
+		fmt.Printf("\nErrors parsing script:\n" +
+			strings.Join(parse.Errors(), "\n"))
 		return
 	}
 
 	//
 	// Print the parsed program.
 	//
-	fmt.Printf("%s\n", eval.Program.String())
+	fmt.Printf("%s\n", program.String())
 }
 
 //

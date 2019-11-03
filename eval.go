@@ -22,21 +22,11 @@ import (
 
 // Eval is our public-facing structure which stores our state.
 type Eval struct {
-	// Input script
+	// Script holds the script the user submitted in our constructor.
 	Script string
 
-	// Parser
-	Parser *parser.Parser
-
-	// Parsed program
-	Program ast.Node
-
 	// Environment
-	Environment *object.Environment
-
-	//
-	// This is work in progress.
-	//
+	environment *object.Environment
 
 	// constants compiled
 	constants []object.Object
@@ -55,8 +45,8 @@ func New(script string) *Eval {
 	// Create our object.
 	//
 	e := &Eval{
-		Environment: object.NewEnvironment(),
-		Parser:      parser.New(lexer.New(script)),
+		environment: object.NewEnvironment(),
+		Script:      script,
 	}
 
 	//
@@ -81,24 +71,29 @@ func New(script string) *Eval {
 func (e *Eval) Prepare() error {
 
 	//
-	// Parse the program we were given.
+	// Create a parser
 	//
-	e.Program = e.Parser.ParseProgram()
+	p := parser.New(lexer.New(e.Script))
+
+	//
+	// Parse the program.
+	//
+	program := p.ParseProgram()
 
 	//
 	// Where there any errors produced by the parser?
 	//
 	// If so report that.
 	//
-	if len(e.Parser.Errors()) > 0 {
+	if len(p.Errors()) > 0 {
 		return fmt.Errorf("\nErrors parsing script:\n" +
-			strings.Join(e.Parser.Errors(), "\n"))
+			strings.Join(p.Errors(), "\n"))
 	}
 
 	//
-	// Evaluate the program, recursively.
+	// Compile the program to bytecode
 	//
-	err := e.Compile(e.Program)
+	err := e.Compile(program)
 
 	//
 	// If there were errors then return them.
@@ -110,7 +105,7 @@ func (e *Eval) Prepare() error {
 	//
 	// Otherwise construct a VM and save it.
 	//
-	e.machine = vm.New(e.constants, e.instructions, e.Environment)
+	e.machine = vm.New(e.constants, e.instructions, e.environment)
 
 	//
 	// All done.
@@ -205,13 +200,13 @@ func (e *Eval) Run(obj interface{}) (bool, error) {
 //
 // Once a function has been added it may be used by the filter script.
 func (e *Eval) AddFunction(name string, fun interface{}) {
-	e.Environment.SetFunction(name, fun)
+	e.environment.SetFunction(name, fun)
 }
 
 // SetVariable adds, or updates, a variable which will be available
 // to the filter script.
 func (e *Eval) SetVariable(name string, value object.Object) {
-	e.Environment.Set(name, value)
+	e.environment.Set(name, value)
 }
 
 // GetVariable retrieves the contents of a variable which has been
@@ -219,7 +214,7 @@ func (e *Eval) SetVariable(name string, value object.Object) {
 //
 // If the variable hasn't been set then the null-value will be returned
 func (e *Eval) GetVariable(name string) object.Object {
-	value, ok := e.Environment.Get(name)
+	value, ok := e.environment.Get(name)
 	if ok {
 		return value
 	}
