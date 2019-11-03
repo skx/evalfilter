@@ -8,6 +8,7 @@
 package evalfilter
 
 import (
+	"encoding/binary"
 	"fmt"
 	"strings"
 
@@ -119,6 +120,40 @@ func (e *Eval) Prepare() error {
 
 	//
 	// All done.
+	return nil
+}
+
+// Dump causes our bytecode to be dumped
+func (e *Eval) Dump() error {
+
+	i := 0
+	fmt.Printf("\nBytecode:\n")
+
+	for i < len(e.instructions) {
+
+		// opcode
+		op := e.instructions[i]
+
+		//
+		str := code.String(code.Opcode(op))
+
+		fmt.Printf("%06d - %s [OpCode:%d] ", i, str, op)
+
+		if op < byte(code.OpCodeSingleArg) {
+			fmt.Printf("%d\n", code.ReadUint16(e.instructions[i+1:]))
+			i += 2
+		} else {
+			fmt.Printf("\n")
+		}
+
+		i += 1
+	}
+
+	// constants
+	fmt.Printf("\n\nConstants:\n")
+	for i, n := range e.constants {
+		fmt.Printf("%d - %V\n", i, n)
+	}
 	return nil
 }
 
@@ -402,7 +437,19 @@ func (e *Eval) addConstant(obj object.Object) int {
 
 // emit generates a bytecode operation, and adds it to our program-array.
 func (e *Eval) emit(op code.Opcode, operands ...int) int {
-	ins := code.Make(op, operands...)
+
+	ins := make([]byte, 1)
+	ins[0] = byte(op)
+
+	if len(operands) == 1 {
+
+		// Make a buffer for the arg
+		b := make([]byte, 2)
+		binary.BigEndian.PutUint16(b, uint16(operands[0]))
+
+		// append
+		ins = append(ins, b...)
+	}
 
 	posNewInstruction := len(e.instructions)
 	e.instructions = append(e.instructions, ins...)
@@ -438,10 +485,23 @@ func (e *Eval) emit(op code.Opcode, operands ...int) int {
 // }
 
 func (e *Eval) changeOperand(opPos int, operand int) {
-	op := code.Opcode(e.instructions[opPos])
-	newInstruction := code.Make(op, operand)
 
-	e.replaceInstruction(opPos, newInstruction)
+	// get the opcode
+	op := code.Opcode(e.instructions[opPos])
+
+	// make a new buffer for the opcode
+	ins := make([]byte, 1)
+	ins[0] = byte(op)
+
+	// Make a buffer for the arg
+	b := make([]byte, 2)
+	binary.BigEndian.PutUint16(b, uint16(operand))
+
+	// append argument
+	ins = append(ins, b...)
+
+	// replace
+	e.replaceInstruction(opPos, ins)
 }
 
 func (e *Eval) replaceInstruction(pos int, newInstruction []byte) {

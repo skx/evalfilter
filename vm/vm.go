@@ -69,6 +69,10 @@ func New(constants []object.Object, bytecode []byte, env *object.Environment) *V
 // the supplied bytecode - the latter is an error.
 func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
+	if len(vm.bytecode) < 1 {
+		return nil, fmt.Errorf("bytecode is empty; did you forget to call evalfilter.Prepare?")
+	}
+
 	ip := 0
 	ln := len(vm.bytecode)
 
