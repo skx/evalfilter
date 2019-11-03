@@ -12,10 +12,8 @@ import (
 
 	"github.com/skx/evalfilter/code"
 	"github.com/skx/evalfilter/object"
+	"github.com/skx/evalfilter/stack"
 )
-
-// StackSize holds our stack-size.
-const StackSize = 2048
 
 // True is our global "true" object.
 var True = &object.Boolean{Value: true}
@@ -41,14 +39,11 @@ type VM struct {
 	//
 	// We're a stack-based virtual machine so this is used for many
 	// many of our internal facilities.
-	stack []object.Object
+	stack *stack.Stack
 
 	// environment holds the environment, which will allow variables
 	// and functions to be get/set.
 	environment *object.Environment
-
-	// sp contains our stack-pointer
-	sp int
 }
 
 // New constructs a new virtual machine.
@@ -58,8 +53,7 @@ func New(constants []object.Object, bytecode code.Instructions, env *object.Envi
 		constants:   constants,
 		environment: env,
 		bytecode:    bytecode,
-		stack:       make([]object.Object, StackSize),
-		sp:          0,
+		stack:       stack.NewStack(),
 	}
 }
 
@@ -89,10 +83,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			constIndex := code.ReadUint16(vm.bytecode[ip+1:])
 			ip += 3
 
-			err := vm.push(vm.constants[constIndex])
-			if err != nil {
-				return nil, err
-			}
+			vm.stack.Push(vm.constants[constIndex])
 
 			// Lookup variable/field, by name
 		case code.OpLookup:
@@ -103,12 +94,21 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			name := vm.constants[constIndex].Inspect()
 
 			val := vm.lookup(obj, name)
-			vm.push(val)
+			vm.stack.Push(val)
 
 			// Set a variable by name
 		case code.OpSet:
-			name := vm.pop()
-			val := vm.pop()
+			var name object.Object
+			var val object.Object
+			var err error
+			name, err = vm.stack.Pop()
+			if err != nil {
+				return nil, err
+			}
+			val, err = vm.stack.Pop()
+			if err != nil {
+				return nil, err
+			}
 
 			vm.environment.Set(name.Inspect(), val)
 			ip++
@@ -147,24 +147,18 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
 			// Boolean literal
 		case code.OpTrue:
-			err := vm.push(True)
-			if err != nil {
-				return nil, err
-			}
+			vm.stack.Push(True)
 			ip++
 
 			// Boolean literal
 		case code.OpFalse:
-			err := vm.push(False)
-			if err != nil {
-				return nil, err
-			}
+			vm.stack.Push(False)
 			ip++
 
 			// return from script
 		case code.OpReturn:
-			result := vm.pop()
-			return result, nil
+			result, err := vm.stack.Pop()
+			return result, err
 
 			// flow-control: unconditional jump
 		case code.OpJump:
@@ -176,7 +170,10 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			pos := int(code.ReadUint16(vm.bytecode[ip+1:]))
 			ip += 3
 
-			condition := vm.pop()
+			condition, err := vm.stack.Pop()
+			if err != nil {
+				return nil, err
+			}
 			if !vm.isTruthy(condition) {
 				ip = pos
 			}
@@ -192,13 +189,20 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			ip += 3
 
 			// get the name of the function from the stack.
-			fName := vm.pop()
+			fName, err := vm.stack.Pop()
+			if err != nil {
+				return nil, err
+			}
 
 			// construct an array with the arguments we were
 			// passed.
 			var fArgs []object.Object
 			for args > 0 {
-				fArgs = append(fArgs, vm.pop())
+				a, err := vm.stack.Pop()
+				if err != nil {
+					return nil, err
+				}
+				fArgs = append(fArgs, a)
 				args--
 			}
 
@@ -219,7 +223,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			ret := out(fArgs)
 
 			// Store the result back on our stack.
-			vm.push(ret)
+			vm.stack.Push(ret)
 		default:
 			fmt.Printf("Unknown opcode: %v", op)
 		}
@@ -228,32 +232,23 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 	return nil, fmt.Errorf("missing return at the end of the script")
 }
 
-// Push a value upon our stack.
-func (vm *VM) push(o object.Object) error {
-	if vm.sp >= StackSize {
-		return fmt.Errorf("stack overflow")
-	}
-
-	vm.stack[vm.sp] = o
-	vm.sp++
-
-	return nil
-}
-
-// pop a value from our stack.
-func (vm *VM) pop() object.Object {
-	o := vm.stack[vm.sp-1]
-	vm.sp--
-	return o
-}
-
 // Execute an operation against two arguments, i.e "foo == bar", "2 + 3", etc.
 //
 // This is a crazy-big function, because we have to cope with different operand
 // types and operators.
 func (vm *VM) executeBinaryOperation(op code.Opcode) error {
-	right := vm.pop()
-	left := vm.pop()
+	var left object.Object
+	var right object.Object
+	var err error
+
+	right, err = vm.stack.Pop()
+	if err != nil {
+		return err
+	}
+	left, err = vm.stack.Pop()
+	if err != nil {
+		return err
+	}
 
 	switch {
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
@@ -270,29 +265,29 @@ func (vm *VM) executeBinaryOperation(op code.Opcode) error {
 		// if left is false skip right
 		l := vm.objectToNativeBoolean(left)
 		if !l {
-			vm.push(False)
+			vm.stack.Push(False)
 			return nil
 
 		}
 		r := vm.objectToNativeBoolean(right)
 		if r {
-			vm.push(True)
+			vm.stack.Push(True)
 		} else {
-			vm.push(False)
+			vm.stack.Push(False)
 		}
 		return nil
 	case op == code.OpOr:
 		// if left is true skip right
 		l := vm.objectToNativeBoolean(left)
 		if l {
-			vm.push(True)
+			vm.stack.Push(True)
 			return nil
 		}
 		r := vm.objectToNativeBoolean(right)
 		if r {
-			vm.push(True)
+			vm.stack.Push(True)
 		} else {
-			vm.push(False)
+			vm.stack.Push(False)
 		}
 	case left.Type() == object.BOOLEAN_OBJ && right.Type() == object.BOOLEAN_OBJ:
 		return vm.evalBooleanInfixExpression(op, left, right)
@@ -314,29 +309,29 @@ func (vm *VM) evalIntegerInfixExpression(op code.Opcode, left, right object.Obje
 
 	switch op {
 	case code.OpAdd:
-		vm.push(&object.Integer{Value: leftVal + rightVal})
+		vm.stack.Push(&object.Integer{Value: leftVal + rightVal})
 	case code.OpSub:
-		vm.push(&object.Integer{Value: leftVal - rightVal})
+		vm.stack.Push(&object.Integer{Value: leftVal - rightVal})
 	case code.OpMul:
-		vm.push(&object.Integer{Value: leftVal * rightVal})
+		vm.stack.Push(&object.Integer{Value: leftVal * rightVal})
 	case code.OpDiv:
-		vm.push(&object.Integer{Value: leftVal / rightVal})
+		vm.stack.Push(&object.Integer{Value: leftVal / rightVal})
 	case code.OpMod:
-		vm.push(&object.Integer{Value: leftVal % rightVal})
+		vm.stack.Push(&object.Integer{Value: leftVal % rightVal})
 	case code.OpPower:
-		vm.push(&object.Integer{Value: int64(math.Pow(float64(leftVal), float64(rightVal)))})
+		vm.stack.Push(&object.Integer{Value: int64(math.Pow(float64(leftVal), float64(rightVal)))})
 	case code.OpLess:
-		vm.push(vm.nativeBoolToBooleanObject(leftVal < rightVal))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal < rightVal))
 	case code.OpLessEqual:
-		vm.push(vm.nativeBoolToBooleanObject(leftVal <= rightVal))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal <= rightVal))
 	case code.OpGreater:
-		vm.push(vm.nativeBoolToBooleanObject(leftVal > rightVal))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal > rightVal))
 	case code.OpGreaterEqual:
-		vm.push(vm.nativeBoolToBooleanObject(leftVal >= rightVal))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal >= rightVal))
 	case code.OpEqual:
-		vm.push(vm.nativeBoolToBooleanObject(leftVal == rightVal))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal == rightVal))
 	case code.OpNotEqual:
-		vm.push(vm.nativeBoolToBooleanObject(leftVal != rightVal))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal != rightVal))
 	default:
 		return (fmt.Errorf("unknown operator: %s %v %s", left.Type(), op, right.Type()))
 	}
@@ -351,29 +346,29 @@ func (vm *VM) evalFloatInfixExpression(op code.Opcode, left, right object.Object
 
 	switch op {
 	case code.OpAdd:
-		vm.push(&object.Float{Value: leftVal + rightVal})
+		vm.stack.Push(&object.Float{Value: leftVal + rightVal})
 	case code.OpSub:
-		vm.push(&object.Float{Value: leftVal - rightVal})
+		vm.stack.Push(&object.Float{Value: leftVal - rightVal})
 	case code.OpMul:
-		vm.push(&object.Float{Value: leftVal * rightVal})
+		vm.stack.Push(&object.Float{Value: leftVal * rightVal})
 	case code.OpDiv:
-		vm.push(&object.Float{Value: leftVal / rightVal})
+		vm.stack.Push(&object.Float{Value: leftVal / rightVal})
 	case code.OpMod:
-		vm.push(&object.Float{Value: float64(int(leftVal) % int(rightVal))})
+		vm.stack.Push(&object.Float{Value: float64(int(leftVal) % int(rightVal))})
 	case code.OpPower:
-		vm.push(&object.Float{Value: math.Pow(leftVal, rightVal)})
+		vm.stack.Push(&object.Float{Value: math.Pow(leftVal, rightVal)})
 	case code.OpLess:
-		vm.push(vm.nativeBoolToBooleanObject(leftVal < rightVal))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal < rightVal))
 	case code.OpLessEqual:
-		vm.push(vm.nativeBoolToBooleanObject(leftVal <= rightVal))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal <= rightVal))
 	case code.OpGreater:
-		vm.push(vm.nativeBoolToBooleanObject(leftVal > rightVal))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal > rightVal))
 	case code.OpGreaterEqual:
-		vm.push(vm.nativeBoolToBooleanObject(leftVal >= rightVal))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal >= rightVal))
 	case code.OpEqual:
-		vm.push(vm.nativeBoolToBooleanObject(leftVal == rightVal))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal == rightVal))
 	case code.OpNotEqual:
-		vm.push(vm.nativeBoolToBooleanObject(leftVal != rightVal))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal != rightVal))
 	default:
 		return (fmt.Errorf("unknown operator: %s %v %s", left.Type(), op, right.Type()))
 	}
@@ -388,29 +383,29 @@ func (vm *VM) evalFloatIntegerInfixExpression(op code.Opcode, left, right object
 
 	switch op {
 	case code.OpAdd:
-		vm.push(&object.Float{Value: leftVal + rightVal})
+		vm.stack.Push(&object.Float{Value: leftVal + rightVal})
 	case code.OpSub:
-		vm.push(&object.Float{Value: leftVal - rightVal})
+		vm.stack.Push(&object.Float{Value: leftVal - rightVal})
 	case code.OpMul:
-		vm.push(&object.Float{Value: leftVal * rightVal})
+		vm.stack.Push(&object.Float{Value: leftVal * rightVal})
 	case code.OpDiv:
-		vm.push(&object.Float{Value: leftVal / rightVal})
+		vm.stack.Push(&object.Float{Value: leftVal / rightVal})
 	case code.OpMod:
-		vm.push(&object.Float{Value: float64(int(leftVal) % int(rightVal))})
+		vm.stack.Push(&object.Float{Value: float64(int(leftVal) % int(rightVal))})
 	case code.OpPower:
-		vm.push(&object.Float{math.Pow(leftVal, rightVal)})
+		vm.stack.Push(&object.Float{math.Pow(leftVal, rightVal)})
 	case code.OpLess:
-		vm.push(vm.nativeBoolToBooleanObject(leftVal < rightVal))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal < rightVal))
 	case code.OpLessEqual:
-		vm.push(vm.nativeBoolToBooleanObject(leftVal <= rightVal))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal <= rightVal))
 	case code.OpGreater:
-		vm.push(vm.nativeBoolToBooleanObject(leftVal > rightVal))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal > rightVal))
 	case code.OpGreaterEqual:
-		vm.push(vm.nativeBoolToBooleanObject(leftVal >= rightVal))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal >= rightVal))
 	case code.OpEqual:
-		vm.push(vm.nativeBoolToBooleanObject(leftVal == rightVal))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal == rightVal))
 	case code.OpNotEqual:
-		vm.push(vm.nativeBoolToBooleanObject(leftVal != rightVal))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal != rightVal))
 	default:
 		return (fmt.Errorf("unknown operator: %s %v %s", left.Type(), op, right.Type()))
 	}
@@ -425,29 +420,29 @@ func (vm *VM) evalIntegerFloatInfixExpression(op code.Opcode, left, right object
 
 	switch op {
 	case code.OpAdd:
-		vm.push(&object.Float{Value: leftVal + rightVal})
+		vm.stack.Push(&object.Float{Value: leftVal + rightVal})
 	case code.OpSub:
-		vm.push(&object.Float{Value: leftVal - rightVal})
+		vm.stack.Push(&object.Float{Value: leftVal - rightVal})
 	case code.OpMul:
-		vm.push(&object.Float{Value: leftVal * rightVal})
+		vm.stack.Push(&object.Float{Value: leftVal * rightVal})
 	case code.OpDiv:
-		vm.push(&object.Float{Value: leftVal / rightVal})
+		vm.stack.Push(&object.Float{Value: leftVal / rightVal})
 	case code.OpMod:
-		vm.push(&object.Float{Value: float64(int(leftVal) % int(rightVal))})
+		vm.stack.Push(&object.Float{Value: float64(int(leftVal) % int(rightVal))})
 	case code.OpPower:
-		vm.push(&object.Float{Value: math.Pow(leftVal, rightVal)})
+		vm.stack.Push(&object.Float{Value: math.Pow(leftVal, rightVal)})
 	case code.OpLess:
-		vm.push(vm.nativeBoolToBooleanObject(leftVal < rightVal))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal < rightVal))
 	case code.OpLessEqual:
-		vm.push(vm.nativeBoolToBooleanObject(leftVal <= rightVal))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal <= rightVal))
 	case code.OpGreater:
-		vm.push(vm.nativeBoolToBooleanObject(leftVal > rightVal))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal > rightVal))
 	case code.OpGreaterEqual:
-		vm.push(vm.nativeBoolToBooleanObject(leftVal >= rightVal))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal >= rightVal))
 	case code.OpEqual:
-		vm.push(vm.nativeBoolToBooleanObject(leftVal == rightVal))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal == rightVal))
 	case code.OpNotEqual:
-		vm.push(vm.nativeBoolToBooleanObject(leftVal != rightVal))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal != rightVal))
 	default:
 		return (fmt.Errorf("unknown operator: %s %v %s", left.Type(), op, right.Type()))
 	}
@@ -462,23 +457,23 @@ func (vm *VM) evalStringInfixExpression(op code.Opcode, left object.Object, righ
 
 	switch op {
 	case code.OpEqual:
-		vm.push(vm.nativeBoolToBooleanObject(l.Value == r.Value))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(l.Value == r.Value))
 	case code.OpNotEqual:
-		vm.push(vm.nativeBoolToBooleanObject(l.Value != r.Value))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(l.Value != r.Value))
 	case code.OpGreaterEqual:
-		vm.push(vm.nativeBoolToBooleanObject(l.Value >= r.Value))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(l.Value >= r.Value))
 	case code.OpGreater:
-		vm.push(vm.nativeBoolToBooleanObject(l.Value > r.Value))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(l.Value > r.Value))
 	case code.OpLessEqual:
-		vm.push(vm.nativeBoolToBooleanObject(l.Value <= r.Value))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(l.Value <= r.Value))
 	case code.OpLess:
-		vm.push(vm.nativeBoolToBooleanObject(l.Value < r.Value))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(l.Value < r.Value))
 	case code.OpMatches:
-		vm.push(vm.nativeBoolToBooleanObject(strings.Contains(l.Value, r.Value)))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(strings.Contains(l.Value, r.Value)))
 	case code.OpNotMatches:
-		vm.push(vm.nativeBoolToBooleanObject(!strings.Contains(l.Value, r.Value)))
+		vm.stack.Push(vm.nativeBoolToBooleanObject(!strings.Contains(l.Value, r.Value)))
 	case code.OpAdd:
-		vm.push(&object.String{Value: l.Value + r.Value})
+		vm.stack.Push(&object.String{Value: l.Value + r.Value})
 	default:
 		return (fmt.Errorf("unknown operator: %s %v %s", left.Type(), op, right.Type()))
 	}
@@ -497,23 +492,30 @@ func (vm *VM) evalBooleanInfixExpression(op code.Opcode, left object.Object, rig
 
 // Implement !.
 func (vm *VM) executeBangOperator() error {
-	operand := vm.pop()
+	operand, err := vm.stack.Pop()
+	if err != nil {
+		return err
+	}
 
 	switch operand {
 	case True:
-		return vm.push(False)
+		vm.stack.Push(False)
 	case False:
-		return vm.push(True)
+		vm.stack.Push(True)
 	case Null:
-		return vm.push(True)
+		vm.stack.Push(True)
 	default:
-		return vm.push(False)
+		vm.stack.Push(False)
 	}
+	return nil
 }
 
 // Allow negative numbers.
 func (vm *VM) executeMinusOperator() error {
-	operand := vm.pop()
+	operand, err := vm.stack.Pop()
+	if err != nil {
+		return err
+	}
 	var res object.Object
 
 	switch obj := operand.(type) {
@@ -525,12 +527,16 @@ func (vm *VM) executeMinusOperator() error {
 		return fmt.Errorf("unsupported type for negation: %s", operand.Type())
 	}
 
-	return vm.push(res)
+	vm.stack.Push(res)
+	return nil
 }
 
 // The square root operation is just too cute :).
 func (vm *VM) executeSquareRoot() error {
-	operand := vm.pop()
+	operand, err := vm.stack.Pop()
+	if err != nil {
+		return err
+	}
 	var res object.Object
 
 	switch obj := operand.(type) {
@@ -542,7 +548,8 @@ func (vm *VM) executeSquareRoot() error {
 		return fmt.Errorf("unsupported type for square-root: %s", operand.Type())
 	}
 
-	return vm.push(res)
+	vm.stack.Push(res)
+	return nil
 }
 
 // convert an object to a native (go) boolean
