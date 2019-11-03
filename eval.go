@@ -419,12 +419,23 @@ func (e *Eval) Compile(node ast.Node) error {
 func (e *Eval) addConstant(obj object.Object) int {
 
 	//
-	// TODO - pretend we're using atoms.
+	// Look to see if the constant is present already
 	//
-	// Search the pool to see if the constant is already
-	// present, with the same value.
+	for i, c := range e.constants {
+
+		//
+		// If the existing constant has the same
+		// type and value - then return the offset.
+		//
+		if c.Type() == obj.Type() &&
+			c.Inspect() == obj.Inspect() {
+			return i
+		}
+	}
+
 	//
-	// If it is we'll save time by using it only once.
+	// Otherwise this is a distinct constant and should
+	// be added.
 	//
 	e.constants = append(e.constants, obj)
 	return len(e.constants) - 1
