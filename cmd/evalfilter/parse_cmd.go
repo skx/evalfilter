@@ -33,7 +33,6 @@ func (*parseCmd) Usage() string {
 func (p *parseCmd) SetFlags(f *flag.FlagSet) {
 }
 
-
 // Parse parses the given file, and dumps the AST which
 // resulted from it.
 func (p *parseCmd) Parse(file string) {
@@ -49,8 +48,17 @@ func (p *parseCmd) Parse(file string) {
 
 	//
 	// Create the helper
-    //
+	//
 	eval := evalfilter.New(string(dat))
+
+	//
+	// Prepare
+	//
+	err = eval.Prepare()
+	if err != nil {
+		fmt.Printf("Error compiling:%s\n", err.Error())
+		return
+	}
 
 	//
 	// Print the parsed program.
