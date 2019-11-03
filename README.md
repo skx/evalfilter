@@ -4,13 +4,13 @@
 
 * [eval-filter](#eval-filter)
   * [API Stability](#api-stability)
-  * [Sample Use](#sample-use)
+  * [Sample Usecase](#sample-usecase)
   * [Scripting Facilities](#scripting-facilities)
   * [Function Invocation](#function-invocation)
-    * [Built-In Functions](#built-in-functions)
+     * [Built-In Functions](#built-in-functions)
   * [Variables](#variables)
   * [Standalone Use](#standalone-use)
-  * [Alternatives](#alternatives)
+  * [Benchmarking](#benchmarking)
   * [Github Setup](#github-setup)
 
 
