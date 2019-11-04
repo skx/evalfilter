@@ -44,6 +44,13 @@ type VM struct {
 	// environment holds the environment, which will allow variables
 	// and functions to be get/set.
 	environment *object.Environment
+
+	// fields contains the contents of all the fields in the object
+	// or map we're created with.
+	//
+	// These are discovered dynamically at run-time, and parsed only
+	// once.
+	fields map[string]object.Object
 }
 
 // New constructs a new virtual machine.
@@ -69,9 +76,20 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 		return nil, fmt.Errorf("bytecode is empty.  Did you forget to call evalfilter.Prepare?")
 	}
 
+	//
+	// Make an empty map to store field/map contents.
+	//
+	vm.fields = make(map[string]object.Object)
+
+	//
+	// Instruction pointer and length.
+	//
 	ip := 0
 	ln := len(vm.bytecode)
 
+	//
+	// Loop over all the bytecode.
+	//
 	for ip < ln {
 
 		op := code.Opcode(vm.bytecode[ip])
@@ -229,7 +247,90 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 		}
 	}
 
+	//
+	// If we get here we've hit the end of the bytecode, and we
+	// didn't encounter a return-instruction.
+	//
+	// That means the script is malformed..
+	//
 	return nil, fmt.Errorf("missing return at the end of the script")
+}
+
+// inspectObject discovers the names/values of all structure fields, or
+// map contents.  We do this before we begin running our bytecode.
+//
+// We call this the first time a lookup is attempted against our object
+// which means once called all values should be present.
+func (vm *VM) inspectObject(obj interface{}) {
+
+	//
+	// If the reference is nil we have nothing to walk.
+	//
+	if obj == nil {
+		return
+	}
+
+	//
+	// Get the value
+	//
+	val := reflect.Indirect(reflect.ValueOf(obj))
+
+	//
+	// Is this a map?
+	//
+	if val.Kind() == reflect.Map {
+
+		//
+		// Get all keys
+		//
+		for _, key := range val.MapKeys() {
+			name := key.Interface().(string)
+			field := val.MapIndex(key).Elem()
+
+			var ret object.Object
+			ret = Null
+
+			switch field.Kind() {
+			case reflect.Int, reflect.Int64:
+				ret = &object.Integer{Value: field.Int()}
+			case reflect.Float32, reflect.Float64:
+				ret = &object.Float{Value: field.Float()}
+			case reflect.String:
+				ret = &object.String{Value: field.String()}
+			case reflect.Bool:
+				ret = &object.Boolean{Value: field.Bool()}
+			}
+
+			vm.fields[name] = ret
+		}
+		return
+	}
+
+	//
+	// OK this is an object
+	//
+	for i := 0; i < val.NumField(); i++ {
+
+		field := val.Field(i)
+		typeField := val.Type().Field(i)
+		name := typeField.Name
+
+		var ret object.Object
+		ret = Null
+
+		switch field.Kind() {
+		case reflect.Int, reflect.Int64:
+			ret = &object.Integer{Value: field.Int()}
+		case reflect.Float32, reflect.Float64:
+			ret = &object.Float{Value: field.Float()}
+		case reflect.String:
+			ret = &object.String{Value: field.String()}
+		case reflect.Bool:
+			ret = &object.Boolean{Value: field.Bool()}
+		}
+
+		vm.fields[name] = ret
+	}
 }
 
 // Execute an operation against two arguments, i.e "foo == bar", "2 + 3", etc.
@@ -630,51 +731,31 @@ func (vm *VM) lookup(obj interface{}, name string) object.Object {
 	name = strings.TrimPrefix(name, "$")
 
 	//
-	// Look for this as a variable before
-	// looking for field values.
+	// Look for this as a variable first, they take precedence.
 	//
 	if val, ok := vm.environment.Get(name); ok {
 		return val
 	}
 
-	if obj != nil {
-
-		ref := reflect.ValueOf(obj)
-
-		//
-		// The field we find by reflection.
-		//
-		var field reflect.Value
-
-		//
-		// Are we dealing with a map?
-		//
-		if ref.Kind() == reflect.Map {
-			for _, key := range ref.MapKeys() {
-				if key.Interface() == name {
-
-					field = ref.MapIndex(key).Elem()
-					break
-				}
-			}
-		} else {
-
-			field = reflect.Indirect(ref).FieldByName(name)
-		}
-
-		switch field.Kind() {
-		case reflect.Int, reflect.Int64:
-			return &object.Integer{Value: field.Int()}
-		case reflect.Float32, reflect.Float64:
-			return &object.Float{Value: field.Float()}
-		case reflect.String:
-			return &object.String{Value: field.String()}
-		case reflect.Bool:
-			return &object.Boolean{Value: field.Bool()}
-		}
+	//
+	// Now we assume this is a reference to a map-key, or
+	// object member.
+	//
+	// If we've not discovered them then do so now
+	//
+	if len(vm.fields) == 0 {
+		vm.inspectObject(obj)
 	}
 
-	// Not found
-	return Null
+	//
+	// Then perform the lookup
+	//
+	if cached, found := vm.fields[name]; found {
+		return cached
+	}
 
+	//
+	// If it was not found it is an unknown/unset value.
+	//
+	return Null
 }
