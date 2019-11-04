@@ -21,13 +21,6 @@ func NewEnvironment() *Environment {
 	return &Environment{store: s, functions: f, outer: nil}
 }
 
-// NewEnclosedEnvironment create new environment by outer parameter
-func NewEnclosedEnvironment(outer *Environment) *Environment {
-	env := NewEnvironment()
-	env.outer = outer
-	return env
-}
-
 // Get returns the value of a given variable, by name.
 func (e *Environment) Get(name string) (Object, bool) {
 	obj, ok := e.store[name]
