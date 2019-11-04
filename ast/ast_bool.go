@@ -2,8 +2,8 @@ package ast
 
 import "github.com/skx/evalfilter/token"
 
-// Boolean holds a boolean type
-type Boolean struct {
+// BooleanLiteral holds a boolean type
+type BooleanLiteral struct {
 	// Token holds the actual token
 	Token token.Token
 
@@ -11,10 +11,10 @@ type Boolean struct {
 	Value bool
 }
 
-func (b *Boolean) expressionNode() {}
+func (bl *BooleanLiteral) expressionNode() {}
 
 // TokenLiteral returns the literal token.
-func (b *Boolean) TokenLiteral() string { return b.Token.Literal }
+func (bl *BooleanLiteral) TokenLiteral() string { return bl.Token.Literal }
 
 // String returns this object as a string.
-func (b *Boolean) String() string { return b.Token.Literal }
+func (bl *BooleanLiteral) String() string { return bl.Token.Literal }

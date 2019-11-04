@@ -254,7 +254,7 @@ func (e *Eval) compile(node ast.Node) error {
 			}
 		}
 
-	case *ast.Boolean:
+	case *ast.BooleanLiteral:
 		if node.Value {
 			e.emit(code.OpTrue)
 		} else {
