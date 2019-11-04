@@ -7,8 +7,7 @@ import (
 
 func TestOpcodes(t *testing.T) {
 
-	var i Opcode
-	i = 0
+	var i Opcode = 0
 
 	for i <= OpFinal {
 		x := String(i)
