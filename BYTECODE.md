@@ -156,7 +156,7 @@ We saw these described briefly earlier, but the full list of instructions is:
 The comparison operations are very similar to the mathematical operations, and work in the same way:
 
 * They pop two values from the stack.
-* They run the comparision operation
+* They run the comparision operation:
   * If the comparison succeeds they push `true` upon the stack.
   * Otherwise they push `false`.
 
@@ -166,7 +166,7 @@ Comparision operations include:
   * This pushes `true` upon the stack if the two values it is comparing are equal.
   * `false` otherwise.
 * `OpLess`
-  * This pushes `true` upon the stack if the first argumetn is less than the second.
+  * This pushes `true` upon the stack if the first argument is less than the second.
   * `false` otherwise.
 
 The full list is:
@@ -204,17 +204,17 @@ There are some miscellaneous instructions:
 * `OpRoot`
   * Calculate a square root.
 * `OpTrue`
- * Pushes a `true` value to the stack.
+  * Pushes a `true` value to the stack.
 * `OpFalse`
- * Pushes a `false` value to the stack.
+  * Pushes a `false` value to the stack.
 * `OpReturn`
- * Pops a value off the stack and terminates processing.
- * The value is the return-code.
+  * Pops a value off the stack and terminates processing.
+  * The value is the return-code.
 * `OpLookup`
- * Much like loading a constant by reference this loads the value from the structure field with the given name.
+  * Much like loading a constant by reference this loads the value from the structure field with the given name.
 * `OpCall`
- * Pops the name of a function to call from the stack.
- * Called with an argument noting how many arguments to pass to the function, and pops that many arguments from the stack to use in the function-call.
+  * Pops the name of a function to call from the stack.
+  * Called with an argument noting how many arguments to pass to the function, and pops that many arguments from the stack to use in the function-call.
 
 
 # Example Program
@@ -249,6 +249,7 @@ Now we'll walk through what happens:
   * The stack now looks like this:  [1 0.5 2]
 * We come across the `OpMul` instruction, which pops two numbers from the stack, multiples them, and adds the result back.
   * The stack now looks like this:  [1 1]
+    * The second value there is the result of `0.5 * 2`.
 * We see the `Equal` instruction, which pops two items from the stack, and compares them.
   * `1` and `1` are equal so the result is `true`.
   * The stack now looks like this: [true]
