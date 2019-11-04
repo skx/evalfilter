@@ -5,6 +5,17 @@ When the evalfilter package is executed a user-supplied script is lexed, parsed,
 Although we don't expect users to care about the implementation details here are some brief notes.
 
 
+
+* [Bytecode](#bytecode)
+  * [Examining Bytecode](#examining-bytecode)
+* [Bytecode Overview](#bytecode-overview)
+  * [Constant / Field Operations](#constant--field-operations)
+  * [Mathematical Operations](#mathematical-operations)
+  * [Comparison Operations](#comparison-operations)
+  * [Control-Flow Operations](#control-flow-operations)
+  * [Misc Operations](#misc-operations)
+* [Example Program](#example-program)
+
 ## Examining Bytecode
 
 You may use `cmd/evalfilter` to view the bytecode representation of a program.
@@ -199,7 +210,7 @@ There are some miscellaneous instructions:
  * Called with an argument noting how many arguments to pass to the function, and pops that many arguments from the stack to use in the function-call.
 
 
-## Example Program
+# Example Program
 
 We already demonstrated a simple program earlier, with the following bytecode:
 
