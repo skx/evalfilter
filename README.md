@@ -225,15 +225,16 @@ $ go test -test.bench=evalfilter -benchtime=10s -run=^t
 goos: linux
 goarch: amd64
 pkg: github.com/skx/evalfilter
-Benchmark_evalfilter_complex-4   	 5000000	      3895 ns/op
-Benchmark_evalfilter_simple-4    	500000000	        25.6 ns/op
+Benchmark_evalfilter_complex-4   	 5000000	      2467 ns/op
+Benchmark_evalfilter_simple-4    	20000000	      1190 ns/op
+Benchmark_evalfilter_trivial-4   	50000000	       244 ns/op
 PASS
-ok  	github.com/skx/evalfilter	38.934s
+ok  	github.com/skx/evalfilter	52.361s
 ```
 
-Neither example there is completely representative, but it will give you
-an idea of the speed.  In the majority of cases the speed of the evaluation
-engine will be acceptible.
+The examples there are not particularly representative, but they will give you
+an idea of the general speed.  In the real world the speed of the evaluation
+engine is unlikely to be a significant bottleneck.
 
 
 ## Github Setup
