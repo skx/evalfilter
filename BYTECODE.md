@@ -4,6 +4,7 @@ When the evalfilter package is executed a user-supplied script is lexed, parsed,
 
 Although we don't expect users to care about the implementation details here are some brief notes.
 
+The opcodes we're discussing are found in [code/code.go](code/code.go), and the virtual machine in [vm/vm.go](vm/vm.go).
 
 
 * [Bytecode](#bytecode)
