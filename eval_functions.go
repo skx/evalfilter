@@ -22,19 +22,28 @@ func init() {
 }
 
 // fnLen is the implementation of our `len` function.
+//
+// Interestingly this function doesn't just count the length of string
+// objects, instead we cast all objects to strings and allow their lengths
+// to be calculated.
+//
+// so `len(false)` is 5, len(3) is 1, and `len(0.123)` is 5.
 func fnLen(args []object.Object) object.Object {
 	sum := 0
 
 	for _, e := range args {
-		switch e := e.(type) {
-		case *object.String:
-			sum += utf8.RuneCountInString(e.Value)
-		}
+
+		// stringify the value, so we can call "len(3.2)", etc.
+		val := fmt.Sprintf("%v", e.Inspect())
+		sum += utf8.RuneCountInString(val)
 	}
 	return &object.Integer{Value: int64(sum)}
 }
 
 // fnLower is the implementation of our `lower` function.
+//
+// Much like the `len` function here we cast to a string before
+// we lower-case.
 func fnLower(args []object.Object) object.Object {
 
 	out := ""
@@ -42,7 +51,6 @@ func fnLower(args []object.Object) object.Object {
 	// Join all input arguments
 	for _, arg := range args {
 		val := fmt.Sprintf("%v", arg.Inspect())
-
 		out += strings.ToLower(val)
 	}
 	return &object.String{Value: out}
@@ -50,6 +58,7 @@ func fnLower(args []object.Object) object.Object {
 
 // fnMatch is the implementation of our regex `match` function.
 func fnMatch(args []object.Object) object.Object {
+
 	// We expect two arguments
 	if len(args) != 2 {
 		return &object.Boolean{Value: false}
@@ -105,6 +114,7 @@ func fnType(args []object.Object) object.Object {
 		return &object.String{Value: strings.ToLower(fmt.Sprintf("%v", e.Type()))}
 	}
 
+	// No argument is the same as a null-argument
 	return &object.String{Value: "null"}
 }
 
@@ -117,6 +127,9 @@ func fnPrint(args []object.Object) object.Object {
 }
 
 // fnUpper is the implementation of our `upper` function.
+//
+// Again we stringify our arguments here so `upper(true)` is
+// the string `TRUE`.
 func fnUpper(args []object.Object) object.Object {
 	out := ""
 
@@ -126,5 +139,4 @@ func fnUpper(args []object.Object) object.Object {
 		out += strings.ToUpper(val)
 	}
 	return &object.String{Value: out}
-
 }

@@ -81,6 +81,9 @@ const (
 	// Logical
 	OpAnd
 	OpOr
+
+	// Last opcode - NOP
+	OpFinal
 )
 
 // ReadUint16 Return a 16-bit number from the stream.
@@ -128,7 +131,7 @@ func String(op Opcode) string {
 	case OpMinus:
 		return "OpMinus"
 	case OpBang:
-		return "opBang"
+		return "OpBang"
 	case OpRoot:
 		return "OpRoot"
 	case OpLess:
@@ -136,9 +139,9 @@ func String(op Opcode) string {
 	case OpLessEqual:
 		return "OpLessEqual"
 	case OpGreater:
-		return "opGreater"
+		return "OpGreater"
 	case OpGreaterEqual:
-		return "opGreaterEqual"
+		return "OpGreaterEqual"
 	case OpEqual:
 		return "OpEqual"
 	case OpNotEqual:
@@ -152,7 +155,7 @@ func String(op Opcode) string {
 	case OpOr:
 		return "OpOr"
 	default:
-		return "Unknown"
+		return "OpUnknown"
 	}
 
 }
