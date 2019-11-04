@@ -197,6 +197,12 @@ There are two control-flow operations:
 
 There are some miscellaneous instructions:
 
+* `OpBang`
+  * Calculate negation
+* `OpMinus`
+  * Calculate unary minus.
+* `OpRoot`
+  * Calculate a square root.
 * `OpTrue`
  * Pushes a `true` value to the stack.
 * `OpFalse`
