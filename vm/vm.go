@@ -229,8 +229,8 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			}
 
 			// Get the function we're to invoke
-			fn := vm.environment.GetFunction(fName.Inspect())
-			if fn == nil {
+			fn, ok := vm.environment.GetFunction(fName.Inspect())
+			if !ok {
 				return nil, fmt.Errorf("the function %s does not exist", fName.Inspect())
 			}
 
