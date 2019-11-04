@@ -494,7 +494,7 @@ func (vm *VM) evalFloatIntegerInfixExpression(op code.Opcode, left, right object
 	case code.OpMod:
 		vm.stack.Push(&object.Float{Value: float64(int(leftVal) % int(rightVal))})
 	case code.OpPower:
-		vm.stack.Push(&object.Float{math.Pow(leftVal, rightVal)})
+		vm.stack.Push(&object.Float{Value: math.Pow(leftVal, rightVal)})
 	case code.OpLess:
 		vm.stack.Push(vm.nativeBoolToBooleanObject(leftVal < rightVal))
 	case code.OpLessEqual:
