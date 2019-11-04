@@ -35,7 +35,7 @@ echo "Completed linter .."
 set -e
 
 echo "Running go vet .."
-go vet ./..
+go vet ./...
 echo "Completed go vet .."
 
 # Run golang tests
