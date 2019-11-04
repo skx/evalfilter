@@ -4,6 +4,7 @@
 
 * [eval-filter](#eval-filter)
   * [Overview](#overview)
+    * [Bytecode](#bytecode)
   * [Use Cases](#use-cases)
   * [Sample Usage](#sample-usage)
   * [API Stability](#api-stability)
@@ -32,6 +33,10 @@ In terms of implementation the script is first split into [tokens](token/token.g
 
 Once you're ready to execute the script against a particular object the bytecode is intepreted by a simple [virtual machine](vm/vm.go) in the `Run` method.  As this is a stack-based virtual machine, rather than a register-based one, we have a [stack](stack/stack.go) implementation which is used by the intepreter.
 
+
+### Bytecode
+
+The bytecode is used internally only, but it is documented in [BYTECODE.md](BYTECODE.md).
 
 
 ## Use Cases
