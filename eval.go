@@ -68,15 +68,23 @@ func New(script string) *Eval {
 
 // Prepare is the second function the caller must invoke, it compiles
 // the user-supplied program to its final-form.
+//
+// Internally this compilation process walks through the usual steps,
+// lexing, parsing, and bytecode-compilation.
 func (e *Eval) Prepare() error {
 
 	//
-	// Create a parser
+	// Create a lexer.
 	//
-	p := parser.New(lexer.New(e.Script))
+	l := lexer.New(e.Script)
 
 	//
-	// Parse the program.
+	// Create a parser using the lexer.
+	//
+	p := parser.New(l)
+
+	//
+	// Parse the program into an AST.
 	//
 	program := p.ParseProgram()
 
@@ -93,7 +101,7 @@ func (e *Eval) Prepare() error {
 	//
 	// Compile the program to bytecode
 	//
-	err := e.Compile(program)
+	err := e.compile(program)
 
 	//
 	// If there were errors then return them.
@@ -112,7 +120,10 @@ func (e *Eval) Prepare() error {
 	return nil
 }
 
-// Dump causes our bytecode to be dumped
+// Dump causes our bytecode to be dumped.
+//
+// This is used by the `evalfilter` CLI-utility, but it might be useful
+// to consumers of our library.
 func (e *Eval) Dump() error {
 
 	i := 0
@@ -126,7 +137,7 @@ func (e *Eval) Dump() error {
 		// as a string
 		str := code.String(code.Opcode(op))
 
-		fmt.Printf("%06d\t%s\t", i, str)
+		fmt.Printf("  %06d\t%s\t", i, str)
 
 		// show arg
 		if op < byte(code.OpCodeSingleArg) {
@@ -159,14 +170,15 @@ func (e *Eval) Dump() error {
 	// constants
 	fmt.Printf("\n\nConstants:\n")
 	for i, n := range e.constants {
-		fmt.Printf("%d - %v\n", i, n)
+		fmt.Printf("  %d - %v\n", i, n)
 	}
 	return nil
 }
 
 // Run takes the program which was passed in the constructor, and
-// executes it.  The supplied object will be used for performing
-// dynamic field-lookups, etc.
+// executes it.
+//
+// The supplied object will be used for performing dynamic field-lookups, etc.
 func (e *Eval) Run(obj interface{}) (bool, error) {
 
 	//
@@ -175,35 +187,35 @@ func (e *Eval) Run(obj interface{}) (bool, error) {
 	out, err := e.machine.Run(obj)
 
 	//
-	// Show the result.
-	//
-	//	fmt.Printf("Result: %v\n", out)
-
-	//
-	// Is the return-value an error?  If so report that.
+	// Error executing?  Report that.
 	//
 	if err != nil {
 		return false, err
 	}
+
+	//
+	// Is the return-value an error?  If so report that.
+	//
 	if out.Type() == object.ERROR_OBJ {
 		return false, fmt.Errorf("%s", out.Inspect())
 	}
 
 	//
-	// Otherwise convert the result to a boolean, and return it.
+	// Otherwise convert the result to a boolean, and return.
 	//
 	return e.isTruthy(out), err
 
 }
 
-// AddFunction adds a function to our runtime.
+// AddFunction exposes a golang function from your host application
+// to the scripting environment.
 //
 // Once a function has been added it may be used by the filter script.
 func (e *Eval) AddFunction(name string, fun interface{}) {
 	e.environment.SetFunction(name, fun)
 }
 
-// SetVariable adds, or updates, a variable which will be available
+// SetVariable adds, or updates a variable which will be available
 // to the filter script.
 func (e *Eval) SetVariable(name string, value object.Object) {
 	e.environment.Set(name, value)
@@ -212,7 +224,7 @@ func (e *Eval) SetVariable(name string, value object.Object) {
 // GetVariable retrieves the contents of a variable which has been
 // set within a user-script.
 //
-// If the variable hasn't been set then the null-value will be returned
+// If the variable hasn't been set then the null-value will be returned.
 func (e *Eval) GetVariable(name string) object.Object {
 	value, ok := e.environment.Get(name)
 	if ok {
@@ -221,14 +233,14 @@ func (e *Eval) GetVariable(name string) object.Object {
 	return &object.Null{}
 }
 
-// Compile is core-code for converting the AST into a series of bytecodes.
-func (e *Eval) Compile(node ast.Node) error {
+// compile is core-code for converting the AST into a series of bytecodes.
+func (e *Eval) compile(node ast.Node) error {
 
 	switch node := node.(type) {
 
 	case *ast.Program:
 		for _, s := range node.Statements {
-			err := e.Compile(s)
+			err := e.compile(s)
 			if err != nil {
 				return err
 			}
@@ -236,7 +248,7 @@ func (e *Eval) Compile(node ast.Node) error {
 
 	case *ast.BlockStatement:
 		for _, s := range node.Statements {
-			err := e.Compile(s)
+			err := e.compile(s)
 			if err != nil {
 				return err
 			}
@@ -262,25 +274,25 @@ func (e *Eval) Compile(node ast.Node) error {
 		e.emit(code.OpConstant, e.addConstant(str))
 
 	case *ast.ReturnStatement:
-		err := e.Compile(node.ReturnValue)
+		err := e.compile(node.ReturnValue)
 		if err != nil {
 			return err
 		}
 		e.emit(code.OpReturn)
 
 	case *ast.ExpressionStatement:
-		err := e.Compile(node.Expression)
+		err := e.compile(node.Expression)
 		if err != nil {
 			return err
 		}
 
 	case *ast.InfixExpression:
-		err := e.Compile(node.Left)
+		err := e.compile(node.Left)
 		if err != nil {
 			return err
 		}
 
-		err = e.Compile(node.Right)
+		err = e.compile(node.Right)
 		if err != nil {
 			return err
 		}
@@ -323,7 +335,7 @@ func (e *Eval) Compile(node ast.Node) error {
 		}
 
 	case *ast.PrefixExpression:
-		err := e.Compile(node.Right)
+		err := e.compile(node.Right)
 		if err != nil {
 			return err
 		}
@@ -340,7 +352,7 @@ func (e *Eval) Compile(node ast.Node) error {
 		}
 
 	case *ast.IfExpression:
-		err := e.Compile(node.Condition)
+		err := e.compile(node.Condition)
 		if err != nil {
 			return err
 		}
@@ -348,7 +360,7 @@ func (e *Eval) Compile(node ast.Node) error {
 		// Emit an `OpJumpIfFalse` with a bogus value
 		jumpNotTruthyPos := e.emit(code.OpJumpIfFalse, 9999)
 
-		err = e.Compile(node.Consequence)
+		err = e.compile(node.Consequence)
 		if err != nil {
 			return err
 		}
@@ -360,7 +372,7 @@ func (e *Eval) Compile(node ast.Node) error {
 		e.changeOperand(jumpNotTruthyPos, afterConsequencePos)
 
 		if node.Alternative != nil {
-			err := e.Compile(node.Alternative)
+			err := e.compile(node.Alternative)
 			if err != nil {
 				return err
 			}
@@ -373,7 +385,7 @@ func (e *Eval) Compile(node ast.Node) error {
 	case *ast.AssignStatement:
 
 		// Get the value
-		err := e.Compile(node.Value)
+		err := e.compile(node.Value)
 		if err != nil {
 			return err
 		}
@@ -408,7 +420,7 @@ func (e *Eval) Compile(node ast.Node) error {
 		args := len(node.Arguments)
 		for _, a := range node.Arguments {
 
-			err := e.Compile(a)
+			err := e.compile(a)
 			if err != nil {
 				return err
 			}
