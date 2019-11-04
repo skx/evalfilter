@@ -11,6 +11,16 @@ import (
 	"github.com/skx/evalfilter/object"
 )
 
+// regCache is a cache of compiled regular expression objects.
+// These may persist between runs because a regular expression object
+// is essentially constant.
+var regCache map[string]*regexp.Regexp
+
+// init ensures that our regexp cache is populated
+func init() {
+	regCache = make(map[string]*regexp.Regexp)
+}
+
 // fnLen is the implementation of our `len` function.
 func fnLen(args []object.Object) object.Object {
 	sum := 0
@@ -40,7 +50,6 @@ func fnLower(args []object.Object) object.Object {
 
 // fnMatch is the implementation of our regex `match` function.
 func fnMatch(args []object.Object) object.Object {
-
 	// We expect two arguments
 	if len(args) != 2 {
 		return &object.Boolean{Value: false}
@@ -49,8 +58,23 @@ func fnMatch(args []object.Object) object.Object {
 	str := args[0].Inspect()
 	reg := args[1].Inspect()
 
-	// Compile the regular expression
-	r, _ := regexp.Compile(reg)
+	// Look for the compiled regular-expression object in our cache.
+	r, ok := regCache[reg]
+	if !ok {
+
+		// OK it wasn't found, so compile it.
+		var err error
+		r, err = regexp.Compile(reg)
+
+		// Ensure it compiled
+		if err != nil {
+			fmt.Printf("Invalid regular expression %s %s", reg, err.Error())
+			return &object.Boolean{Value: false}
+		}
+
+		// store in the cache for next time
+		regCache[reg] = r
+	}
 
 	// Split the input by newline.
 	for _, s := range strings.Split(str, "\n") {
@@ -58,12 +82,12 @@ func fnMatch(args []object.Object) object.Object {
 		// Strip leading-trailing whitespace
 		s = strings.TrimSpace(s)
 
+		// Test if it matched
 		if r.MatchString(s) {
 			return &object.Boolean{Value: true}
 		}
 	}
 	return &object.Boolean{Value: false}
-
 }
 
 // fnTrim is the implementation of our `trim` function.
