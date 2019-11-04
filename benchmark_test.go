@@ -54,7 +54,7 @@ func Benchmark_evalfilter_simple(b *testing.B) {
 	//
 	// Prepare the script
 	//
-	eval := New(`return ( Name == "Steve" );`)
+	eval := New(`return ( Name == "Steve" && Name == "Steve" );`)
 
 	//
 	// Ensure this compiled properly.
@@ -76,6 +76,39 @@ func Benchmark_evalfilter_simple(b *testing.B) {
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		ret, err = eval.Run(params)
+	}
+	b.StopTimer()
+
+	if err != nil {
+		b.Fatal(err)
+	}
+	if !ret {
+		b.Fail()
+	}
+}
+
+// Benchmark_evalfilter_trivial - This is a trivial test that uses no fields.
+func Benchmark_evalfilter_trivial(b *testing.B) {
+
+	//
+	// Prepare the script
+	//
+	eval := New(`if ( 1 + 2 * 3 == 7 ) { return true; } return false;`)
+
+	//
+	// Ensure this compiled properly.
+	//
+	err := eval.Prepare()
+	if err != nil {
+		fmt.Printf("Failed to compile: %s\n", err.Error())
+		return
+	}
+
+	var ret bool
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		ret, err = eval.Run(nil)
 	}
 	b.StopTimer()
 
