@@ -1,5 +1,8 @@
 // Package parser consumes tokens from the lexer and returns a
 // program as a set of AST-nodes.
+//
+// Later we walk the AST tree and generate a series of bytecode
+// instructions.
 package parser
 
 import (
@@ -19,7 +22,7 @@ type (
 	infixParseFn  func(ast.Expression) ast.Expression
 )
 
-// precedence order
+// Here we define values for predecence, lowest to highest.
 const (
 	_ int = iota
 	LOWEST
@@ -37,36 +40,37 @@ const (
 	INDEX       // array[index], map[key]
 )
 
-// each token precedence
+// precedence contains the prededence for each token-type, which
+// is part of the magic of a Pratt-Parser.
 var precedences = map[token.Type]int{
-	token.ASSIGN:    ASSIGN,
-	token.EQ:        EQUALS,
+	token.ASSIGN:   ASSIGN,
+	token.EQ:       EQUALS,
 	token.NOTEQ:    EQUALS,
-	token.LT:        LESSGREATER,
+	token.LT:       LESSGREATER,
 	token.LTEQUALS: LESSGREATER,
-	token.GT:        LESSGREATER,
+	token.GT:       LESSGREATER,
 	token.GTEQUALS: LESSGREATER,
-	token.CONTAINS:  LESSGREATER,
-	token.MISSING:   LESSGREATER,
-	token.PLUS:      SUM,
-	token.MINUS:     SUM,
-	token.SLASH:     PRODUCT,
-	token.ASTERISK:  PRODUCT,
-	token.POW:       POWER,
-	token.MOD:       MOD,
-	token.AND:       COND,
-	token.OR:        COND,
-	token.LPAREN:    CALL,
+	token.CONTAINS: LESSGREATER,
+	token.MISSING:  LESSGREATER,
+	token.PLUS:     SUM,
+	token.MINUS:    SUM,
+	token.SLASH:    PRODUCT,
+	token.ASTERISK: PRODUCT,
+	token.POW:      POWER,
+	token.MOD:      MOD,
+	token.AND:      COND,
+	token.OR:       COND,
+	token.LPAREN:   CALL,
 }
 
-// Parser object
+// Parser is the object which maintains our parser state.
+//
+// We consume tokens, produced by our lexer, and so we need to
+// keep track of our current token, the next token, and any
+// errors we've seen, for example.
 type Parser struct {
 	// l is our lexer
 	l *lexer.Lexer
-
-	// prevToken holds the previous token from our lexer.
-	// (used for "++" + "--")
-	prevToken token.Token
 
 	// curToken holds the current token from our lexer.
 	curToken token.Token
@@ -86,7 +90,10 @@ type Parser struct {
 	infixParseFns map[token.Type]infixParseFn
 }
 
-// New returns our new parser-object.
+// New returns a new parser.
+//
+// Once constructed it can be used to parse an input-program
+// into an AST.
 func New(l *lexer.Lexer) *Parser {
 	p := &Parser{l: l, errors: []string{}}
 	p.nextToken()
@@ -152,7 +159,6 @@ func (p *Parser) peekError(t token.Type) {
 
 // nextToken moves to our next token from the lexer.
 func (p *Parser) nextToken() {
-	p.prevToken = p.curToken
 	p.curToken = p.peekToken
 	p.peekToken = p.l.NextToken()
 }
@@ -202,7 +208,8 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	return stmt
 }
 
-// no prefix parse function error
+// Function called on error if there is no prefix-based parsing method
+// for the given token.
 func (p *Parser) noPrefixParseFnError(t token.Type) {
 	msg := fmt.Sprintf("no prefix parse function for %s found around line %d", t, p.l.GetLine())
 	p.errors = append(p.errors, msg)
@@ -218,6 +225,7 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	return stmt
 }
 
+// parse an expression.
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	prefix := p.prefixParseFns[p.curToken.Type]
 	if prefix == nil {
@@ -247,6 +255,9 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	return leftExp
 }
 
+// report an error that we found an illegal state.
+//
+// This is generally seen with an unterminated string.
 func (p *Parser) parseIllegal() ast.Expression {
 	msg := fmt.Sprintf("Illegal token hit parsing program %s", p.curToken.Literal)
 	p.errors = append(p.errors, msg)
@@ -399,7 +410,7 @@ func (p *Parser) parseStringLiteral() ast.Expression {
 	return &ast.StringLiteral{Token: p.curToken, Value: p.curToken.Literal}
 }
 
-// parsearray elements literal
+// parse an array of expressions, as used for function-arguments.
 func (p *Parser) parseExpressionList(end token.Type) []ast.Expression {
 	list := make([]ast.Expression, 0)
 	if p.peekTokenIs(end) {
@@ -419,7 +430,7 @@ func (p *Parser) parseExpressionList(end token.Type) []ast.Expression {
 	return list
 }
 
-// parseAssignExpression parses a bare assignment, without a `let`.
+// parseAssignExpression parses an assignment-statement.
 func (p *Parser) parseAssignExpression(name ast.Expression) ast.Expression {
 	stmt := &ast.AssignStatement{Token: p.curToken}
 	if n, ok := name.(*ast.Identifier); ok {
