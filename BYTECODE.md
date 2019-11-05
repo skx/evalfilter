@@ -4,7 +4,7 @@ When the evalfilter package is executed a user-supplied script is lexed, parsed,
 
 Although we don't expect users to care about the implementation details here are some brief notes.
 
-The opcodes we're discussing are found in [code/code.go](code/code.go), and the virtual machine in [vm/vm.go](vm/vm.go).
+The opcodes we're discussing are found in [code/code.go](code/code.go), and the interpreter for the virtual machine is contained in [vm/vm.go](vm/vm.go).
 
 
 * [Bytecode](#bytecode)
@@ -15,11 +15,14 @@ The opcodes we're discussing are found in [code/code.go](code/code.go), and the 
   * [Comparison Operations](#comparison-operations)
   * [Control-Flow Operations](#control-flow-operations)
   * [Misc Operations](#misc-operations)
+  * [Function Calls](#function-calls)
 * [Example Program](#example-program)
+
+
 
 ## Examining Bytecode
 
-You may use `cmd/evalfilter` to view the bytecode representation of a program.
+You may use the `cmd/evalfilter` utility to view the bytecode representation of a program.
 
 For example consider the following script:
 
@@ -64,12 +67,13 @@ Constants:
 
 # Bytecode Overview
 
-Our bytecode understands approximately 30 different instructions, which are broadly grouped into categories:
+Our bytecode interpreter understands approximately 30 different instructions, which are broadly grouped into categories:
 
-* Constant / Field Operations
-* Mathematical Operations
-* Comparison Operations
-* Control-Flow Operations
+* Constant, and field operations.
+* Mathematical operations.
+* Comparison operations.
+* Control-flow operations.
+* Misc operations.
 
 
 ## Constant / Field Operations
@@ -104,29 +108,30 @@ Constants:
 This is the first time we've looked at our bytecode so there are several things to note:
 
 * The value to the left of the instruction is the position in the code.
+  * The control-flow instructions generate jumps to these indexes, so they're worth showing.
 * The middle field is the instruction to be executed.
   * Some instructions contain a single argument, but most do not.
   * Some instructions contain helpful comments to the right.
-* After the bytecode has been disassembled you'll see the pool of constants.
-  * Each of which is identified by a unique number.
+* After the bytecode has been disassembled you'll see the list of constants.
+  * Each of which is identified by an identifier.
 
 In this overview we're focusing upon the instruction `OpConstant`.  The `OpConstant` instruction has a single argument, which is the index of the constant to load and push on the stack.
 
 When we start running the program the stack is empty.
 
 * We run `OpConstant 0`
-  * That loads the constant with ID `0` from the constant-area
+  * That loads the constant with ID `0` from the constant-area.
     * This is the number `1`.
   * The constant is then pushed upon the stack.
 * We run `OpConstant 1`
-  * That loads the constant with ID `0` from the constant-area
+  * That loads the constant with ID `0` from the constant-area.
     * This is the number `2`.
   * The constant is then pushed upon the stack.
 * We then execute the `OpAdd` instruction.
   * This pops two values from the stack
     * i.e. The `2` we just added.
     * Then the `1` we added.
-      * The stack is emptied in reverse
+      * The stack is emptied in reverse.
   * The two values are added, producing a result of `3`.
   * Then the value is placed back upon the stack.
 
@@ -156,14 +161,14 @@ We saw these described briefly earlier, but the full list of instructions is:
 The comparison operations are very similar to the mathematical operations, and work in the same way:
 
 * They pop two values from the stack.
-* They run the comparision operation:
+* They run the comparison operation:
   * If the comparison succeeds they push `true` upon the stack.
   * Otherwise they push `false`.
 
-Comparision operations include:
+Comparison operations include:
 
 * `OpEqual`
-  * This pushes `true` upon the stack if the two values it is comparing are equal.
+  * This pushes `true` upon the stack if the two values to be compared are equal.
   * `false` otherwise.
 * `OpLess`
   * This pushes `true` upon the stack if the first argument is less than the second.
@@ -189,7 +194,7 @@ There are two control-flow operations:
   * Which takes the offset within the bytecode to jump to.
   * Control flow immediately branches there.
 * `OpJumpIfFalse`
-  * A value is poped from the stack, if it is false then control moves to the offset specified as the argument.
+  * A value is popped from the stack, if it is false then control moves to the offset specified as the argument.
   * Otherwise we proceed to the next instruction as expected.
 
 
@@ -209,12 +214,55 @@ There are some miscellaneous instructions:
   * Pushes a `false` value to the stack.
 * `OpReturn`
   * Pops a value off the stack and terminates processing.
-  * The value is the return-code.
+    * The value is the return-code.
 * `OpLookup`
   * Much like loading a constant by reference this loads the value from the structure field with the given name.
 * `OpCall`
   * Pops the name of a function to call from the stack.
   * Called with an argument noting how many arguments to pass to the function, and pops that many arguments from the stack to use in the function-call.
+
+
+## Function Calls
+
+There are several functions supplied with the interpreter, and a host application can install more.
+
+The prototype of all functions is:
+
+     func foo( args []object.Object ) object.Object { .. }
+
+i.e. All functions take an array of objects, and return a single object.  The objects allow support of strings, numbers, booleans, and errors.
+
+We've already seen how constants can be loaded from the constant area onto the stack, and that along with the `OpCall` instruction is all we need to support calling functions.
+
+The `OpCall` instruction comes with a single operand, which is the number of arguments that should be supplied to the function, these arguments will be popped off the stack as you should have come to expect.
+
+
+This is an excerpt from the program we saw at the top of this document, and shows a function being called:
+
+```
+  000019	OpConstant	3		// load constant: &{This is weird\n}
+  000022	OpConstant	4		// load constant: &{print}
+  000025	OpCall	1			// call function with 1 arguments
+  000028	OpFalse
+```
+
+* The first operation loads the constant with ID 3 and pushes it onto the stack.
+  * This is the string "This is weird\n", as the comment indicates.
+* The second instruction loads the constant with ID 4 and pushes it onto the stack.
+  * This is the string "print", which is the name of the function we're going to invoke.
+* The third instruction is `OpCall 1` which means that the machine should call a function with one argument.
+
+The end result of that is that the function call happens:
+
+* `OpCall` pops the first value off the stack.
+  * This is the function to invoke.
+  * i.e. `print`.
+* The argument to `OpCall` is the number of arguments to supply to that function.
+  * There is one argument in this example.
+  * So one value is popped off the stack.
+    * This will be the string `This is weird\n`.
+* Now that the arguments are handled the function is invoked.
+* The return result from that call is then pushed onto the stack.
 
 
 # Example Program
@@ -260,5 +308,5 @@ Now we'll walk through what happens:
   * This pushes the value `true` onto the stack.
   * The stack now looks like this: [true]
 * We see the `OpReturn` instruction.
-  * This pops a value from the stack, and terminates exection.
+  * This pops a value from the stack, and terminates execution.
   * The stack now looks like this: []
