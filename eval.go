@@ -158,7 +158,7 @@ func (e *Eval) Dump() error {
 				fmt.Printf("\t\t// lookup field: %v", e.constants[arg])
 			}
 			if code.Opcode(op) == code.OpCall {
-				fmt.Printf("\t\t\t// call function with %d arguments", arg)
+				fmt.Printf("\t\t\t// call function with %d arg(s)", arg)
 			}
 		}
 
@@ -170,7 +170,7 @@ func (e *Eval) Dump() error {
 	// constants
 	fmt.Printf("\n\nConstants:\n")
 	for i, n := range e.constants {
-		fmt.Printf("  %d - %v\n", i, n)
+		fmt.Printf("  %06d Type:%s Value:%s Dump:%v\n", i, n.Type(), n.Inspect(), n)
 	}
 	return nil
 }
@@ -196,7 +196,7 @@ func (e *Eval) Run(obj interface{}) (bool, error) {
 	//
 	// Is the return-value an error?  If so report that.
 	//
-	if out.Type() == object.ERROR_OBJ {
+	if out.Type() == object.ERROR{
 		return false, fmt.Errorf("%s", out.Inspect())
 	}
 
@@ -298,6 +298,8 @@ func (e *Eval) compile(node ast.Node) error {
 		}
 
 		switch node.Operator {
+
+		// maths
 		case "+":
 			e.emit(code.OpAdd)
 		case "-":
@@ -310,6 +312,8 @@ func (e *Eval) compile(node ast.Node) error {
 			e.emit(code.OpMod)
 		case "**":
 			e.emit(code.OpPower)
+
+			// comparisons
 		case "<":
 			e.emit(code.OpLess)
 		case "<=":
@@ -326,6 +330,8 @@ func (e *Eval) compile(node ast.Node) error {
 			e.emit(code.OpMatches)
 		case "!~":
 			e.emit(code.OpNotMatches)
+
+			// logical
 		case "&&":
 			e.emit(code.OpAnd)
 		case "||":
