@@ -1,4 +1,4 @@
-module github.com/skx/evalfilter
+module github.com/skx/evalfilter/v2
 
 go 1.12
 
