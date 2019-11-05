@@ -1,5 +1,3 @@
-// The implementation of our string-object.
-
 package object
 
 // String wraps string and implements the Object interface.
@@ -10,7 +8,7 @@ type String struct {
 
 // Type returns the type of this object.
 func (s *String) Type() Type {
-	return STRING_OBJ
+	return STRING
 }
 
 // Inspect returns a string-representation of the given object.
