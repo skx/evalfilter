@@ -7,7 +7,7 @@
 
 package parser
 
-import "github.com/skx/evalfilter/lexer"
+import "github.com/skx/evalfilter/v2/lexer"
 
 // Fuzz is the function that our fuzzer-application uses.
 // See `FUZZING.md` in our distribution for how to invoke it.
