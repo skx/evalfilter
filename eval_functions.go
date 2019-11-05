@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/skx/evalfilter/object"
+	"github.com/skx/evalfilter/v2/object"
 )
 
 // regCache is a cache of compiled regular expression objects.

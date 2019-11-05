@@ -9,7 +9,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/skx/evalfilter/token"
+	"github.com/skx/evalfilter/v2/token"
 )
 
 // Lexer holds our object-state.

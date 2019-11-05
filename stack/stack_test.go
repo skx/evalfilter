@@ -3,7 +3,7 @@ package stack
 import (
 	"testing"
 
-	"github.com/skx/evalfilter/object"
+	"github.com/skx/evalfilter/v2/object"
 )
 
 // Test a new stack is empty

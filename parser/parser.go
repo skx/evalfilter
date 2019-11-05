@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/skx/evalfilter/ast"
-	"github.com/skx/evalfilter/lexer"
-	"github.com/skx/evalfilter/token"
+	"github.com/skx/evalfilter/v2/ast"
+	"github.com/skx/evalfilter/v2/lexer"
+	"github.com/skx/evalfilter/v2/token"
 )
 
 // prefix Parse function

@@ -12,12 +12,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/skx/evalfilter/ast"
-	"github.com/skx/evalfilter/code"
-	"github.com/skx/evalfilter/lexer"
-	"github.com/skx/evalfilter/object"
-	"github.com/skx/evalfilter/parser"
-	"github.com/skx/evalfilter/vm"
+	"github.com/skx/evalfilter/v2/ast"
+	"github.com/skx/evalfilter/v2/code"
+	"github.com/skx/evalfilter/v2/lexer"
+	"github.com/skx/evalfilter/v2/object"
+	"github.com/skx/evalfilter/v2/parser"
+	"github.com/skx/evalfilter/v2/vm"
 )
 
 // Eval is our public-facing structure which stores our state.

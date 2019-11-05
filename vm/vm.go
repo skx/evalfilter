@@ -10,9 +10,9 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/skx/evalfilter/code"
-	"github.com/skx/evalfilter/object"
-	"github.com/skx/evalfilter/stack"
+	"github.com/skx/evalfilter/v2/code"
+	"github.com/skx/evalfilter/v2/object"
+	"github.com/skx/evalfilter/v2/stack"
 )
 
 // True is our global "true" object.

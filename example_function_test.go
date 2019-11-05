@@ -3,7 +3,7 @@ package evalfilter
 import (
 	"fmt"
 
-	"github.com/skx/evalfilter/object"
+	"github.com/skx/evalfilter/v2/object"
 )
 
 // ExampleExample demonstrates how you can add a custom function

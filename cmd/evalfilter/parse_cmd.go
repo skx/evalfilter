@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/google/subcommands"
-	"github.com/skx/evalfilter/lexer"
-	"github.com/skx/evalfilter/parser"
+	"github.com/skx/evalfilter/v2/lexer"
+	"github.com/skx/evalfilter/v2/parser"
 )
 
 //

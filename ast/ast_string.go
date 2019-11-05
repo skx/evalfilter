@@ -3,7 +3,7 @@ package ast
 import (
 	"strings"
 
-	"github.com/skx/evalfilter/token"
+	"github.com/skx/evalfilter/v2/token"
 )
 
 // StringLiteral holds a string

@@ -1,6 +1,6 @@
 package ast
 
-import "github.com/skx/evalfilter/token"
+import "github.com/skx/evalfilter/v2/token"
 
 // IntegerLiteral holds an integer
 type IntegerLiteral struct {

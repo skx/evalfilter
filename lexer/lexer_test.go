@@ -3,7 +3,7 @@ package lexer
 import (
 	"testing"
 
-	"github.com/skx/evalfilter/token"
+	"github.com/skx/evalfilter/v2/token"
 )
 
 func TestNextToken1(t *testing.T) {

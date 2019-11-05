@@ -3,7 +3,7 @@ package ast
 import (
 	"bytes"
 
-	"github.com/skx/evalfilter/token"
+	"github.com/skx/evalfilter/v2/token"
 )
 
 // AssignStatement is used for a (let-less) assignment,

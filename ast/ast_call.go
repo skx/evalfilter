@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/skx/evalfilter/token"
+	"github.com/skx/evalfilter/v2/token"
 )
 
 // CallExpression holds the invokation of a method-call.

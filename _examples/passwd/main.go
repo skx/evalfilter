@@ -12,8 +12,8 @@ import (
 	"os/user"
 	"strings"
 
-	"github.com/skx/evalfilter"
-	"github.com/skx/evalfilter/object"
+	"github.com/skx/evalfilter/v2"
+	"github.com/skx/evalfilter/v2/object"
 )
 
 //

@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 
 	"github.com/google/subcommands"
-	"github.com/skx/evalfilter"
+	"github.com/skx/evalfilter/v2"
 )
 
 //

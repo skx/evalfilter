@@ -5,7 +5,7 @@ package stack
 import (
 	"errors"
 
-	"github.com/skx/evalfilter/object"
+	"github.com/skx/evalfilter/v2/object"
 )
 
 // Stack holds return-addresses when the `call` operation is being

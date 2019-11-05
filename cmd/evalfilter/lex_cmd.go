@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 
 	"github.com/google/subcommands"
-	"github.com/skx/evalfilter/lexer"
+	"github.com/skx/evalfilter/v2/lexer"
 )
 
 //

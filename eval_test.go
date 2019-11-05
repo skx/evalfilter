@@ -3,7 +3,7 @@ package evalfilter
 import (
 	"testing"
 
-	"github.com/skx/evalfilter/object"
+	"github.com/skx/evalfilter/v2/object"
 )
 
 // TestLess tests uses `>` and `>=`.
