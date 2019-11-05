@@ -1,11 +1,11 @@
 // Package object contains our core-definitions for objects.
 //
-// Our scripting language supports several different object-types:
+// Our language supports several different object-types:
 //
 // * Integer number.
 // * Floating-point number.
-// * String
-// * Boolean values (true, or false).
+// * String.
+// * Booleans.
 // * Null
 package object
 
@@ -14,15 +14,15 @@ type Type string
 
 // pre-defined constant Type
 const (
-	INTEGER_OBJ = "INTEGER"
-	FLOAT_OBJ   = "FLOAT"
-	BOOLEAN_OBJ = "BOOLEAN"
-	NULL_OBJ    = "NULL"
-	ERROR_OBJ   = "ERROR"
-	STRING_OBJ  = "STRING"
+	INTEGER = "INTEGER"
+	FLOAT = "FLOAT"
+	BOOLEAN= "BOOLEAN"
+	NULL= "NULL"
+	ERROR= "ERROR"
+	STRING= "STRING"
 )
 
-// Object is the interface that all of our various object-types must implmenet.
+// Object is the interface that all of our various object-types must implement.
 type Object interface {
 
 	// Type returns the type of this object.
