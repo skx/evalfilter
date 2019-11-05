@@ -1,5 +1,12 @@
-// Package token contains identifiers for the various logical things
+// Package token contains identifiers for the various things
 // we find in our source-scripts.
+//
+// Our lexer will convert an input-script into a series of tokens,
+// which will then be consumed by the parser and transformed into an
+// AST.
+//
+// Once we have the AST we will then generate a series of bytecode
+// instructions which will ultimately be executed by our virtual machine.
 package token
 
 // Type is a string
@@ -26,7 +33,7 @@ const (
 	FALSE     = "FALSE"
 	FLOAT     = "FLOAT"
 	GT        = ">"
-	GT_EQUALS = ">="
+	GTEQUALS = ">="
 	IDENT     = "IDENT"
 	IF        = "IF"
 	ILLEGAL   = "ILLEGAL"
@@ -34,11 +41,11 @@ const (
 	LBRACE    = "{"
 	LPAREN    = "("
 	LT        = "<"
-	LT_EQUALS = "<="
+	LTEQUALS = "<="
 	MINUS     = "-"
 	MISSING   = "!~"
 	MOD       = "%"
-	NOT_EQ    = "!="
+	NOTEQ    = "!="
 	OR        = "||"
 	PERIOD    = "."
 	PLUS      = "+"
