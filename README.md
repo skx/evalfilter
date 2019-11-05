@@ -31,7 +31,7 @@ The scripting language is C-like, and allows you to _filter_ objects, with the g
 
 In terms of implementation the script is first split into [tokens](token/token.go) by the [lexer](lexer/lexer.go), then that is [parsed](parser/parser.go) into an abstract-syntax-tree.  Once the AST exists it is walked, and a series of [bytecode](code/code.go) operations are generated.  All of this happens in the `Prepare` method.
 
-Once you're ready to execute the script against a particular object the bytecode is intepreted by a simple [virtual machine](vm/vm.go) in the `Run` method.  As this is a stack-based virtual machine, rather than a register-based one, we have a [stack](stack/stack.go) implementation which is used by the intepreter.
+Once you're ready to execute the script against a particular object the bytecode is interpreted by a simple [virtual machine](vm/vm.go) in the `Run` method.  As this is a stack-based virtual machine, rather than a register-based one, we have a [stack](stack/stack.go) implementation which is used by the interpreter.
 
 
 ### Bytecode
@@ -138,7 +138,7 @@ The engine supports scripts which:
   * String contains:
     * "`if ( Content ~= "needle" )`"
   * Does not contain:
-    * "`if ( Content !~ "some text we dont want" )`"
+    * "`if ( Content !~ "some text we don't want" )`"
 * You can also add new primitives to the engine.
   * By implementing them in your golang host application.
   * Your host-application can also set variables which are accessible to the user-script.
@@ -207,7 +207,7 @@ go get github.com/skx/evalfilter/cmd/evalfilter
 
 ```
 
-The driver has a number of sub-commands to allow you to test a script, for example viewing the parse-tree, the byecode, or even running a script against a JSON object.
+The driver has a number of sub-commands to allow you to test a script, for example viewing the parse-tree, the bytecode, or even running a script against a JSON object.
 
 For example in the [cmd/evalfilter](cmd/evalfilter) directory you might run:
 

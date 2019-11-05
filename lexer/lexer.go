@@ -53,7 +53,7 @@ func (l *Lexer) GetLine() int {
 	return line
 }
 
-// read one forward character.
+// read forward one character.
 func (l *Lexer) readChar() {
 	if l.readPosition >= len(l.characters) {
 		l.ch = rune(0)
@@ -64,7 +64,8 @@ func (l *Lexer) readChar() {
 	l.readPosition++
 }
 
-// NextToken reads and returns the next token, skipping any white space.
+// NextToken reads and returns the next token, skipping any intervening
+// white space, and swallowing any comments, in the process.
 func (l *Lexer) NextToken() token.Token {
 	var tok token.Token
 	l.skipWhitespace()
@@ -76,6 +77,7 @@ func (l *Lexer) NextToken() token.Token {
 	}
 
 	switch l.ch {
+
 	case rune('&'):
 		if l.peekChar() == rune('&') {
 			ch := l.ch
@@ -97,30 +99,43 @@ func (l *Lexer) NextToken() token.Token {
 		} else {
 			tok = newToken(token.ASSIGN, l.ch)
 		}
+
 	case rune(';'):
 		tok = newToken(token.SEMICOLON, l.ch)
+
 	case rune('('):
 		tok = newToken(token.LPAREN, l.ch)
+
 	case rune(')'):
 		tok = newToken(token.RPAREN, l.ch)
+
 	case rune(','):
 		tok = newToken(token.COMMA, l.ch)
+
 	case rune('.'):
 		tok = newToken(token.PERIOD, l.ch)
+
 	case rune('+'):
 		tok = newToken(token.PLUS, l.ch)
+
 	case rune('%'):
 		tok = newToken(token.MOD, l.ch)
+
 	case rune('√'):
 		tok = newToken(token.SQRT, l.ch)
+
 	case rune('{'):
 		tok = newToken(token.LBRACE, l.ch)
+
 	case rune('}'):
 		tok = newToken(token.RBRACE, l.ch)
+
 	case rune('-'):
 		tok = newToken(token.MINUS, l.ch)
+
 	case rune('/'):
 		tok = newToken(token.SLASH, l.ch)
+
 	case rune('*'):
 		if l.peekChar() == rune('*') {
 			ch := l.ch
@@ -129,22 +144,25 @@ func (l *Lexer) NextToken() token.Token {
 		} else {
 			tok = newToken(token.ASTERISK, l.ch)
 		}
+
 	case rune('<'):
 		if l.peekChar() == rune('=') {
 			ch := l.ch
 			l.readChar()
-			tok = token.Token{Type: token.LT_EQUALS, Literal: string(ch) + string(l.ch)}
+			tok = token.Token{Type: token.LTEQUALS, Literal: string(ch) + string(l.ch)}
 		} else {
 			tok = newToken(token.LT, l.ch)
 		}
+
 	case rune('>'):
 		if l.peekChar() == rune('=') {
 			ch := l.ch
 			l.readChar()
-			tok = token.Token{Type: token.GT_EQUALS, Literal: string(ch) + string(l.ch)}
+			tok = token.Token{Type: token.GTEQUALS, Literal: string(ch) + string(l.ch)}
 		} else {
 			tok = newToken(token.GT, l.ch)
 		}
+
 	case rune('~'):
 		if l.peekChar() == rune('=') {
 			ch := l.ch
@@ -156,7 +174,7 @@ func (l *Lexer) NextToken() token.Token {
 		if l.peekChar() == rune('=') {
 			ch := l.ch
 			l.readChar()
-			tok = token.Token{Type: token.NOT_EQ, Literal: string(ch) + string(l.ch)}
+			tok = token.Token{Type: token.NOTEQ, Literal: string(ch) + string(l.ch)}
 		} else {
 			if l.peekChar() == rune('~') {
 				ch := l.ch
@@ -166,6 +184,7 @@ func (l *Lexer) NextToken() token.Token {
 				tok = newToken(token.BANG, l.ch)
 			}
 		}
+
 	case rune('"'):
 		str, err := l.readString('"')
 		if err == nil {
@@ -175,6 +194,7 @@ func (l *Lexer) NextToken() token.Token {
 			tok.Type = token.ILLEGAL
 			tok.Literal = err.Error()
 		}
+
 	case rune('\''):
 		str, err := l.readString('\'')
 
@@ -185,11 +205,11 @@ func (l *Lexer) NextToken() token.Token {
 			tok.Type = token.ILLEGAL
 			tok.Literal = err.Error()
 		}
-	case rune(':'):
-		tok = newToken(token.COLON, l.ch)
+
 	case rune(0):
 		tok.Literal = ""
 		tok.Type = token.EOF
+
 	default:
 		if isDigit(l.ch) {
 			return l.readDecimal()
@@ -198,6 +218,7 @@ func (l *Lexer) NextToken() token.Token {
 		tok.Type = token.LookupIdentifier(tok.Literal)
 		return tok
 	}
+
 	l.readChar()
 	return tok
 }

@@ -17,28 +17,21 @@ fi
 rm $t
 
 
-# Run the linter
-echo "Launching linter .."
-t=$(mktemp)
-golint -set_exit_status ./...| grep -v "CamelCase" > $t
-if [ -s $t ]; then
-    echo "Found errors via 'staticcheck'"
-    cat $t
-    rm $t
-    exit 1
-fi
-rm $t
-echo "Completed linter .."
-
 
 # At this point failures cause aborts
 set -e
 
+# Run the linter-tool
+echo "Launching linter .."
+golint -set_exit_status ./...
+echo "Completed linter .."
+
+# Run the vet-tool
 echo "Running go vet .."
 go vet ./...
 echo "Completed go vet .."
 
-# Run golang tests
+# Run our golang tests
 go test ./...
 
 # If that worked build our examples, to ensure they work
@@ -49,3 +42,6 @@ for i in _examples/*; do
     go build .
     popd
 done
+
+# Finally run our benchmarks for completeness
+go test -test.bench=evalfilter -benchtime=1s -run=^t
