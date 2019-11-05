@@ -17,5 +17,5 @@ func (f *Float) Inspect() string {
 
 // Type returns the type of this object.
 func (f *Float) Type() Type {
-	return FLOAT_OBJ
+	return FLOAT
 }

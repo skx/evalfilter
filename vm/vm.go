@@ -1,7 +1,11 @@
-// Package vm implements a simple virtual machine.
+// Package vm implements a simple stack-based virtual machine.
 //
 // We're constructed with a set of opcodes, and we process those forever,
-// until we hit a `return` statement which terminates our run.
+// or until we hit a `return` statement which terminates the program.
+//
+// As well as a series of opcodes to execute we're also given a set
+// of constants to work with.  These are loaded to the stack on-demand,
+// so they can be manipulated.
 package vm
 
 import (
@@ -27,18 +31,20 @@ var Null = &object.Null{}
 // VM is the structure which holds our state.
 type VM struct {
 
-	// constants holds constants in the program source
-	// for example the script "1 + 3;" contains two
-	// numeric constants "1" and "3".
+	// constants holds constants in the program source, these
+	// are string-literals, numeric-literals, boolean values
+	// as well as variable names, and the names of functions.
+	//
+	// constants are treated as atoms, so they are unique.
 	constants []object.Object
 
-	// bytecode contains the actual instructions we'll execute.
+	// bytecode contains the actual series of instructions we'll execute.
 	bytecode code.Instructions
 
-	// stack stores our stack.
+	// stack holds a pointer to our stack-object.
 	//
-	// We're a stack-based virtual machine so this is used for many
-	// many of our internal facilities.
+	// We're a stack-based virtual machine so this is used for
+	// much of our internal implementation.
 	stack *stack.Stack
 
 	// environment holds the environment, which will allow variables
@@ -46,10 +52,11 @@ type VM struct {
 	environment *object.Environment
 
 	// fields contains the contents of all the fields in the object
-	// or map we're created with.
+	// or map we're executing against.  We discover these via reflection
+	// at run-time.
 	//
-	// These are discovered dynamically at run-time, and parsed only
-	// once.
+	// Reflection is slow so the map here is used as a cache, avoiding
+	// the need to reparse the same object multiple times.
 	fields map[string]object.Object
 }
 
@@ -64,16 +71,20 @@ func New(constants []object.Object, bytecode code.Instructions, env *object.Envi
 	}
 }
 
-// Run launches our virtual machine, intepreting the bytecode we were
+// Run launches our virtual machine, intepreting the bytecode-program we were
 // constructed with.
 //
-// We return when we hit a return-operation, or we hit the end of
-// the supplied bytecode - the latter is an error.
+// We return when we hit a return-operation, or if we ever hit the end of
+// the supplied bytecode.  As programs can contain flow-control operation
+// it is certainly possible they will never return.
+//
+// (Although our compiler does not implement for/while/do/until loops
+// a hand-created program could build such a things via the instruction-set.)
 func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
-	// Sanity-check
+	// Sanity-check the bytecode program is non-empty
 	if len(vm.bytecode) < 1 {
-		return nil, fmt.Errorf("bytecode is empty.  Did you forget to call evalfilter.Prepare?")
+		return nil, fmt.Errorf("the bytecode program is empty")
 	}
 
 	//
@@ -90,14 +101,18 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 	//
 	// Loop over all the bytecode.
 	//
+	// Not that the instructions support control-flow, so it
+	// is possible we'll run forever..
+	//
 	for ip < ln {
 
 		op := code.Opcode(vm.bytecode[ip])
 
 		switch op {
 
-		// store constant
+		// move the contents of a constant onto the stack
 		case code.OpConstant:
+
 			constIndex := code.ReadUint16(vm.bytecode[ip+1:])
 			ip += 3
 
@@ -196,14 +211,17 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 				ip = pos
 			}
 
-			// function-call.  This is messy.
+			// function-call: This is messy.
 		case code.OpCall:
 
-			// OpCall will contain the number of arguments
-			// the function is being invoked with.
+			// The OpCall instruction is followed by an
+			// argument describing the number of args the
+			// function we're calling should be invoked with.
 			args := code.ReadUint16(vm.bytecode[ip+1:])
 
-			// skip the "Call NN,NN"
+			//
+			// Skip over the args + instruction
+			//
 			ip += 3
 
 			// get the name of the function from the stack.
@@ -212,8 +230,10 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 				return nil, err
 			}
 
-			// construct an array with the arguments we were
-			// passed.
+			// Now store the arguments to pass to the function
+			// in an array.  All functions we support take an
+			// array of `object.Objects`.  So we don't do anything
+			// too magic here.
 			var fArgs []object.Object
 			for args > 0 {
 				a, err := vm.stack.Pop()
@@ -224,26 +244,33 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 				args--
 			}
 
+			// Reverse.  Yeah.
 			for left, right := 0, len(fArgs)-1; left < right; left, right = left+1, right-1 {
 				fArgs[left], fArgs[right] = fArgs[right], fArgs[left]
 			}
 
-			// Get the function we're to invoke
+			// Get the function we're to invoke.
 			fn, ok := vm.environment.GetFunction(fName.Inspect())
 			if !ok {
 				return nil, fmt.Errorf("the function %s does not exist", fName.Inspect())
 			}
 
-			// Cast the function
+			// Cast the function & call it
 			out := fn.(func(args []object.Object) object.Object)
-
-			// Call it
 			ret := out(fArgs)
 
-			// Store the result back on our stack.
+			// store the result back on the stack.
 			vm.stack.Push(ret)
+
+			// These two opcodes are just used for internal
+			// use.  They are never generated, and they should
+			// never be executed either.
+		case code.OpCodeSingleArg, code.OpFinal:
+			return nil, fmt.Errorf("tried to execute fake instruction %s - this is definitely a bug", code.String(op))
+
+			// Can't happen?
 		default:
-			fmt.Printf("Unknown opcode: %v", op)
+			return nil, fmt.Errorf("unhandled opcode: %v", op)
 		}
 	}
 
@@ -253,14 +280,18 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 	//
 	// That means the script is malformed..
 	//
+	// We could decide this means the script returns `false`, but
+	// I'd rather users were explicit.
+	//
 	return nil, fmt.Errorf("missing return at the end of the script")
 }
 
 // inspectObject discovers the names/values of all structure fields, or
-// map contents.  We do this before we begin running our bytecode.
+// map contents.
 //
-// We call this the first time a lookup is attempted against our object
-// which means once called all values should be present.
+// This method is called the first time any reference is made to a field
+// value - which means we don't eat the cost unless we need it, and we
+// don't have to call reflection more than once.  (Reflection is s-l-o-w.)
 func (vm *VM) inspectObject(obj interface{}) {
 
 	//
@@ -271,7 +302,7 @@ func (vm *VM) inspectObject(obj interface{}) {
 	}
 
 	//
-	// Get the value
+	// Get the value, be it a "thing", or a pointer to a thing.
 	//
 	val := reflect.Indirect(reflect.ValueOf(obj))
 
@@ -284,11 +315,16 @@ func (vm *VM) inspectObject(obj interface{}) {
 		// Get all keys
 		//
 		for _, key := range val.MapKeys() {
+
+			// The name of the key.
 			name := key.Interface().(string)
+
+			// The actual thing inside it
 			field := val.MapIndex(key).Elem()
 
+			// Default
 			var ret object.Object
-			ret = Null
+			ret = &object.Null{}
 
 			switch field.Kind() {
 			case reflect.Int, reflect.Int64:
@@ -311,12 +347,16 @@ func (vm *VM) inspectObject(obj interface{}) {
 	//
 	for i := 0; i < val.NumField(); i++ {
 
+		// Get the field
 		field := val.Field(i)
+
+		// Get the name
 		typeField := val.Type().Field(i)
 		name := typeField.Name
 
+		// Default
 		var ret object.Object
-		ret = Null
+		ret = &object.Null{}
 
 		switch field.Kind() {
 		case reflect.Int, reflect.Int64:
@@ -352,15 +392,15 @@ func (vm *VM) executeBinaryOperation(op code.Opcode) error {
 	}
 
 	switch {
-	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
+	case left.Type() == object.INTEGER && right.Type() == object.INTEGER:
 		return vm.evalIntegerInfixExpression(op, left, right)
-	case left.Type() == object.FLOAT_OBJ && right.Type() == object.FLOAT_OBJ:
+	case left.Type() == object.FLOAT && right.Type() == object.FLOAT:
 		return vm.evalFloatInfixExpression(op, left, right)
-	case left.Type() == object.FLOAT_OBJ && right.Type() == object.INTEGER_OBJ:
+	case left.Type() == object.FLOAT && right.Type() == object.INTEGER:
 		return vm.evalFloatIntegerInfixExpression(op, left, right)
-	case left.Type() == object.INTEGER_OBJ && right.Type() == object.FLOAT_OBJ:
+	case left.Type() == object.INTEGER && right.Type() == object.FLOAT:
 		return vm.evalIntegerFloatInfixExpression(op, left, right)
-	case left.Type() == object.STRING_OBJ && right.Type() == object.STRING_OBJ:
+	case left.Type() == object.STRING && right.Type() == object.STRING:
 		return vm.evalStringInfixExpression(op, left, right)
 	case op == code.OpAnd:
 		// if left is false skip right
@@ -390,7 +430,7 @@ func (vm *VM) executeBinaryOperation(op code.Opcode) error {
 		} else {
 			vm.stack.Push(False)
 		}
-	case left.Type() == object.BOOLEAN_OBJ && right.Type() == object.BOOLEAN_OBJ:
+	case left.Type() == object.BOOLEAN && right.Type() == object.BOOLEAN:
 		return vm.evalBooleanInfixExpression(op, left, right)
 	case left.Type() != right.Type():
 		return fmt.Errorf("type mismatch: %s %s %s",
@@ -588,6 +628,11 @@ func (vm *VM) evalBooleanInfixExpression(op code.Opcode, left object.Object, rig
 	l := &object.String{Value: left.Inspect()}
 	r := &object.String{Value: right.Inspect()}
 
+	// then reuse our implementation, which will work
+	// but might give some "interesting" results.
+	//
+	// e.g. "false < true"
+	//
 	return (vm.evalStringInfixExpression(op, l, r))
 }
 

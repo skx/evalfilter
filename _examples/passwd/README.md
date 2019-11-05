@@ -16,7 +16,7 @@ User nobody gave result true
 That showed that that the script returned `true` for the user `nobody`,
 matching the condition:
 
-    if ( ( Username == "nobody" ) && ( Uid > "1000" ) ) {
+    if ( Username == "nobody" && Uid > "1000" ) {
 
 ## Notes
 
