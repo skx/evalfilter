@@ -176,6 +176,7 @@ Your host application can also register variables which are accessible to your s
 
 For example the following example sets the contents of the variable `time`, and then outputs it.  Every second the output will change, because the value has been updated:
 
+```
     eval := evalfilter.New(`
                 print("The time is ", time, "\n");
                 return false;
@@ -194,8 +195,9 @@ For example the following example sets the contents of the variable `time`, and 
         // Update every second.
         time.Sleep(1 * time.Second)
     }
+```
 
-This example is available, with error-checking, in [_examples/variable/](_examples/variable/).
+This example is available, with error-checking, in [_examples/variable/](_examples/variable/) 
 
 
 ## Standalone Use
@@ -213,7 +215,7 @@ For example in the [cmd/evalfilter](cmd/evalfilter) directory you might run:
 
      ./evalfilter run -json on-call.json on-call.script
 
-This will test a script against a JSON object, allowing you to experiment with changing either.  This driver an also be used to reproduce any problems identified via [fuzz-testing](FUZZING.md).
+This will test a script against a JSON object, allowing you to experiment with changing either. 
 
 
 ## Benchmarking
