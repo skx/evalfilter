@@ -10,7 +10,9 @@ type Environment struct {
 	functions map[string]interface{}
 }
 
-// NewEnvironment creates new environment
+// NewEnvironment creates a new environment, which is used for storing variable
+// contents, and available golang functions which have been made available
+// to the scripting environment.
 func NewEnvironment() *Environment {
 	str := make(map[string]Object)
 	fun := make(map[string]interface{})
@@ -29,13 +31,17 @@ func (e *Environment) Set(name string, val Object) Object {
 	return val
 }
 
-// SetFunction makes a (golang) function available to the script.
+// SetFunction makes a (golang) function available to the scripting
+// environment.
 func (e *Environment) SetFunction(name string, fun interface{}) interface{} {
 	e.functions[name] = fun
 	return fun
 }
 
 // GetFunction allows a function to be retrieved, by name.
+//
+// Functions retrieved are only those which have been previously added
+// via `SetFunction`.
 func (e *Environment) GetFunction(name string) (interface{}, bool) {
 	fun, ok := e.functions[name]
 	return fun, ok

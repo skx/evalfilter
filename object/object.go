@@ -15,11 +15,11 @@ type Type string
 // pre-defined constant Type
 const (
 	INTEGER = "INTEGER"
-	FLOAT = "FLOAT"
-	BOOLEAN= "BOOLEAN"
-	NULL= "NULL"
-	ERROR= "ERROR"
-	STRING= "STRING"
+	FLOAT   = "FLOAT"
+	BOOLEAN = "BOOLEAN"
+	NULL    = "NULL"
+	ERROR   = "ERROR"
+	STRING  = "STRING"
 )
 
 // Object is the interface that all of our various object-types must implement.

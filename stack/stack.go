@@ -19,8 +19,8 @@ type Stack struct {
 // Stack functions
 //
 
-// NewStack creates a new stack object.
-func NewStack() *Stack {
+// New creates a new stack object.
+func New() *Stack {
 	return &Stack{}
 }
 

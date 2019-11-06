@@ -9,6 +9,7 @@
 package vm
 
 import (
+	"encoding/binary"
 	"fmt"
 	"math"
 	"reflect"
@@ -67,7 +68,7 @@ func New(constants []object.Object, bytecode code.Instructions, env *object.Envi
 		constants:   constants,
 		environment: env,
 		bytecode:    bytecode,
-		stack:       stack.NewStack(),
+		stack:       stack.New(),
 	}
 }
 
@@ -106,31 +107,51 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 	//
 	for ip < ln {
 
+		//
+		// Get the next opcode
+		//
 		op := code.Opcode(vm.bytecode[ip])
+
+		//
+		// Find out how long it is.
+		//
+		opLen := code.Length(op)
+
+		//
+		// If the opcode is more than a single byte long
+		// we read the argument here.
+		//
+		opArg := 0
+		if opLen > 1 {
+
+			//
+			// Note in the future we might have to cope
+			// with opcodes with more than a single argument,
+			// and they might be different sizes.
+			//
+			opArg = int(binary.BigEndian.Uint16(vm.bytecode[ip+1 : ip+3]))
+		}
 
 		switch op {
 
-		// move the contents of a constant onto the stack
 		case code.OpConstant:
 
-			constIndex := code.ReadUint16(vm.bytecode[ip+1:])
-			ip += 3
-
-			vm.stack.Push(vm.constants[constIndex])
+			// move the contents of a constant onto the stack
+			vm.stack.Push(vm.constants[opArg])
 
 			// Lookup variable/field, by name
 		case code.OpLookup:
-			constIndex := code.ReadUint16(vm.bytecode[ip+1:])
-			ip += 3
 
 			// Get the name.
-			name := vm.constants[constIndex].Inspect()
+			name := vm.constants[opArg].Inspect()
 
+			// Lookup the value.
 			val := vm.lookup(obj, name)
 			vm.stack.Push(val)
 
 			// Set a variable by name
 		case code.OpSet:
+
 			var name object.Object
 			var val object.Object
 			var err error
@@ -144,7 +165,6 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			}
 
 			vm.environment.Set(name.Inspect(), val)
-			ip++
 
 			// maths & comparisons
 		case code.OpAdd, code.OpSub, code.OpMul, code.OpDiv, code.OpMod, code.OpPower, code.OpLess, code.OpLessEqual, code.OpGreater, code.OpGreaterEqual, code.OpEqual, code.OpNotEqual, code.OpMatches, code.OpNotMatches, code.OpAnd, code.OpOr:
@@ -152,15 +172,14 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			if err != nil {
 				return nil, err
 			}
-			ip++
 
 			// !true -> false
 		case code.OpBang:
+
 			err := vm.executeBangOperator()
 			if err != nil {
 				return nil, err
 			}
-			ip++
 
 			// -1
 		case code.OpMinus:
@@ -168,7 +187,6 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			if err != nil {
 				return nil, err
 			}
-			ip++
 
 			// square root
 		case code.OpRoot:
@@ -176,17 +194,14 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			if err != nil {
 				return nil, err
 			}
-			ip++
 
 			// Boolean literal
 		case code.OpTrue:
 			vm.stack.Push(True)
-			ip++
 
 			// Boolean literal
 		case code.OpFalse:
 			vm.stack.Push(False)
-			ip++
 
 			// return from script
 		case code.OpReturn:
@@ -195,20 +210,27 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
 			// flow-control: unconditional jump
 		case code.OpJump:
-			pos := int(code.ReadUint16(vm.bytecode[ip+1:]))
-			ip = pos
+
+			// NOTE: We reduce the offset, becaues
+			// at the end of our loop we increment
+			// it again..
+
+			ip = opArg - opLen
 
 			// flow-control: jump if stack contains non-true
 		case code.OpJumpIfFalse:
-			pos := int(code.ReadUint16(vm.bytecode[ip+1:]))
-			ip += 3
 
 			condition, err := vm.stack.Pop()
 			if err != nil {
 				return nil, err
 			}
 			if !vm.isTruthy(condition) {
-				ip = pos
+
+				// NOTE: We reduce the offset, becaues
+				// at the end of our loop we increment
+				// it again..
+
+				ip = opArg - opLen
 			}
 
 			// function-call: This is messy.
@@ -217,12 +239,6 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			// The OpCall instruction is followed by an
 			// argument describing the number of args the
 			// function we're calling should be invoked with.
-			args := code.ReadUint16(vm.bytecode[ip+1:])
-
-			//
-			// Skip over the args + instruction
-			//
-			ip += 3
 
 			// get the name of the function from the stack.
 			fName, err := vm.stack.Pop()
@@ -235,13 +251,13 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			// array of `object.Objects`.  So we don't do anything
 			// too magic here.
 			var fArgs []object.Object
-			for args > 0 {
+			for opArg > 0 {
 				a, err := vm.stack.Pop()
 				if err != nil {
 					return nil, err
 				}
 				fArgs = append(fArgs, a)
-				args--
+				opArg--
 			}
 
 			// Reverse.  Yeah.
@@ -266,12 +282,15 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			// use.  They are never generated, and they should
 			// never be executed either.
 		case code.OpCodeSingleArg, code.OpFinal:
+
 			return nil, fmt.Errorf("tried to execute fake instruction %s - this is definitely a bug", code.String(op))
 
 			// Can't happen?
 		default:
 			return nil, fmt.Errorf("unhandled opcode: %v", op)
 		}
+
+		ip += opLen
 	}
 
 	//
@@ -793,7 +812,7 @@ func (vm *VM) lookup(obj interface{}, name string) object.Object {
 	}
 
 	//
-	// Then perform the lookup
+	// Now perform the lookup
 	//
 	if cached, found := vm.fields[name]; found {
 		return cached

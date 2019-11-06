@@ -134,37 +134,38 @@ func (e *Eval) Dump() error {
 		// opcode
 		op := e.instructions[i]
 
-		// as a string
+		// opcode length
+		opLen := code.Length(code.Opcode(op))
+
+		// opcode as a string
 		str := code.String(code.Opcode(op))
 
-		fmt.Printf("  %06d\t%s\t", i, str)
+		fmt.Printf("  %06d\t%14s", i, str)
 
 		// show arg
 		if op < byte(code.OpCodeSingleArg) {
 
-			arg := code.ReadUint16(e.instructions[i+1:])
-			fmt.Printf("%d", arg)
-
-			i += 2
+			arg := binary.BigEndian.Uint16(e.instructions[i+1 : i+3])
+			fmt.Printf("\t%d", arg)
 
 			//
 			// Show the values, as comments, to make the
 			// bytecode more human-readable.
 			//
 			if code.Opcode(op) == code.OpConstant {
-				fmt.Printf("\t\t// load constant: %v", e.constants[arg])
+				fmt.Printf("\t// load constant: %v", e.constants[arg])
 			}
 			if code.Opcode(op) == code.OpLookup {
-				fmt.Printf("\t\t// lookup field: %v", e.constants[arg])
+				fmt.Printf("\t// lookup field: %v", e.constants[arg])
 			}
 			if code.Opcode(op) == code.OpCall {
-				fmt.Printf("\t\t\t// call function with %d arg(s)", arg)
+				fmt.Printf("\t// call function with %d arg(s)", arg)
 			}
 		}
 
 		fmt.Printf("\n")
 
-		i++
+		i += opLen
 	}
 
 	// constants
@@ -196,7 +197,7 @@ func (e *Eval) Run(obj interface{}) (bool, error) {
 	//
 	// Is the return-value an error?  If so report that.
 	//
-	if out.Type() == object.ERROR{
+	if out.Type() == object.ERROR {
 		return false, fmt.Errorf("%s", out.Inspect())
 	}
 

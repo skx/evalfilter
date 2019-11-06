@@ -22,7 +22,7 @@ type (
 	infixParseFn  func(ast.Expression) ast.Expression
 )
 
-// Here we define values for predecence, lowest to highest.
+// Here we define values for precedence, lowest to highest.
 const (
 	_ int = iota
 	LOWEST

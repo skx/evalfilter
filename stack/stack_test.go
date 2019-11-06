@@ -8,7 +8,7 @@ import (
 
 // Test a new stack is empty
 func TestStackStartsEmpty(t *testing.T) {
-	s := NewStack()
+	s := New()
 	if !s.Empty() {
 		t.Errorf("New stack is non-empty")
 	}
@@ -19,7 +19,7 @@ func TestStackStartsEmpty(t *testing.T) {
 
 // Test we can add/remove a value
 func TestStack(t *testing.T) {
-	s := NewStack()
+	s := New()
 
 	s.Push(&object.String{Value: "Steve Kemp"})
 	if s.Empty() {
@@ -48,7 +48,7 @@ func TestStack(t *testing.T) {
 
 // Test we can add/remove a value
 func TestStackOrder(t *testing.T) {
-	s := NewStack()
+	s := New()
 
 	s.Push(&object.String{Value: "Steve Kemp"})
 	s.Push(&object.String{Value: "Adam Ant"})
@@ -86,7 +86,7 @@ func TestStackOrder(t *testing.T) {
 
 // Popping from an empty stack should fail
 func TestEmptyStack(t *testing.T) {
-	s := NewStack()
+	s := New()
 
 	_, err := s.Pop()
 
