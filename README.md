@@ -85,7 +85,7 @@ The user could now write the following script to test if an incoming message was
     //
     // A bug is being discussed?  Awesome.
     //
-    if ( Message ~=  "panic" ) { return true; }
+    if ( Message ~=  /panic/i ) { return true; }
 
     //
     // OK the message is uninteresting, and will be discarded, or
@@ -135,10 +135,12 @@ The engine supports scripts which:
   * size (`<`, `<=`, `>`, `>=`):
     * "`if ( Count >= 10 ) { return false; }`"
     * "`if ( Hour >= 8 && Hour <= 17 ) { return false; }`"
-  * String contains:
-    * "`if ( Content ~= "needle" )`"
-  * Does not contain:
-    * "`if ( Content !~ "some text we don't want" )`"
+  * String matches a regular expression:
+    * "`if ( Content ~= /needle/ )`"
+    * "`if ( Content ~= /needle/i )`"
+      * With case insensitivity
+  * Does not match a regular expression:
+    * "`if ( Content !~ /some text we don't want/ )`"
 * You can also add new primitives to the engine.
   * By implementing them in your golang host application.
   * Your host-application can also set variables which are accessible to the user-script.
@@ -157,10 +159,6 @@ As we noted earlier you can export functions from your host-application and make
   * Returns the length of the given value, or the contents of the given field.
 * `lower(field | value)`
   * Return the lower-case version of the given input.
-* `match(field | str, regexp)`
-  * Returns `true` if the specified string matches the supplied regular expression.
-  * You can make this case-insensitive using `(?i)`, for example:
-    * `if ( match( "Steve" , "(?i)^steve$" ) ) { ... `
 * `trim(field | string)`
   * Returns the given string, or the contents of the given field, with leading/trailing whitespace removed.
 * `type(field | value)`
@@ -197,7 +195,7 @@ For example the following example sets the contents of the variable `time`, and 
     }
 ```
 
-This example is available, with error-checking, in [_examples/variable/](_examples/variable/) 
+This example is available, with error-checking, in [_examples/variable/](_examples/variable/)
 
 
 ## Standalone Use
@@ -215,7 +213,7 @@ For example in the [cmd/evalfilter](cmd/evalfilter) directory you might run:
 
      ./evalfilter run -json on-call.json on-call.script
 
-This will test a script against a JSON object, allowing you to experiment with changing either. 
+This will test a script against a JSON object, allowing you to experiment with changing either.
 
 
 ## Benchmarking
