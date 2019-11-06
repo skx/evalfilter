@@ -141,9 +141,9 @@ func (l *Lexer) NextToken() token.Token {
 		// slash is mostly division, but could
 		// be the start of a regular expression
 
-		if l.prevToken.Type == token.RBRACE || // impossible?
-			l.prevToken.Type == token.RPAREN || // (a+c) / b
+		if l.prevToken.Type == token.RPAREN || // (a+c) / b
 			l.prevToken.Type == token.IDENT || // a / b
+			//			l.prevToken.Type == token.ASSIGN || // a / b
 			l.prevToken.Type == token.INT || // 3 / b
 			l.prevToken.Type == token.FLOAT {
 
@@ -235,10 +235,14 @@ func (l *Lexer) NextToken() token.Token {
 
 	default:
 		if isDigit(l.ch) {
-			return l.readDecimal()
+
+			tok := l.readDecimal()
+			l.prevToken = tok
+			return tok
 		}
 		tok.Literal = l.readIdentifier()
 		tok.Type = token.LookupIdentifier(tok.Literal)
+		l.prevToken = tok
 		return tok
 	}
 
