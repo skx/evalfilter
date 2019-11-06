@@ -68,7 +68,7 @@ func New(constants []object.Object, bytecode code.Instructions, env *object.Envi
 		constants:   constants,
 		environment: env,
 		bytecode:    bytecode,
-		stack:       stack.NewStack(),
+		stack:       stack.New(),
 	}
 }
 
