@@ -44,7 +44,7 @@ func TestNextToken2(t *testing.T) {
 	input := `five=5;
 ten =10;
 result = add(five, ten);
-!-/ *5;
+!- *5;
 5 < 10 > 5 ** 6;
 
 if(5<10){
@@ -87,7 +87,6 @@ if(5<10){
 		{token.SEMICOLON, ";"},
 		{token.BANG, "!"},
 		{token.MINUS, "-"},
-		{token.SLASH, "/"},
 		{token.ASTERISK, "*"},
 		{token.INT, "5"},
 		{token.SEMICOLON, ";"},
@@ -309,4 +308,31 @@ func TestLine(t *testing.T) {
 		}
 	}
 
+}
+
+func TestRegexp(t *testing.T) {
+	input := `if ( f ~= /steve/i )`
+
+	tests := []struct {
+		expectedType    token.Type
+		expectedLiteral string
+	}{
+		{token.IF, "if"},
+		{token.LPAREN, "("},
+		{token.IDENT, "f"},
+		{token.CONTAINS, "~="},
+		{token.REGEXP, "(?i)steve"},
+		{token.RPAREN, ")"},
+		{token.EOF, ""},
+	}
+	l := New(input)
+	for i, tt := range tests {
+		tok := l.NextToken()
+		if tok.Type != tt.expectedType {
+			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
+		}
+		if tok.Literal != tt.expectedLiteral {
+			t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
+		}
+	}
 }
