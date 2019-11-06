@@ -36,7 +36,7 @@ Once you're ready to execute the script against a particular object the bytecode
 
 ### Bytecode
 
-The bytecode is used internally only, but it is documented in [BYTECODE.md](BYTECODE.md).
+The bytecode is not exposed externally, but it is documented in [BYTECODE.md](BYTECODE.md).
 
 
 ## Use Cases
