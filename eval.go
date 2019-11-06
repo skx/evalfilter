@@ -274,6 +274,10 @@ func (e *Eval) compile(node ast.Node) error {
 		str := &object.String{Value: node.Value}
 		e.emit(code.OpConstant, e.addConstant(str))
 
+	case *ast.RegexpLiteral:
+		reg := &object.String{Value: node.Value}
+		e.emit(code.OpConstant, e.addConstant(reg))
+
 	case *ast.ReturnStatement:
 		err := e.compile(node.ReturnValue)
 		if err != nil {
