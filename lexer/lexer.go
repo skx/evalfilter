@@ -25,6 +25,9 @@ type Lexer struct {
 
 	// A rune slice of our input string
 	characters []rune
+
+	// Previous token.
+	prevToken token.Token
 }
 
 // New creates a Lexer instance from the given string
@@ -134,8 +137,28 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.MINUS, l.ch)
 
 	case rune('/'):
-		tok = newToken(token.SLASH, l.ch)
 
+		// slash is mostly division, but could
+		// be the start of a regular expression
+
+		if l.prevToken.Type == token.RBRACE || // impossible?
+			l.prevToken.Type == token.RPAREN || // (a+c) / b
+			l.prevToken.Type == token.IDENT || // a / b
+			l.prevToken.Type == token.INT || // 3 / b
+			l.prevToken.Type == token.FLOAT {
+
+			tok = newToken(token.SLASH, l.ch)
+		} else {
+			str, err := l.readRegexp()
+			if err == nil {
+				tok.Type = token.REGEXP
+				tok.Literal = str
+			} else {
+				tok.Type = token.ILLEGAL
+				tok.Literal = err.Error()
+			}
+			return tok
+		}
 	case rune('*'):
 		if l.peekChar() == rune('*') {
 			ch := l.ch
@@ -220,6 +243,9 @@ func (l *Lexer) NextToken() token.Token {
 	}
 
 	l.readChar()
+
+	l.prevToken = tok
+
 	return tok
 }
 
@@ -344,6 +370,34 @@ func (l *Lexer) readString(delim rune) (string, error) {
 		}
 		out = out + string(l.ch)
 
+	}
+
+	return out, nil
+}
+
+// read a regexp
+func (l *Lexer) readRegexp() (string, error) {
+	out := ""
+
+	for {
+		l.readChar()
+
+		if l.ch == rune(0) {
+			return "", fmt.Errorf("unterminated regular expression")
+		}
+		if l.ch == '/' {
+
+			// consume the newline.
+			l.readChar()
+
+			if l.ch == rune('i') {
+				l.readChar()
+
+				out = "(?i)" + out
+			}
+			break
+		}
+		out = out + string(l.ch)
 	}
 
 	return out, nil
