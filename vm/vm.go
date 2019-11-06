@@ -629,9 +629,34 @@ func (vm *VM) evalStringInfixExpression(op code.Opcode, left object.Object, righ
 	case code.OpLess:
 		vm.stack.Push(vm.nativeBoolToBooleanObject(l.Value < r.Value))
 	case code.OpMatches:
-		vm.stack.Push(vm.nativeBoolToBooleanObject(strings.Contains(l.Value, r.Value)))
+		args := []object.Object{l, r}
+		fn, ok := vm.environment.GetFunction("match")
+		if !ok {
+			return (fmt.Errorf("failed to lookup match-function"))
+		}
+		out := fn.(func(args []object.Object) object.Object)
+		ret := out(args)
+
+		if ret.(*object.Boolean).Value {
+			vm.stack.Push(True)
+		} else {
+			vm.stack.Push(False)
+		}
 	case code.OpNotMatches:
-		vm.stack.Push(vm.nativeBoolToBooleanObject(!strings.Contains(l.Value, r.Value)))
+		args := []object.Object{l, r}
+		fn, ok := vm.environment.GetFunction("match")
+		if !ok {
+			return (fmt.Errorf("failed to lookup match-function"))
+		}
+		out := fn.(func(args []object.Object) object.Object)
+		ret := out(args)
+
+		if ret.(*object.Boolean).Value {
+			vm.stack.Push(False)
+		} else {
+			vm.stack.Push(True)
+		}
+
 	case code.OpAdd:
 		vm.stack.Push(&object.String{Value: l.Value + r.Value})
 	default:
