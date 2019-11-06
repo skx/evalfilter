@@ -50,6 +50,7 @@ const (
 	PLUS      = "+"
 	POW       = "**"
 	RBRACE    = "}"
+	REGEXP    = "REGEXP"
 	RETURN    = "RETURN"
 	RPAREN    = ")"
 	SEMICOLON = ";"
