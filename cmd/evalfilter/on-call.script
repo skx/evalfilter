@@ -3,8 +3,8 @@
 //
 
 
-if ( Channel !~ "_alerts" ) {
-    print("The channel is not important\n");
+if ( Channel !~ /_ALerts$/i ) {
+    print("The channel `" + Channel + "` is not important\n");
     return false;
 }
 

@@ -8,6 +8,7 @@ package lexer
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/skx/evalfilter/v2/token"
 )
@@ -25,6 +26,9 @@ type Lexer struct {
 
 	// A rune slice of our input string
 	characters []rune
+
+	// Previous token.
+	prevToken token.Token
 }
 
 // New creates a Lexer instance from the given string
@@ -134,8 +138,33 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.MINUS, l.ch)
 
 	case rune('/'):
-		tok = newToken(token.SLASH, l.ch)
 
+		// slash is mostly division, but could
+		// be the start of a regular expression
+
+		// We exclude:
+		//   ( a + b ) / c   -> RPAREN
+		//   a / c           -> IDENT
+		//   3.2 / c         -> FLOAT
+		//   1 / c           -> IDENT
+		//
+		if l.prevToken.Type == token.RPAREN ||
+			l.prevToken.Type == token.IDENT ||
+			l.prevToken.Type == token.INT ||
+			l.prevToken.Type == token.FLOAT {
+
+			tok = newToken(token.SLASH, l.ch)
+		} else {
+			str, err := l.readRegexp()
+			if err == nil {
+				tok.Type = token.REGEXP
+				tok.Literal = str
+			} else {
+				tok.Type = token.ILLEGAL
+				tok.Literal = err.Error()
+			}
+			return tok
+		}
 	case rune('*'):
 		if l.peekChar() == rune('*') {
 			ch := l.ch
@@ -212,14 +241,21 @@ func (l *Lexer) NextToken() token.Token {
 
 	default:
 		if isDigit(l.ch) {
-			return l.readDecimal()
+
+			tok := l.readDecimal()
+			l.prevToken = tok
+			return tok
 		}
 		tok.Literal = l.readIdentifier()
 		tok.Type = token.LookupIdentifier(tok.Literal)
+		l.prevToken = tok
 		return tok
 	}
 
 	l.readChar()
+
+	l.prevToken = tok
+
 	return tok
 }
 
@@ -344,6 +380,56 @@ func (l *Lexer) readString(delim rune) (string, error) {
 		}
 		out = out + string(l.ch)
 
+	}
+
+	return out, nil
+}
+
+// read a regexp, including flags.
+func (l *Lexer) readRegexp() (string, error) {
+	out := ""
+
+	for {
+		l.readChar()
+
+		if l.ch == rune(0) {
+			return "", fmt.Errorf("unterminated regular expression")
+		}
+		if l.ch == '/' {
+
+			// consume the terminating "/".
+			l.readChar()
+
+			// prepare to look for flags
+			flags := ""
+
+			// two flags are supported:
+			//   i -> Ignore-case
+			//   m -> Multiline
+			//
+			for l.ch == rune('i') || l.ch == rune('m') {
+
+				// save the char - unless it is a repeat
+				if !strings.Contains(flags, string(l.ch)) {
+
+					// we're going to sort the flags
+					tmp := strings.Split(flags, "")
+					tmp = append(tmp, string(l.ch))
+					flags = strings.Join(tmp, "")
+
+				}
+
+				// read the next
+				l.readChar()
+			}
+
+			// convert the regexp to go-lang
+			if len(flags) > 0 {
+				out = "(?" + flags + ")" + out
+			}
+			break
+		}
+		out = out + string(l.ch)
 	}
 
 	return out, nil

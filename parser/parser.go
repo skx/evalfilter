@@ -112,6 +112,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.IF, p.parseIfExpression)
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
+	p.registerPrefix(token.REGEXP, p.parseRegexpLiteral)
 
 	p.infixParseFns = make(map[token.Type]infixParseFn)
 	p.registerInfix(token.ASSIGN, p.parseAssignExpression)
@@ -408,6 +409,11 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 // parseStringLiteral parses a string-literal.
 func (p *Parser) parseStringLiteral() ast.Expression {
 	return &ast.StringLiteral{Token: p.curToken, Value: p.curToken.Literal}
+}
+
+// parseRegexpLiteral parses a regular-expression.
+func (p *Parser) parseRegexpLiteral() ast.Expression {
+	return &ast.RegexpLiteral{Token: p.curToken, Value: p.curToken.Literal}
 }
 
 // parse an array of expressions, as used for function-arguments.
