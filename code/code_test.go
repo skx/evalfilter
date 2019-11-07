@@ -11,23 +11,23 @@ func TestOpcodes(t *testing.T) {
 
 	for i <= OpFinal {
 
-        // Stringify and check it looks sane
+		// Stringify and check it looks sane
 		x := String(i)
 		if !strings.HasPrefix(x, "Op") {
 			t.Fatalf("opcode doesn't have a good prefix:%s", x)
 		}
 
-        // Opcode length
-        if ( i < OpCodeSingleArg ) {
-            if ( 3 != Length(i) ) {
-                t.Fatalf("Invalid length of opcode %s", x)
-            }
-        } else {
-            if ( 1 != Length(i) ) {
-                t.Fatalf("Invalid length of opcode %s", x)
-            }
+		// Opcode length
+		if i < OpCodeSingleArg {
+			if Length(i) != 3 {
+				t.Fatalf("Invalid length of opcode %s", x)
+			}
+		} else {
+			if Length(i) != 1 {
+				t.Fatalf("Invalid length of opcode %s", x)
+			}
 
-        }
+		}
 
 		i++
 	}
