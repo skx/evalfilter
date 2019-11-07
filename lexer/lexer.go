@@ -8,6 +8,7 @@ package lexer
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/skx/evalfilter/v2/token"
 )
@@ -141,10 +142,15 @@ func (l *Lexer) NextToken() token.Token {
 		// slash is mostly division, but could
 		// be the start of a regular expression
 
-		if l.prevToken.Type == token.RPAREN || // (a+c) / b
-			l.prevToken.Type == token.IDENT || // a / b
-			//			l.prevToken.Type == token.ASSIGN || // a / b
-			l.prevToken.Type == token.INT || // 3 / b
+		// We exclude:
+		//   ( a + b ) / c   -> RPAREN
+		//   a / c           -> IDENT
+		//   3.2 / c         -> FLOAT
+		//   1 / c           -> IDENT
+		//
+		if l.prevToken.Type == token.RPAREN ||
+			l.prevToken.Type == token.IDENT ||
+			l.prevToken.Type == token.INT ||
 			l.prevToken.Type == token.FLOAT {
 
 			tok = newToken(token.SLASH, l.ch)
@@ -379,7 +385,7 @@ func (l *Lexer) readString(delim rune) (string, error) {
 	return out, nil
 }
 
-// read a regexp
+// read a regexp, including flags.
 func (l *Lexer) readRegexp() (string, error) {
 	out := ""
 
@@ -391,13 +397,35 @@ func (l *Lexer) readRegexp() (string, error) {
 		}
 		if l.ch == '/' {
 
-			// consume the newline.
+			// consume the terminating "/".
 			l.readChar()
 
-			if l.ch == rune('i') {
-				l.readChar()
+			// prepare to look for flags
+			flags := ""
 
-				out = "(?i)" + out
+			// two flags are supported:
+			//   i -> Ignore-case
+			//   m -> Multiline
+			//
+			for l.ch == rune('i') || l.ch == rune('m') {
+
+				// save the char - unless it is a repeat
+				if !strings.Contains(flags, string(l.ch)) {
+
+					// we're going to sort the flags
+					tmp := strings.Split(flags, "")
+					tmp = append(tmp, string(l.ch))
+					flags = strings.Join(tmp, "")
+
+				}
+
+				// read the next
+				l.readChar()
+			}
+
+			// convert the regexp to go-lang
+			if len(flags) > 0 {
+				out = "(?" + flags + ")" + out
 			}
 			break
 		}
