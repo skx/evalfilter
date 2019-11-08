@@ -8,16 +8,20 @@ import (
 	"github.com/skx/evalfilter/v2/object"
 )
 
-// Stack holds return-addresses when the `call` operation is being
-// completed.  It can also be used for storing ints.
+// Stack implements a stack which can hold an arbitrary number
+// of objects.  It is used by the virtualm-machine to perform
+// calculations, etc.
 type Stack struct {
-	// The entries on our stack
+
+	// entries hold our stack entries.
+    //
+    // We store them in a list which is less
+    // efficient than explicitly setting up a
+    // size - but the advantage is that we don't
+    // need to worry about exhausing our stack
+    // size at any point, except due to OOM errors!
 	entries []object.Object
 }
-
-//
-// Stack functions
-//
 
 // New creates a new stack object.
 func New() *Stack {
@@ -26,15 +30,15 @@ func New() *Stack {
 
 // Empty returns true if the stack is empty.
 func (s *Stack) Empty() bool {
-	return (len(s.entries) <= 0)
+	return (len(s.entries) == 0)
 }
 
-// Size retrieves the length of the stack.
+// Size retrieves the number of entries stored upon the stack.
 func (s *Stack) Size() int {
 	return (len(s.entries))
 }
 
-// Push adds a value to the stack.
+// Push appends the specified value to the stack.
 func (s *Stack) Push(value object.Object) {
 	s.entries = append(s.entries, value)
 }
