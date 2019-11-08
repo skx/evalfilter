@@ -275,6 +275,8 @@ func (e *Eval) compile(node ast.Node) error {
 		e.emit(code.OpConstant, e.addConstant(str))
 
 	case *ast.RegexpLiteral:
+
+		// Note: Here we cheat.
 		reg := &object.String{Value: node.Value}
 		e.emit(code.OpConstant, e.addConstant(reg))
 
@@ -363,35 +365,123 @@ func (e *Eval) compile(node ast.Node) error {
 		}
 
 	case *ast.IfExpression:
+
+		// Compile the expression.
 		err := e.compile(node.Condition)
 		if err != nil {
 			return err
 		}
 
-		// Emit an `OpJumpIfFalse` with a bogus value
+		//
+		//  Assume the following input:
+		//
+		//    if ( blah ) {
+		//       // A
+		//    }
+		//    else {
+		//       // B
+		//    }
+		//    // C
+		//
+		// We've now compiled `blah`, which is the expression
+		// above.
+		//
+		// So now we generate an `OpJumpIfFalse` to handle the case
+		// where the if statement is not true. (If the `blah` condition
+		// was true we just continue running it ..)
+		//
+		// Then the jump we're generating here will jump to either
+		// B - if there is an else-block - or C if there is not.
+		//
 		jumpNotTruthyPos := e.emit(code.OpJumpIfFalse, 9999)
 
+		//
+		// Compile the code in block A
+		//
 		err = e.compile(node.Consequence)
 		if err != nil {
 			return err
 		}
 
-		// Emit an `OpJump` with a bogus value
-		jumpPos := e.emit(code.OpJump, 9999)
-
+		//
+		// Here we're calculating the length END of A.
+		//
+		// Because if the expression was false we want to
+		// jump to the START of B.
+		//
 		afterConsequencePos := len(e.instructions)
 		e.changeOperand(jumpNotTruthyPos, afterConsequencePos)
 
+		//
+		// If we don't have an `else` block then we're done.
+		//
+		// If we do then the end of the A-block needs to jump
+		// to C - to skip over the else-branch.
+		//
+		// If there is no else block then we're all good, we only
+		// needed to jump over the first block if the condition
+		// was not true - and we've already handled that case.
+		//
 		if node.Alternative != nil {
+
+			//
+			// Add a jump to the end of A - which will
+			// take us to C.
+			//
+			// Emit an `OpJump` with a bogus value
+			jumpPos := e.emit(code.OpJump, 9999)
+
+			//
+			// We're jumping to the wrong place here,
+			// so we have to cope with the updated target
+			//
+			// (We're in the wrong place because we just
+			// added a JUMP at the end of A)
+			//
+			afterConsequencePos = len(e.instructions)
+			e.changeOperand(jumpNotTruthyPos, afterConsequencePos)
+
+			//
+			// Compile the block
+			//
 			err := e.compile(node.Alternative)
 			if err != nil {
 				return err
 			}
 
+			//
+			// Now we change the offset to be C, which
+			// is the end of B.
+			//
+			afterAlternativePos := len(e.instructions)
+			e.changeOperand(jumpPos, afterAlternativePos)
 		}
 
-		afterAlternativePos := len(e.instructions)
-		e.changeOperand(jumpPos, afterAlternativePos)
+		//
+		// Hopefully that is clear.
+		//
+		// We end up with a simple case where there is no else-clause:
+		//
+		//   if ..
+		//     JUMP IF NOT B:
+		//     body
+		//     body
+		// B:
+		//
+		// And when there are both we have a pair of jumps:
+		//
+		//   if ..
+		//     JUMP IF NOT B:
+		//     body
+		//     body
+		//     JUMP C:
+		//
+		//  B: // else clause
+		//     body
+		//     body
+		//     // fall-through
+		//  C:
+		//
 
 	case *ast.AssignStatement:
 
