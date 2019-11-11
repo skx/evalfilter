@@ -246,23 +246,23 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 				return nil, err
 			}
 
-			// Now store the arguments to pass to the function
-			// in an array.  All functions we support take an
-			// array of `object.Objects`.  So we don't do anything
-			// too magic here.
-			var fArgs []object.Object
+			//
+			// The argument to the call-instruction is the
+			// number of arguments to pass to the function
+			// we're to invoke.
+			//
+			// Of course these are in reverse.
+			//
+			// Create an array and pop each stack-argument
+			// off into the correct location.
+			//
+			fnArgs := make([]object.Object, opArg)
 			for opArg > 0 {
-				a, err := vm.stack.Pop()
+				fnArgs[opArg-1], err = vm.stack.Pop()
 				if err != nil {
 					return nil, err
 				}
-				fArgs = append(fArgs, a)
 				opArg--
-			}
-
-			// Reverse.  Yeah.
-			for left, right := 0, len(fArgs)-1; left < right; left, right = left+1, right-1 {
-				fArgs[left], fArgs[right] = fArgs[right], fArgs[left]
 			}
 
 			// Get the function we're to invoke.
@@ -273,7 +273,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
 			// Cast the function & call it
 			out := fn.(func(args []object.Object) object.Object)
-			ret := out(fArgs)
+			ret := out(fnArgs)
 
 			// store the result back on the stack.
 			vm.stack.Push(ret)
