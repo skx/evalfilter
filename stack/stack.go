@@ -9,17 +9,17 @@ import (
 )
 
 // Stack implements a stack which can hold an arbitrary number
-// of objects.  It is used by the virtualm-machine to perform
+// of objects.  It is used by the virtual-machine to perform
 // calculations, etc.
 type Stack struct {
 
 	// entries hold our stack entries.
-    //
-    // We store them in a list which is less
-    // efficient than explicitly setting up a
-    // size - but the advantage is that we don't
-    // need to worry about exhausing our stack
-    // size at any point, except due to OOM errors!
+	//
+	// We store them in a list which is less
+	// efficient than explicitly setting up a
+	// size - but the advantage is that we don't
+	// need to worry about exhausing our stack
+	// size at any point, except due to OOM errors!
 	entries []object.Object
 }
 
