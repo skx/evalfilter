@@ -276,8 +276,19 @@ func (e *Eval) compile(node ast.Node) error {
 
 	case *ast.RegexpLiteral:
 
-		// Note: Here we cheat.
-		reg := &object.String{Value: node.Value}
+		// The regexp body
+		val := node.Value
+
+		// The regexp flags
+		if node.Flags != "" {
+
+			// Which we pretend were part of the body
+			// because that is what Golang expects.
+			val = "(?" + node.Flags + ")" + val
+		}
+
+		// The value + flags
+		reg := &object.String{Value: val}
 		e.emit(code.OpConstant, e.addConstant(reg))
 
 	case *ast.ReturnStatement:
