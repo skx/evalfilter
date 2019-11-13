@@ -224,7 +224,10 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			if err != nil {
 				return nil, err
 			}
-			if condition.True() {
+
+			// If the condition evaluated to a non-true
+			// then we change the IP.
+			if !condition.True() {
 
 				// NOTE: We reduce the offset, becaues
 				// at the end of our loop we increment
