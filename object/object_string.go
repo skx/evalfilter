@@ -16,7 +16,9 @@ func (s *String) Inspect() string {
 	return s.Value
 }
 
-// Is this value "true"?
+// True returns whether this object wraps a true-like value.
+//
+// Used when this object is the conditional in a comparison, etc.
 func (s *String) True() bool {
 	return (s.Value != "")
 }

@@ -13,7 +13,9 @@ func (n *Null) Inspect() string {
 	return "null"
 }
 
-// Is this value "true"?
+// True returns whether this object wraps a true-like value.
+//
+// Used when this object is the conditional in a comparison, etc.
 func (n *Null) True() bool {
 	return false
 }

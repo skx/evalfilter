@@ -16,7 +16,9 @@ func (e *Error) Inspect() string {
 	return "ERROR: " + e.Message
 }
 
-// Is this value "true"?
+// True returns whether this object wraps a true-like value.
+//
+// Used when this object is the conditional in a comparison, etc.
 func (e *Error) True() bool {
 	return false
 }

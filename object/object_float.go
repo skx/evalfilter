@@ -20,7 +20,9 @@ func (f *Float) Type() Type {
 	return FLOAT
 }
 
-// Is this value "true"?
+// True returns whether this object wraps a true-like value.
+//
+// Used when this object is the conditional in a comparison, etc.
 func (f *Float) True() bool {
 	return (f.Value != 0)
 }
