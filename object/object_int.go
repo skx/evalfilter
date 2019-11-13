@@ -21,6 +21,6 @@ func (i *Integer) Type() Type {
 }
 
 // Is this value "true"?
-func (i *Integer) True() {
-	return (b.Value != 0)
+func (i *Integer) True() bool {
+	return (i.Value != 0)
 }

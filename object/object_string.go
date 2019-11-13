@@ -17,6 +17,6 @@ func (s *String) Inspect() string {
 }
 
 // Is this value "true"?
-func (s *String) True() {
-	return (b.Value != "")
+func (s *String) True() bool {
+	return (s.Value != "")
 }

@@ -17,6 +17,6 @@ func (e *Error) Inspect() string {
 }
 
 // Is this value "true"?
-func (e *Error) True() {
+func (e *Error) True() bool {
 	return false
 }

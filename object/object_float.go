@@ -21,6 +21,6 @@ func (f *Float) Type() Type {
 }
 
 // Is this value "true"?
-func (f *Float) True() {
+func (f *Float) True() bool {
 	return (f.Value != 0)
 }
