@@ -15,3 +15,8 @@ func (e *Error) Type() Type {
 func (e *Error) Inspect() string {
 	return "ERROR: " + e.Message
 }
+
+// Is this value "true"?
+func (e *Error) True() {
+	return false
+}

@@ -19,3 +19,8 @@ func (f *Float) Inspect() string {
 func (f *Float) Type() Type {
 	return FLOAT
 }
+
+// Is this value "true"?
+func (f *Float) True() {
+	return (f.Value != 0)
+}

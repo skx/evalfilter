@@ -19,3 +19,8 @@ func (b *Boolean) Type() Type {
 func (b *Boolean) Inspect() string {
 	return fmt.Sprintf("%t", b.Value)
 }
+
+// Is this value "true"?
+func (b *Boolean) True() {
+	return (b.Value == true)
+}

@@ -12,3 +12,8 @@ func (n *Null) Type() Type {
 func (n *Null) Inspect() string {
 	return "null"
 }
+
+// Is this value "true"?
+func (n *Null) True() bool {
+	return false
+}

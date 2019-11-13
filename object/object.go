@@ -25,9 +25,12 @@ const (
 // Object is the interface that all of our various object-types must implement.
 type Object interface {
 
+	// Inspect returns a string-representation of the given object.
+	Inspect() string
+
 	// Type returns the type of this object.
 	Type() Type
 
-	// Inspect returns a string-representation of the given object.
-	Inspect() string
+	// True returns whether this object is "true".
+	True() bool
 }

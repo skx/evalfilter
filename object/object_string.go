@@ -15,3 +15,8 @@ func (s *String) Type() Type {
 func (s *String) Inspect() string {
 	return s.Value
 }
+
+// Is this value "true"?
+func (s *String) True() {
+	return (b.Value != "")
+}

@@ -19,3 +19,8 @@ func (i *Integer) Inspect() string {
 func (i *Integer) Type() Type {
 	return INTEGER
 }
+
+// Is this value "true"?
+func (i *Integer) True() {
+	return (b.Value != 0)
+}
