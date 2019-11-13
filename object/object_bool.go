@@ -22,5 +22,5 @@ func (b *Boolean) Inspect() string {
 
 // Is this value "true"?
 func (b *Boolean) True() bool {
-	return (b.Value == true)
+	return b.Value
 }
