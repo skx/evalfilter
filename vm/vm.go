@@ -224,7 +224,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			if err != nil {
 				return nil, err
 			}
-			if !vm.isTruthy(condition) {
+			if condition.True() {
 
 				// NOTE: We reduce the offset, becaues
 				// at the end of our loop we increment
@@ -773,42 +773,6 @@ func (vm *VM) nativeBoolToBooleanObject(input bool) *object.Boolean {
 		return True
 	}
 	return False
-}
-
-// Does the given object contain a "true-like" value?
-func (vm *VM) isTruthy(obj object.Object) bool {
-
-	//
-	// Is this a boolean object?
-	//
-	// If so look for the stored value.
-	//
-	switch tmp := obj.(type) {
-	case *object.Boolean:
-		return tmp.Value
-	case *object.String:
-		return (tmp.Value != "")
-	case *object.Null:
-		return false
-	case *object.Integer:
-		return (tmp.Value != 0)
-	case *object.Float:
-		return (tmp.Value != 0.0)
-	}
-
-	//
-	// If not we return based on our constants.
-	//
-	switch obj {
-	case Null:
-		return false
-	case True:
-		return true
-	case False:
-		return false
-	default:
-		return true
-	}
 }
 
 // lookup the name of the given field/map-member.
