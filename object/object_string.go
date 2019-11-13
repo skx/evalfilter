@@ -15,3 +15,10 @@ func (s *String) Type() Type {
 func (s *String) Inspect() string {
 	return s.Value
 }
+
+// True returns whether this object wraps a true-like value.
+//
+// Used when this object is the conditional in a comparison, etc.
+func (s *String) True() bool {
+	return (s.Value != "")
+}

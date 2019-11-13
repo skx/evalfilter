@@ -19,3 +19,10 @@ func (i *Integer) Inspect() string {
 func (i *Integer) Type() Type {
 	return INTEGER
 }
+
+// True returns whether this object wraps a true-like value.
+//
+// Used when this object is the conditional in a comparison, etc.
+func (i *Integer) True() bool {
+	return (i.Value != 0)
+}

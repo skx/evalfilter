@@ -12,3 +12,10 @@ func (n *Null) Type() Type {
 func (n *Null) Inspect() string {
 	return "null"
 }
+
+// True returns whether this object wraps a true-like value.
+//
+// Used when this object is the conditional in a comparison, etc.
+func (n *Null) True() bool {
+	return false
+}

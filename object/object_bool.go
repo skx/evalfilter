@@ -19,3 +19,10 @@ func (b *Boolean) Type() Type {
 func (b *Boolean) Inspect() string {
 	return fmt.Sprintf("%t", b.Value)
 }
+
+// True returns whether this object wraps a true-like value.
+//
+// Used when this object is the conditional in a comparison, etc.
+func (b *Boolean) True() bool {
+	return b.Value
+}
