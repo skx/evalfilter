@@ -204,7 +204,7 @@ func (e *Eval) Run(obj interface{}) (bool, error) {
 	//
 	// Otherwise convert the result to a boolean, and return.
 	//
-	return e.isTruthy(out), err
+	return out.True(), err
 
 }
 
@@ -629,29 +629,5 @@ func (e *Eval) replaceInstruction(pos int, newInstruction []byte) {
 
 	for i := 0; i < len(newInstruction); i++ {
 		ins[pos+i] = newInstruction[i]
-	}
-}
-
-// isTruthy tests whether the given object is "true".
-func (e *Eval) isTruthy(obj object.Object) bool {
-
-	//
-	// Is this a boolean object?
-	//
-	// If so look for the stored value.
-	//
-	switch tmp := obj.(type) {
-	case *object.Boolean:
-		return tmp.Value
-	case *object.String:
-		return (tmp.Value != "")
-	case *object.Null:
-		return false
-	case *object.Integer:
-		return (tmp.Value != 0)
-	case *object.Float:
-		return (tmp.Value != 0.0)
-	default:
-		return true
 	}
 }
