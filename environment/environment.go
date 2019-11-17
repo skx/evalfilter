@@ -1,32 +1,37 @@
-package object
+// Package environment holds the state for our objects.
+package environment
+
+import (
+	"github.com/skx/evalfilter/v2/object"
+)
 
 // Environment stores our functions, variables, constants, etc.
 type Environment struct {
 	// store holds variables set by the user-script.
-	store map[string]Object
+	store map[string]object.Object
 
 	// functions holds golang function pointers, as set by
 	// by the host-application.
 	functions map[string]interface{}
 }
 
-// NewEnvironment creates a new environment, which is used for storing variable
+// New creates a new environment, which is used for storing variable
 // contents, and available golang functions which have been made available
 // to the scripting environment.
-func NewEnvironment() *Environment {
-	str := make(map[string]Object)
+func New() *Environment {
+	str := make(map[string]object.Object)
 	fun := make(map[string]interface{})
 	return &Environment{store: str, functions: fun}
 }
 
 // Get returns the value of a given variable, by name.
-func (e *Environment) Get(name string) (Object, bool) {
+func (e *Environment) Get(name string) (object.Object, bool) {
 	obj, ok := e.store[name]
 	return obj, ok
 }
 
 // Set stores the value of a variable, by name.
-func (e *Environment) Set(name string, val Object) Object {
+func (e *Environment) Set(name string, val object.Object) object.Object {
 	e.store[name] = val
 	return val
 }

@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/skx/evalfilter/v2/code"
+	"github.com/skx/evalfilter/v2/environment"
 	"github.com/skx/evalfilter/v2/object"
 	"github.com/skx/evalfilter/v2/stack"
 )
@@ -50,7 +51,7 @@ type VM struct {
 
 	// environment holds the environment, which will allow variables
 	// and functions to be get/set.
-	environment *object.Environment
+	environment *environment.Environment
 
 	// fields contains the contents of all the fields in the object
 	// or map we're executing against.  We discover these via reflection
@@ -62,7 +63,7 @@ type VM struct {
 }
 
 // New constructs a new virtual machine.
-func New(constants []object.Object, bytecode code.Instructions, env *object.Environment) *VM {
+func New(constants []object.Object, bytecode code.Instructions, env *environment.Environment) *VM {
 
 	return &VM{
 		constants:   constants,

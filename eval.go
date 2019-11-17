@@ -14,6 +14,7 @@ import (
 
 	"github.com/skx/evalfilter/v2/ast"
 	"github.com/skx/evalfilter/v2/code"
+	"github.com/skx/evalfilter/v2/environment"
 	"github.com/skx/evalfilter/v2/lexer"
 	"github.com/skx/evalfilter/v2/object"
 	"github.com/skx/evalfilter/v2/parser"
@@ -26,7 +27,7 @@ type Eval struct {
 	Script string
 
 	// Environment
-	environment *object.Environment
+	environment *environment.Environment
 
 	// constants compiled
 	constants []object.Object
@@ -45,7 +46,7 @@ func New(script string) *Eval {
 	// Create our object.
 	//
 	e := &Eval{
-		environment: object.NewEnvironment(),
+		environment: environment.New(),
 		Script:      script,
 	}
 
