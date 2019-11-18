@@ -221,21 +221,23 @@ This will test a script against a JSON object, allowing you to experiment with c
 If you wish to run a local benchmark you should be able to do so as follows:
 
 ```
-$ go test -test.bench=evalfilter -benchtime=10s -run=^t
+$ go test -test.bench=evalfilter_ -benchtime=10s -run=^t
 goos: linux
 goarch: amd64
-pkg: github.com/skx/evalfilter
-Benchmark_evalfilter_complex-4   	 5000000	      2467 ns/op
-Benchmark_evalfilter_simple-4    	20000000	      1190 ns/op
-Benchmark_evalfilter_trivial-4   	50000000	       244 ns/op
+pkg: github.com/skx/evalfilter/v2
+Benchmark_evalfilter_complex_map-4   	 5000000	      2552 ns/op
+Benchmark_evalfilter_complex_obj-4   	10000000	      1664 ns/op
+Benchmark_evalfilter_simple-4        	20000000	       910 ns/op
+Benchmark_evalfilter_trivial-4       	100000000	       115 ns/op
 PASS
-ok  	github.com/skx/evalfilter	52.361s
+ok  	github.com/skx/evalfilter/v2	64.462s
 ```
 
 The examples there are not particularly representative, but they will give you
 an idea of the general speed.  In the real world the speed of the evaluation
 engine is unlikely to be a significant bottleneck.
 
+One interesting thing that shows up clearly is that working with a `struct` is significantly faster than working with a `map`.  I can only assume that the reflection overhead is shorter there, but I don't know why.
 
 ## Github Setup
 
