@@ -149,11 +149,6 @@ func (e *Eval) Prepare() error {
 func (e *Eval) Optimize() bool {
 
 	//
-	// Helper.
-	//
-	//	e.Dump()
-
-	//
 	// Constants we've seen - and their offsets within the
 	// bytecode array.
 	//
@@ -275,6 +270,10 @@ func (e *Eval) Optimize() bool {
 				// Made a change to the bytecode.
 				return true
 			}
+
+			// reset our argument counters.
+			args = nil
+
 		case code.OpMul, code.OpAdd, code.OpSub, code.OpDiv:
 
 			//
@@ -305,10 +304,10 @@ func (e *Eval) Optimize() bool {
 					e.changeOperand(a.offset, a.value+b.value)
 				}
 				if op == code.OpSub {
-					e.changeOperand(a.offset, a.value-b.value)
+					e.changeOperand(a.offset, b.value-a.value)
 				}
 				if op == code.OpDiv {
-					e.changeOperand(a.offset, a.value/b.value)
+					e.changeOperand(a.offset, b.value/a.value)
 				}
 
 				// Replace the second argument-load with nop
@@ -323,6 +322,10 @@ func (e *Eval) Optimize() bool {
 				// We changed something, so we stop now.
 				return true
 			}
+
+			// reset our argument counters.
+			args = nil
+
 		default:
 
 			//
@@ -501,9 +504,11 @@ func (e *Eval) compile(node ast.Node) error {
 
 	case *ast.IntegerLiteral:
 
+		// Get the value of the literal
+		v := node.Value
+
 		// If this is an integer between 0 & 65535 we
 		// can push it naturally.
-		v := node.Value
 		if v%1 == 0 && v >= 0 && v <= 65534 {
 			e.emit(code.OpPush, int(v))
 		} else {
