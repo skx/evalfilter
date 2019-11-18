@@ -43,12 +43,18 @@ const (
 	// pop the name from the stack ..
 	OpLookup
 
+	// Push an integer upon the stack
+	OpPush
+
 	//
 	// NOTE:  This is a fake opcode.
 	//
 	// Every opcode below this one take zero arguments.
 	//
 	OpCodeSingleArg
+
+	// NOP
+	OpNop
 
 	// Set a variable by name
 	OpSet
@@ -168,6 +174,10 @@ func String(op Opcode) string {
 		return "OpLookup"
 	case OpCodeSingleArg:
 		return "OpCodeSingleArg"
+	case OpPush:
+		return "OpPush"
+	case OpNop:
+		return "OpNop"
 	case OpSet:
 		return "OpSet"
 	case OpTrue:
