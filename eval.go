@@ -10,7 +10,6 @@ package evalfilter
 import (
 	"encoding/binary"
 	"fmt"
-	"math"
 	"strings"
 
 	"github.com/skx/evalfilter/v2/ast"
@@ -505,9 +504,14 @@ func (e *Eval) compile(node ast.Node) error {
 		// If this is an integer between 0 & 65535 we
 		// can push it naturally.
 		v := node.Value
-		if math.Trunc(float64(v)) == float64(v) && v >= 0 && v <= 65534 {
+		if v%1 == 0 && v >= 0 && v <= 65534 {
 			e.emit(code.OpPush, int(v))
 		} else {
+
+			//
+			// Otherwise we emit it as a constant
+			// to our pool.
+			//
 			integer := &object.Integer{Value: node.Value}
 			e.emit(code.OpConstant, e.addConstant(integer))
 		}
