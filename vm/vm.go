@@ -135,6 +135,15 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
 		switch op {
 
+		// NOP
+		case code.OpNop:
+			// NOP
+
+		// Store an int
+		case code.OpPush:
+			vm.stack.Push(&object.Integer{Value: int64(opArg)})
+
+		// Lookup variable/field, by name
 		case code.OpConstant:
 
 			// move the contents of a constant onto the stack
@@ -291,7 +300,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
 			// Can't happen?
 		default:
-			return nil, fmt.Errorf("unhandled opcode: %v", op)
+			return nil, fmt.Errorf("unhandled opcode: %v %s", op, code.String(op))
 		}
 
 		ip += opLen
