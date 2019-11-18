@@ -118,7 +118,17 @@ func (e *Eval) Prepare() error {
 	// We do this so that each optimizer run only has to try one thing
 	// at a time.
 	//
+	optimized := false
 	for e.optimize() {
+		optimized = true
+	}
+
+	//
+	// If we made some changes we'll make a second
+	// pass.
+	//
+	if optimized {
+		e.removeDead()
 	}
 
 	//
@@ -396,6 +406,94 @@ func (e *Eval) optimize() bool {
 	// and made zero changes.
 	//
 	return false
+}
+
+// removeDead does the bare minimum.
+//
+// If a script has no Jumps in it we can remove all NOP instructions,
+// and stop processing at the first Return.
+func (e *Eval) removeDead() {
+
+	//
+	// Start.
+	//
+	ip := 0
+	ln := len(e.instructions)
+
+	//
+	// Temporary instructions.
+	//
+	var tmp code.Instructions
+
+	run := true
+
+	//
+	// Walk the bytecode.
+	//
+	for ip < ln && run {
+
+		//
+		// Get the next opcode
+		//
+		op := code.Opcode(e.instructions[ip])
+
+		//
+		// Find out how long it is.
+		//
+		opLen := code.Length(op)
+
+		//
+		// If the opcode is more than a single byte long
+		// we read the argument here.
+		//
+		opArg := 0
+		if opLen > 1 {
+
+			//
+			// Note in the future we might have to cope
+			// with opcodes with more than a single argument,
+			// and they might be different sizes.
+			//
+			opArg = int(binary.BigEndian.Uint16(e.instructions[ip+1 : ip+3]))
+		}
+
+		//
+		// Now we do the magic.
+		//
+		switch op {
+
+		case code.OpJumpIfFalse, code.OpJump:
+			return
+
+		case code.OpReturn:
+
+			// Stop once we've seen the first return
+			run = false
+
+			tmp = append(tmp, byte(code.OpReturn))
+
+		case code.OpNop:
+			// NOP
+		default:
+
+			tmp = append(tmp, byte(op))
+			if opLen > 1 {
+
+				// Make a buffer for the arg
+				b := make([]byte, 2)
+				binary.BigEndian.PutUint16(b, uint16(opArg))
+
+				// append
+				tmp = append(tmp, b...)
+			}
+		}
+		ip += opLen
+	}
+
+	//
+	// Replace the instructions.
+	//
+	e.instructions = tmp
 }
 
 // Dump causes our bytecode to be dumped.
