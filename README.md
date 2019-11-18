@@ -155,10 +155,18 @@ You'll note that you're referring to structure-fields by name, they are found dy
 
 As we noted earlier you can export functions from your host-application and make them available to the scripting environment, as demonstrated in the [example_function_test.go](example_function_test.go) sample, but of course there are some built-in functions which are always available:
 
+* `float(value)`
+  * Tries to convert the value to a floating-point number, returns Null on failure.
+  * e.g. `float("3.13")`.
+* `int(value)`
+  * Tries to convert the value to an integer, returns Null on failure.
+  * e.g. `int("3")`.
 * `len(field | value)`
   * Returns the length of the given value, or the contents of the given field.
 * `lower(field | value)`
   * Return the lower-case version of the given input.
+* `string( )`
+  * Converts a value to a string.  e.g. "`string(3/3.4)`".
 * `trim(field | string)`
   * Returns the given string, or the contents of the given field, with leading/trailing whitespace removed.
 * `type(field | value)`

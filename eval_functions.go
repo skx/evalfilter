@@ -5,6 +5,7 @@ package evalfilter
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -19,6 +20,52 @@ var regCache map[string]*regexp.Regexp
 // init ensures that our regexp cache is populated
 func init() {
 	regCache = make(map[string]*regexp.Regexp)
+}
+
+// fnFloat is the implementation of the `float` function.
+//
+// It converts an object to a float, if it can.
+//
+// On failure it returns Null
+func fnFloat(args []object.Object) object.Object {
+
+	// We expect one argument
+	if len(args) != 1 {
+		return &object.Null{}
+	}
+
+	// Stringify
+	str := args[0].Inspect()
+
+	i, err := strconv.ParseFloat(str, 64)
+	if err != nil {
+		return &object.Null{}
+	}
+
+	return &object.Float{Value: i}
+}
+
+// fnInt is the implementation of the `int` function.
+//
+// It converts an object to an integer, if it can.
+//
+// On failure it returns Null
+func fnInt(args []object.Object) object.Object {
+
+	// We expect one argument
+	if len(args) != 1 {
+		return &object.Null{}
+	}
+
+	// Stringify
+	str := args[0].Inspect()
+
+	i, err := strconv.ParseInt(str, 10, 64)
+	if err != nil {
+		return &object.Null{}
+	}
+
+	return &object.Integer{Value: i}
 }
 
 // fnLen is the implementation of our `len` function.
@@ -97,6 +144,18 @@ func fnMatch(args []object.Object) object.Object {
 		}
 	}
 	return &object.Boolean{Value: false}
+}
+
+// fnString is the implementation of our `string` function.
+func fnString(args []object.Object) object.Object {
+
+	// We expect one argument
+	if len(args) != 1 {
+		return &object.Null{}
+	}
+
+	str := args[0].Inspect()
+	return &object.String{Value: str}
 }
 
 // fnTrim is the implementation of our `trim` function.

@@ -60,6 +60,9 @@ func New(script string) *Eval {
 	e.AddFunction("trim", fnTrim)
 	e.AddFunction("type", fnType)
 	e.AddFunction("upper", fnUpper)
+	e.AddFunction("string", fnString)
+	e.AddFunction("int", fnInt)
+	e.AddFunction("float", fnFloat)
 
 	//
 	// Return it.
