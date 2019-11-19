@@ -21,6 +21,15 @@ import (
 	"github.com/skx/evalfilter/v2/vm"
 )
 
+// Flags which can be optionally passed to Prepare.
+const (
+	// Don't run the optimizer when generating bytecode.
+	NoOptimize byte = iota
+
+	// Show the optimization steps
+	ShowOptimize
+)
+
 // Eval is our public-facing structure which stores our state.
 type Eval struct {
 	// Script holds the script the user submitted in our constructor.
@@ -75,7 +84,31 @@ func New(script string) *Eval {
 //
 // Internally this compilation process walks through the usual steps,
 // lexing, parsing, and bytecode-compilation.
-func (e *Eval) Prepare() error {
+func (e *Eval) Prepare(flags ...[]byte) error {
+
+	//
+	// Default to optimizing the bytecode.
+	//
+	optimize := true
+
+	//
+	// Default to not dumping that process.
+	//
+	dump := false
+
+	//
+	// But let flags change our behaviour.
+	//
+	for _, arg := range flags {
+		for _, val := range arg {
+			if val == NoOptimize {
+				optimize = false
+			}
+			if val == ShowOptimize {
+				dump = true
+			}
+		}
+	}
 
 	//
 	// Create a lexer.
@@ -122,8 +155,21 @@ func (e *Eval) Prepare() error {
 	// at a time.
 	//
 	passes := 0
-	for e.optimize() {
-		passes++
+	if optimize {
+
+		if dump {
+			fmt.Printf("Starting bytecode\n")
+			e.Dump()
+		}
+
+		for e.optimize() {
+
+			if dump {
+				fmt.Printf("\n\nBytecode optimization run %d\n", passes+1)
+				e.Dump()
+			}
+			passes++
+		}
 	}
 
 	//
@@ -131,18 +177,31 @@ func (e *Eval) Prepare() error {
 	//
 	if passes > 0 {
 
+		if dump {
+			fmt.Printf("\n\nRemoving NOPs and renumbering\n")
+		}
+
 		//
 		// Remove any NOPs and update any jump
 		// targets.
 		//
 		e.renumberCode()
+		if dump {
+			e.Dump()
+		}
 
 		//
 		// If we have zero jumps then we can
 		// truncate the bytecode at the time we
 		// find the first "Return" instruction.
 		//
+		if dump {
+			fmt.Printf("\n\nRemoving unreachable code\n")
+		}
 		e.removeDead()
+		if dump {
+			e.Dump()
+		}
 	}
 
 	//
