@@ -113,7 +113,7 @@ This is the first time we've looked at our bytecode so there are several things 
   * Some instructions contain a single argument, but most do not.
   * Some instructions contain helpful comments to the right.
 * After the bytecode has been disassembled you'll see the list of constants.
-  * Each of which is identified by an identifier.
+  * Each of which is identified by numeric ID.
 
 In this overview we're focusing upon the instruction `OpConstant`.  The `OpConstant` instruction has a single argument, which is the index of the constant to load and push on the stack.
 
