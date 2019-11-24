@@ -6,6 +6,146 @@ import (
 	"github.com/skx/evalfilter/v2/object"
 )
 
+// Test float-conversion.
+func TestFloat(t *testing.T) {
+
+	type TestCase struct {
+		Input  object.Object
+		Result object.Object
+	}
+
+	tests := []TestCase{
+		{Input: &object.String{Value: "π"}, Result: &object.Null{}},
+		{Input: &object.String{Value: "Steve"}, Result: &object.Null{}},
+		{Input: &object.Integer{Value: 3}, Result: &object.Float{Value: 3}},
+		{Input: &object.String{Value: "3.21"}, Result: &object.Float{Value: 3.21}},
+		{Input: &object.Boolean{Value: true}, Result: &object.Null{}},
+	}
+
+	// For each test
+	for _, test := range tests {
+
+		var args []object.Object
+		args = append(args, test.Input)
+
+		x := fnFloat(args)
+
+		if x.Type() != test.Result.Type() {
+			t.Errorf("Invalid type result for '%s', got %s, expected %s", test.Input, x.Type(), test.Result.Type())
+		}
+
+		switch x.(type) {
+		case *object.Float:
+			if x.(*object.Float).Value != test.Result.(*object.Float).Value {
+				t.Errorf("invalid float result")
+			}
+		case *object.Null:
+		default:
+			t.Errorf("unknown type")
+		}
+	}
+
+	// ensure that zero arguments are handled
+	var tmp []object.Object
+	out := fnFloat(tmp)
+	if out.Type() != "NULL" {
+		t.Errorf("Invalid result for no args:%s", out.Type())
+	}
+}
+
+// Test integer-conversion.
+func TestInt(t *testing.T) {
+
+	type TestCase struct {
+		Input  object.Object
+		Result object.Object
+	}
+
+	tests := []TestCase{
+		{Input: &object.String{Value: "π"}, Result: &object.Null{}},
+		{Input: &object.String{Value: "Steve"}, Result: &object.Null{}},
+		{Input: &object.Integer{Value: 3}, Result: &object.Integer{Value: 3}},
+		{Input: &object.String{Value: "3"}, Result: &object.Integer{Value: 3}},
+		{Input: &object.Boolean{Value: true}, Result: &object.Null{}},
+	}
+
+	// For each test
+	for _, test := range tests {
+
+		var args []object.Object
+		args = append(args, test.Input)
+
+		x := fnInt(args)
+
+		if x.Type() != test.Result.Type() {
+			t.Errorf("Invalid type result for return")
+		}
+
+		switch x.(type) {
+		case *object.Integer:
+			if x.(*object.Integer).Value != test.Result.(*object.Integer).Value {
+				t.Errorf("Invalid integer result")
+			}
+		case *object.Null:
+		default:
+			t.Errorf("unknown type")
+		}
+	}
+
+	// ensure that zero arguments are handled
+	var tmp []object.Object
+	out := fnInt(tmp)
+	if out.Type() != "NULL" {
+		t.Errorf("Invalid result for no args:%s", out.Type())
+	}
+}
+
+// Test string-conversion.
+func TestString(t *testing.T) {
+
+	type TestCase struct {
+		Input  object.Object
+		Result object.Object
+	}
+
+	tests := []TestCase{
+		{Input: &object.String{Value: "π"}, Result: &object.String{Value: "π"}},
+		{Input: &object.String{Value: "Steve"}, Result: &object.String{Value: "Steve"}},
+		{Input: &object.Integer{Value: 3}, Result: &object.String{Value: "3"}},
+		{Input: &object.Boolean{Value: true}, Result: &object.String{Value: "true"}},
+	}
+
+	// For each test
+	for _, test := range tests {
+
+		var args []object.Object
+		args = append(args, test.Input)
+
+		x := fnString(args)
+
+		if x.Type() != test.Result.Type() {
+			t.Errorf("Invalid type result for return")
+		}
+
+		switch x.(type) {
+		case *object.String:
+			if x.(*object.String).Value != test.Result.(*object.String).Value {
+				t.Errorf("Invalid string result")
+			}
+		case *object.Null:
+		default:
+			t.Errorf("unknown type")
+		}
+	}
+
+	// ensure that zero arguments are handled
+	var tmp []object.Object
+	out := fnString(tmp)
+	if out.Type() != "NULL" {
+		t.Errorf("Invalid result for no args:%s", out.Type())
+	}
+}
+
 // Test string length
 func TestLen(t *testing.T) {
 
@@ -210,4 +350,13 @@ func TestUpper(t *testing.T) {
 			t.Errorf("Invalid result for %s", test.Input)
 		}
 	}
+}
+
+// NOP-test
+func TestPrint(t *testing.T) {
+	var args []object.Object
+	fnPrint(args)
+
+	args = append(args, &object.String{Value: ""})
+	fnPrint(args)
 }
