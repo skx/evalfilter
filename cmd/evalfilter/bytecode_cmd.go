@@ -13,9 +13,6 @@ import (
 type bytecodeCmd struct {
 	// Disable the bytecode optimizer
 	raw bool
-
-	// Show the optimization steps
-	dump bool
 }
 
 //
@@ -33,7 +30,6 @@ func (*bytecodeCmd) Usage() string {
 //
 func (p *bytecodeCmd) SetFlags(f *flag.FlagSet) {
 	f.BoolVar(&p.raw, "no-optimizer", false, "Disable the bytecode optimizer")
-	f.BoolVar(&p.dump, "show-optimizer", false, "Show the bytecode optimizer working")
 
 }
 
@@ -56,19 +52,9 @@ func (p *bytecodeCmd) Run(file string) {
 	//
 	eval := evalfilter.New(string(dat))
 
-	//
-	// If we're dumping the optimizer output we have to enable it.
-	//
-	if p.dump {
-		p.raw = false
-	}
-
 	var flags []byte
 	if p.raw {
 		flags = append(flags, evalfilter.NoOptimize)
-	}
-	if p.dump {
-		flags = append(flags, evalfilter.ShowOptimize)
 	}
 
 	//
@@ -82,12 +68,8 @@ func (p *bytecodeCmd) Run(file string) {
 	}
 
 	//
-	// Dump the script.
+	// Show the bytecode
 	//
-	if p.dump {
-		fmt.Printf("\n\n******************************************************************************\n")
-	}
-
 	err = eval.Dump()
 	if err != nil {
 		fmt.Printf("Failed to dump script: %s\n", err.Error())
