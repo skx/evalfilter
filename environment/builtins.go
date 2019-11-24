@@ -1,6 +1,6 @@
-// eval_functions.go contains our in-built functions.
+// builtins.go contains our in-built functions.
 
-package evalfilter
+package environment
 
 import (
 	"fmt"

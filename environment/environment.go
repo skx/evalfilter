@@ -19,9 +19,30 @@ type Environment struct {
 // contents, and available golang functions which have been made available
 // to the scripting environment.
 func New() *Environment {
+
+	// Holder for objects.
 	str := make(map[string]object.Object)
+
+	// Holder for variables
 	fun := make(map[string]interface{})
-	return &Environment{store: str, functions: fun}
+
+	// Create the environment object
+	env := &Environment{store: str, functions: fun}
+
+	// Register our default functions.
+	env.SetFunction("len", fnLen)
+	env.SetFunction("lower", fnLower)
+	env.SetFunction("match", fnMatch)
+	env.SetFunction("print", fnPrint)
+	env.SetFunction("trim", fnTrim)
+	env.SetFunction("type", fnType)
+	env.SetFunction("upper", fnUpper)
+	env.SetFunction("string", fnString)
+	env.SetFunction("int", fnInt)
+	env.SetFunction("float", fnFloat)
+
+	// All done.
+	return env
 }
 
 // Get returns the value of a given variable, by name.
