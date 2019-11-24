@@ -184,7 +184,11 @@ func (e *Eval) Dump() error {
 			// bytecode more human-readable.
 			//
 			if code.Opcode(op) == code.OpConstant {
-				fmt.Printf("\t// load constant: %v", e.constants[arg])
+
+				v := e.constants[arg]
+				s := strings.ReplaceAll(v.Inspect(), "\n", "\\n")
+
+				fmt.Printf("\t// load constant: \"%s\"", s)
 			}
 			if code.Opcode(op) == code.OpLookup {
 				fmt.Printf("\t// lookup field: %v", e.constants[arg])
@@ -203,7 +207,10 @@ func (e *Eval) Dump() error {
 	if len(e.constants) > 0 {
 		fmt.Printf("\n\nConstants:\n")
 		for i, n := range e.constants {
-			fmt.Printf("  %06d Type:%s Value:%s Dump:%v\n", i, n.Type(), n.Inspect(), n)
+
+			s := strings.ReplaceAll(n.Inspect(), "\n", "\\n")
+
+			fmt.Printf("  %06d Type:%s Value:\"%s\"\n", i, n.Type(), s)
 		}
 	}
 
