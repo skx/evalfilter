@@ -224,7 +224,7 @@ func (e *Eval) optimize() bool {
 		// offset is where we found this constant instruction.
 		offset int
 
-		// value is the (integer) constant value refered to.
+		// value is the (integer) constant value referred to.
 		value int
 	}
 
@@ -338,7 +338,7 @@ func (e *Eval) optimize() bool {
 		case code.OpEqual, code.OpNotEqual:
 
 			//
-			// Comparision-tests.
+			// Comparison-tests.
 			//
 			// If we have two (constant) arguments then
 			// we can collapse the test into a simple "True"
@@ -349,7 +349,7 @@ func (e *Eval) optimize() bool {
 			//
 			if len(args) >= 2 {
 
-				// Get the arguments to the comparision
+				// Get the arguments to the comparison
 				a := args[len(args)-1]
 				b := args[len(args)-2]
 
@@ -364,7 +364,7 @@ func (e *Eval) optimize() bool {
 				e.instructions[b.offset+2] = byte(code.OpNop)
 
 				//
-				// Now we can replace the comparision
+				// Now we can replace the comparison
 				// instruction with either "True" or "False"
 				// depending on whether the constant values
 				// match.
