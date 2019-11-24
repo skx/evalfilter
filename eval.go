@@ -60,20 +60,6 @@ func New(script string) *Eval {
 	}
 
 	//
-	// Add our default functions.
-	//
-	e.AddFunction("len", fnLen)
-	e.AddFunction("lower", fnLower)
-	e.AddFunction("match", fnMatch)
-	e.AddFunction("print", fnPrint)
-	e.AddFunction("trim", fnTrim)
-	e.AddFunction("type", fnType)
-	e.AddFunction("upper", fnUpper)
-	e.AddFunction("string", fnString)
-	e.AddFunction("int", fnInt)
-	e.AddFunction("float", fnFloat)
-
-	//
 	// Return it.
 	//
 	return e
