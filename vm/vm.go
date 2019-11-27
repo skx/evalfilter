@@ -437,14 +437,11 @@ func (vm *VM) executeBinaryOperation(op code.Opcode) error {
 		return vm.evalStringInfixExpression(op, left, right)
 	case op == code.OpAnd:
 		// if left is false skip right
-		l := vm.objectToNativeBoolean(left)
-		if !l {
+		if !left.True() {
 			vm.stack.Push(False)
 			return nil
-
 		}
-		r := vm.objectToNativeBoolean(right)
-		if r {
+		if right.True() {
 			vm.stack.Push(True)
 		} else {
 			vm.stack.Push(False)
@@ -452,17 +449,16 @@ func (vm *VM) executeBinaryOperation(op code.Opcode) error {
 		return nil
 	case op == code.OpOr:
 		// if left is true skip right
-		l := vm.objectToNativeBoolean(left)
-		if l {
+		if left.True() {
 			vm.stack.Push(True)
 			return nil
 		}
-		r := vm.objectToNativeBoolean(right)
-		if r {
+		if right.True() {
 			vm.stack.Push(True)
 		} else {
 			vm.stack.Push(False)
 		}
+		return nil
 	case left.Type() == object.BOOLEAN && right.Type() == object.BOOLEAN:
 		return vm.evalBooleanInfixExpression(op, left, right)
 	case left.Type() != right.Type():
@@ -472,8 +468,6 @@ func (vm *VM) executeBinaryOperation(op code.Opcode) error {
 		return fmt.Errorf("unknown operator: %s %s %s",
 			left.Type(), code.String(op), right.Type())
 	}
-
-	return nil
 }
 
 // integer OP integer
@@ -754,31 +748,6 @@ func (vm *VM) executeSquareRoot() error {
 
 	vm.stack.Push(res)
 	return nil
-}
-
-// convert an object to a native (go) boolean
-func (vm *VM) objectToNativeBoolean(o object.Object) bool {
-
-	switch obj := o.(type) {
-	case *object.Boolean:
-		return obj.Value
-	case *object.String:
-		return obj.Value != ""
-	case *object.Null:
-		return false
-	case *object.Integer:
-		if obj.Value == 0 {
-			return false
-		}
-		return true
-	case *object.Float:
-		if obj.Value == 0.0 {
-			return false
-		}
-		return true
-	default:
-		return true
-	}
 }
 
 // convert a native (go) boolean to an Object
