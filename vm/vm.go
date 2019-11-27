@@ -35,7 +35,8 @@ type VM struct {
 
 	// constants holds constants in the program source, these
 	// are string-literals, numeric-literals, boolean values
-	// as well as variable names, and the names of functions.
+	// as well as variable names, the names of functions, and
+	// references to object/map values.
 	//
 	// constants are treated as atoms, so they are unique.
 	constants []object.Object
@@ -76,7 +77,7 @@ func New(constants []object.Object, bytecode code.Instructions, env *environment
 // Run launches our virtual machine, intepreting the bytecode-program we were
 // constructed with.
 //
-// We return when we hit a return-operation, or if we ever hit the end of
+// We terminate when we hit a return-operation, or if we ever hit the end of
 // the supplied bytecode.  As programs can contain flow-control operation
 // it is certainly possible they will never return.
 //
@@ -103,7 +104,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 	//
 	// Loop over all the bytecode.
 	//
-	// Not that the instructions support control-flow, so it
+	// Note that the instruction set supports control-flow, so it
 	// is possible we'll run forever..
 	//
 	for ip < ln {
@@ -139,11 +140,11 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 		case code.OpNop:
 			// NOP
 
-		// Store an int
+			// Store an integer upon the stack
 		case code.OpPush:
 			vm.stack.Push(&object.Integer{Value: int64(opArg)})
 
-		// Lookup variable/field, by name
+			// Lookup variable/field, by name
 		case code.OpConstant:
 
 			// move the contents of a constant onto the stack
