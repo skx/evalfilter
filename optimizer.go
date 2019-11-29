@@ -218,32 +218,45 @@ func (e *Eval) optimizeMaths() bool {
 				a := args[len(args)-1]
 				b := args[len(args)-2]
 
-				// Replace the first constant
-				// load with the result of the operation.
+				// Calculate the result.
+				//
+				// We only allow integers in the range
+				// 0x0000-0xFFFF to be stored inline
+				// so not all maths can be collapsed.
+				//
+				result := 0
+
 				if op == code.OpMul {
-					e.changeOperand(a.offset, a.value*b.value)
+					result = a.value * b.value
 				}
 				if op == code.OpAdd {
-					e.changeOperand(a.offset, a.value+b.value)
+					result = a.value + b.value
 				}
 				if op == code.OpSub {
-					e.changeOperand(a.offset, b.value-a.value)
+					result = b.value - a.value
 				}
 				if op == code.OpDiv {
-					e.changeOperand(a.offset, b.value/a.value)
+					result = b.value / a.value
 				}
 
-				// Replace the second argument-load with nop
-				e.instructions[b.offset] = byte(code.OpNop)
-				e.instructions[b.offset+1] = byte(code.OpNop)
-				e.instructions[b.offset+2] = byte(code.OpNop)
+				if result%1 == 0 && result >= 0 && result <= 65534 {
+					e.changeOperand(a.offset, result)
 
-				// and finally replace the math-operation
-				// itself with a Nop.
-				e.instructions[ip] = byte(code.OpNop)
+					// Replace the second argument-load with nop
+					e.instructions[b.offset] = byte(code.OpNop)
+					e.instructions[b.offset+1] = byte(code.OpNop)
+					e.instructions[b.offset+2] = byte(code.OpNop)
 
-				// We changed something, so we stop now.
-				return true
+					// and finally replace the math-operation
+					// itself with a Nop.
+					e.instructions[ip] = byte(code.OpNop)
+
+					// We changed something, so we stop now.
+					return true
+				}
+
+				// The result was not something we can
+				// replace.  Keep going.
 			}
 
 			// reset our argument counters.
