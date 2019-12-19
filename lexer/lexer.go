@@ -134,6 +134,12 @@ func (l *Lexer) NextToken() token.Token {
 	case rune('}'):
 		tok = newToken(token.RBRACE, l.ch)
 
+	case rune('['):
+		tok = newToken(token.LSQUARE, l.ch)
+
+	case rune(']'):
+		tok = newToken(token.RSQUARE, l.ch)
+
 	case rune('-'):
 		tok = newToken(token.MINUS, l.ch)
 
@@ -145,14 +151,15 @@ func (l *Lexer) NextToken() token.Token {
 		// We exclude:
 		//   ( a + b ) / c   -> RPAREN
 		//   a / c           -> IDENT
+		//   foo[3] / 3      -> INDEX
 		//   3.2 / c         -> FLOAT
-		//   1 / c           -> IDENT
+		//   1 / c           -> INT
 		//
 		if l.prevToken.Type == token.RPAREN ||
 			l.prevToken.Type == token.IDENT ||
-			l.prevToken.Type == token.INT ||
-			l.prevToken.Type == token.FLOAT {
-
+			l.prevToken.Type == token.RSQUARE ||
+			l.prevToken.Type == token.FLOAT ||
+			l.prevToken.Type == token.INT {
 			tok = newToken(token.SLASH, l.ch)
 		} else {
 			str, err := l.readRegexp()
@@ -445,7 +452,7 @@ func (l *Lexer) peekChar() rune {
 
 // determinate ch is identifier or not
 func isIdentifier(ch rune) bool {
-	return !isDigit(ch) && !isWhitespace(ch) && !isBrace(ch) && !isOperator(ch) && !isComparison(ch) && !isCompound(ch) && !isBrace(ch) && !isParen(ch) && !isEmpty(ch)
+	return !isDigit(ch) && !isWhitespace(ch) && !isBrace(ch) && !isOperator(ch) && !isComparison(ch) && !isCompound(ch) && !isBrace(ch) && !isParen(ch) && !isBracket(ch) && !isEmpty(ch)
 }
 
 // is white space
@@ -476,6 +483,11 @@ func isBrace(ch rune) bool {
 // is parenthesis
 func isParen(ch rune) bool {
 	return ch == rune('(') || ch == rune(')')
+}
+
+// is bracket
+func isBracket(ch rune) bool {
+	return ch == rune('[') || ch == rune(']')
 }
 
 // is empty
