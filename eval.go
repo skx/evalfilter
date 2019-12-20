@@ -347,6 +347,15 @@ func (e *Eval) compile(node ast.Node) error {
 		reg := &object.String{Value: val}
 		e.emit(code.OpConstant, e.addConstant(reg))
 
+	case *ast.ArrayLiteral:
+		for _, el := range node.Elements {
+			err := e.compile(el)
+			if err != nil {
+				return err
+			}
+		}
+		e.emit(code.OpArray, len(node.Elements))
+
 	case *ast.ReturnStatement:
 		err := e.compile(node.ReturnValue)
 		if err != nil {
@@ -600,6 +609,19 @@ func (e *Eval) compile(node ast.Node) error {
 
 		// then a call instruction with the number of args.
 		e.emit(code.OpCall, args)
+
+	case *ast.IndexExpression:
+		err := e.compile(node.Left)
+		if err != nil {
+			return err
+		}
+
+		err = e.compile(node.Index)
+		if err != nil {
+			return err
+		}
+
+		e.emit(code.OpArrayIndex)
 
 	default:
 		return fmt.Errorf("unknown node type %T %v", node, node)
