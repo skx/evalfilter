@@ -554,3 +554,239 @@ func TestAndOr(t *testing.T) {
 	}
 
 }
+
+// TestArrayObject tests that using reflection to get array values works
+// for basic types.
+func TestArrayObject(t *testing.T) {
+
+	// string-test
+	type Parent struct {
+		Name     string
+		Children []string
+	}
+
+	// float-test
+	type Prices struct {
+		Year   int
+		Prices []float32
+	}
+
+	// int-test
+	type Years struct {
+		Years []int
+	}
+
+	// bool-test
+	type Alive struct {
+		Dead []bool
+	}
+
+	// String-object
+	var dad Parent
+	dad.Name = "Homer"
+	dad.Children = []string{"Bart", "Lisa", "Maggie"}
+
+	// Float-object
+	var chocolate Prices
+	chocolate.Year = 2019
+	chocolate.Prices = []float32{3.0, 32, 12.2, 332.2}
+
+	// Int-object
+	var years Years
+	years.Years = []int{1988, 1999, 2020}
+
+	// Bool-object
+	var granny Alive
+	granny.Dead = []bool{false, false, true, true}
+
+	//
+	// String
+	//
+	src := `if ( Children[0] == "Bart" ) { return true; } return false;`
+	obj := New(src)
+
+	p := obj.Prepare()
+	if p != nil {
+		t.Fatalf("Failed to compile")
+	}
+
+	// Run
+	ret, err := obj.Run(dad)
+	if err != nil {
+		t.Fatalf("Found unexpected error running test - %s\n", err.Error())
+	}
+
+	if !ret {
+		t.Fatalf("Found unexpected result running script.")
+	}
+
+	//
+	// Float32
+	//
+	src = `if ( Prices[0] == 3.0 ) { return true; } return false;`
+	obj = New(src)
+
+	p = obj.Prepare()
+	if p != nil {
+		t.Fatalf("Failed to compile")
+	}
+
+	// Run
+	ret, err = obj.Run(chocolate)
+	if err != nil {
+		t.Fatalf("Found unexpected error running test - %s\n", err.Error())
+	}
+
+	if !ret {
+		t.Fatalf("Found unexpected result running script.")
+	}
+
+	//
+	// Int
+	//
+	src = `if ( Years[0] == 1988 && Years[1] == 1999 && Years[2] == 2020 ) { return true; } return false;`
+	obj = New(src)
+
+	p = obj.Prepare()
+	if p != nil {
+		t.Fatalf("Failed to compile")
+	}
+
+	// Run
+	ret, err = obj.Run(years)
+	if err != nil {
+		t.Fatalf("Found unexpected error running test - %s\n", err.Error())
+	}
+
+	if !ret {
+		t.Fatalf("Found unexpected result running script.")
+	}
+
+	//
+	// Bool
+	//
+	src = `if ( Dead[0] == false && Dead[2] == true ) { return true; } return false;`
+	obj = New(src)
+
+	p = obj.Prepare()
+	if p != nil {
+		t.Fatalf("Failed to compile")
+	}
+
+	// Run
+	ret, err = obj.Run(granny)
+	if err != nil {
+		t.Fatalf("Found unexpected error running test - %s\n", err.Error())
+	}
+
+	if !ret {
+		t.Fatalf("Found unexpected result running script.")
+	}
+}
+
+// TestArrayMap tests that using reflection to get array values works
+// for basic types.
+func TestArrayMap(t *testing.T) {
+
+	// string-test
+	dad := make(map[string]interface{})
+	dad["Name"] = "Homer"
+	dad["Children"] = []string{"Bart", "Lisa", "Maggie"}
+
+	// float-test
+	chocolate := make(map[string]interface{})
+	chocolate["Year"] = 2019
+	chocolate["Prices"] = []float32{3.0, 32, 12.2, 332.2}
+
+	// int-test
+	years := make(map[string]interface{})
+	years["Years"] = []int{1988, 1999, 2020}
+
+	// bool-test
+	granny := make(map[string]interface{})
+	granny["Dead"] = []bool{false, false, true, true}
+
+	//
+	// String
+	//
+	src := `if ( Children[0] == "Bart" ) { return true; } return false;`
+	obj := New(src)
+
+	p := obj.Prepare()
+	if p != nil {
+		t.Fatalf("Failed to compile")
+	}
+
+	// Run
+	ret, err := obj.Run(dad)
+	if err != nil {
+		t.Fatalf("Found unexpected error running test - %s\n", err.Error())
+	}
+
+	if !ret {
+		t.Fatalf("Found unexpected result running script.")
+	}
+
+	//
+	// Float32
+	//
+	src = `if ( Prices[0] == 3.0 ) { return true; } return false;`
+	obj = New(src)
+
+	p = obj.Prepare()
+	if p != nil {
+		t.Fatalf("Failed to compile")
+	}
+
+	// Run
+	ret, err = obj.Run(chocolate)
+	if err != nil {
+		t.Fatalf("Found unexpected error running test - %s\n", err.Error())
+	}
+
+	if !ret {
+		t.Fatalf("Found unexpected result running script.")
+	}
+
+	//
+	// Int
+	//
+	src = `if ( Years[0] == 1988 && Years[1] == 1999 && Years[2] == 2020 ) { return true; } return false;`
+	obj = New(src)
+
+	p = obj.Prepare()
+	if p != nil {
+		t.Fatalf("Failed to compile")
+	}
+
+	// Run
+	ret, err = obj.Run(years)
+	if err != nil {
+		t.Fatalf("Found unexpected error running test - %s\n", err.Error())
+	}
+
+	if !ret {
+		t.Fatalf("Found unexpected result running script.")
+	}
+
+	//
+	// Bool
+	//
+	src = `if ( Dead[0] == false && Dead[2] == true ) { return true; } return false;`
+	obj = New(src)
+
+	p = obj.Prepare()
+	if p != nil {
+		t.Fatalf("Failed to compile")
+	}
+
+	// Run
+	ret, err = obj.Run(granny)
+	if err != nil {
+		t.Fatalf("Found unexpected error running test - %s\n", err.Error())
+	}
+
+	if !ret {
+		t.Fatalf("Found unexpected result running script.")
+	}
+}

@@ -46,6 +46,9 @@ const (
 	// Push an integer upon the stack
 	OpPush
 
+	// Store a literal array
+	OpArray
+
 	//
 	// NOTE:  This is a fake opcode.
 	//
@@ -133,6 +136,9 @@ const (
 	// Pop two values from the stack.  If either is TRUE push TRUE,
 	// otherwise push FALSE.
 	OpOr
+
+	// Array index operaton
+	OpArrayIndex
 
 	//
 	// NOTE:  This is a fake opcode.
@@ -224,6 +230,10 @@ func String(op Opcode) string {
 		return "OpAnd"
 	case OpOr:
 		return "OpOr"
+	case OpArray:
+		return "OpArray"
+	case OpArrayIndex:
+		return "OpArrayIndex"
 	default:
 		return "OpUnknown"
 	}

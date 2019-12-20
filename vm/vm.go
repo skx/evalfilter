@@ -12,6 +12,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
+	"os"
 	"reflect"
 	"strings"
 
@@ -180,6 +181,37 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			// maths & comparisons
 		case code.OpAdd, code.OpSub, code.OpMul, code.OpDiv, code.OpMod, code.OpPower, code.OpLess, code.OpLessEqual, code.OpGreater, code.OpGreaterEqual, code.OpEqual, code.OpNotEqual, code.OpMatches, code.OpNotMatches, code.OpAnd, code.OpOr:
 			err := vm.executeBinaryOperation(op)
+			if err != nil {
+				return nil, err
+			}
+
+			// Store an array
+		case code.OpArray:
+
+			elements := make([]object.Object, opArg)
+			for opArg > 0 {
+				var err error
+				elements[opArg-1], err = vm.stack.Pop()
+				if err != nil {
+					return nil, err
+				}
+				opArg--
+			}
+			arr := &object.Array{Elements: elements}
+			vm.stack.Push(arr)
+
+			// Lookup an array index
+		case code.OpArrayIndex:
+			index, err := vm.stack.Pop()
+			if err != nil {
+				return nil, err
+			}
+			left, err := vm.stack.Pop()
+			if err != nil {
+				return nil, err
+			}
+
+			err = vm.executeIndexExpression(left, index)
 			if err != nil {
 				return nil, err
 			}
@@ -360,6 +392,12 @@ func (vm *VM) inspectObject(obj interface{}) {
 			ret = &object.Null{}
 
 			switch field.Kind() {
+
+			// Hack.
+			//
+			// Probably broken.
+			case reflect.Slice:
+				ret = vm.createArrayFromSlice(field)
 			case reflect.Int, reflect.Int64:
 				ret = &object.Integer{Value: field.Int()}
 			case reflect.Float32, reflect.Float64:
@@ -392,6 +430,9 @@ func (vm *VM) inspectObject(obj interface{}) {
 		ret = &object.Null{}
 
 		switch field.Kind() {
+
+		case reflect.Slice:
+			ret = vm.createArrayFromSlice(field)
 		case reflect.Int, reflect.Int64:
 			ret = &object.Integer{Value: field.Int()}
 		case reflect.Float32, reflect.Float64:
@@ -404,6 +445,89 @@ func (vm *VM) inspectObject(obj interface{}) {
 
 		vm.fields[name] = ret
 	}
+}
+
+// createArrayFromSlice creates an object.Array value from the
+// given object/map slice.  This uses reflection and is slow/horrid
+func (vm *VM) createArrayFromSlice(field reflect.Value) object.Object {
+
+	// Elements we've found
+	var el []object.Object
+
+	// Find the length of the slice
+	l := field.Len()
+
+	// For each entry
+	for i := 0; i < l; i++ {
+
+		// Cast the array-member to an interface
+		in := field.Index(i).Interface()
+
+		//
+		// Now we're in horrible-land
+		//
+		// We want to work out the type of the
+		// array-member.  Of course every member
+		// will have the same type, unless we're
+		// in the case of an array of interfaces.
+		//
+		// The following code will try to cast
+		// to all "reasonable" values, which will
+		// cover either case.
+		//
+		// It is still horrible though, and that
+		// should be noted.
+		//
+
+		// Is it a string?
+		s, ok := in.(string)
+		if ok {
+			el = append(el, &object.String{Value: s})
+			continue
+		}
+
+		// Is it a bool?
+		b, ok := in.(bool)
+		if ok {
+			el = append(el, &object.Boolean{Value: b})
+			continue
+		}
+
+		// is it a float?
+		f, ok := in.(float32)
+		if ok {
+			el = append(el, &object.Float{Value: float64(f)})
+			continue
+		}
+		ff, ok := in.(float64)
+		if ok {
+			el = append(el, &object.Float{Value: ff})
+			continue
+		}
+
+		// is it an integer?
+		d, ok := in.(int)
+		if ok {
+			el = append(el, &object.Integer{Value: int64(d)})
+			continue
+		}
+		dd, ok := in.(int32)
+		if ok {
+			el = append(el, &object.Integer{Value: int64(dd)})
+			continue
+		}
+		ddd, ok := in.(int64)
+		if ok {
+			el = append(el, &object.Integer{Value: ddd})
+			continue
+		}
+
+		// FATAL!
+		fmt.Printf("Failed to convert array-member to object")
+		os.Exit(1)
+	}
+
+	return &object.Array{Elements: el}
 }
 
 // Execute an operation against two arguments, i.e "foo == bar", "2 + 3", etc.
@@ -688,7 +812,7 @@ func (vm *VM) evalBooleanInfixExpression(op code.Opcode, left object.Object, rig
 	return (vm.evalStringInfixExpression(op, l, r))
 }
 
-// Implement !.
+// Implement the "!" (prefix) operator.
 func (vm *VM) executeBangOperator() error {
 	operand, err := vm.stack.Pop()
 	if err != nil {
@@ -794,4 +918,45 @@ func (vm *VM) lookup(obj interface{}, name string) object.Object {
 	// If it was not found it is an unknown/unset value.
 	//
 	return Null
+}
+
+// executeIndexExpression lookup the array value at the given index.
+func (vm *VM) executeIndexExpression(left, index object.Object) error {
+
+	// Check arguments
+	if left.Type() != object.ARRAY && left.Type() != object.STRING {
+		return fmt.Errorf("the index operator can only be applied to strings and arrays, not %s", left.Type())
+	}
+	if index.Type() != object.INTEGER {
+		return fmt.Errorf("index operator must be given an integer, not %s", index.Type())
+	}
+
+	// Get the index we should lookup
+	idx := index.(*object.Integer).Value
+
+	// Looking at a string?
+	if left.Type() == object.STRING {
+
+		str := left.(*object.String).Inspect()
+		if idx < 0 || int(idx) > len(str) {
+			vm.stack.Push(Null)
+			return nil
+		}
+		vm.stack.Push(&object.String{Value: string(str[idx])})
+		return nil
+	}
+
+	// OK here we know we're dealing with an array.
+	arrayObject := left.(*object.Array)
+
+	// bounds-check
+	max := int64(len(arrayObject.Elements) - 1)
+	if idx < 0 || idx > max {
+		vm.stack.Push(Null)
+		return nil
+	}
+
+	// Return the appropriate object.
+	vm.stack.Push(arrayObject.Elements[idx])
+	return nil
 }
