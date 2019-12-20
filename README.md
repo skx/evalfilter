@@ -4,6 +4,7 @@
 
 * [eval-filter](#eval-filter)
   * [Overview](#overview)
+  * [Implementation](#implementation)
     * [Bytecode](#bytecode)
   * [Use Cases](#use-cases)
   * [Sample Usage](#sample-usage)
@@ -27,11 +28,16 @@ There is no shortage of embeddable languages which are available to the golang w
 
 The `evalfilter` library provides the means to embed a small scripting engine in your golang application (which is known as the host application).
 
-The scripting language is C-like, and allows you to _filter_ objects, with the general expectation that a script will return `true` or `false` allowing you to decide what to do after running it.
+The scripting language is C-like, and is intended to allow you to _filter_ objects, with the general expectation that a script will return `true` or `false` allowing you to decide what to do after running it.
 
-In terms of implementation the script is first split into [tokens](token/token.go) by the [lexer](lexer/lexer.go), then that is [parsed](parser/parser.go) into an abstract-syntax-tree.  Once the AST exists it is walked, and a series of [bytecode](code/code.go) operations are generated.  All of this happens in the `Prepare` method.
+
+## Implementation
+
+In terms of implementation the provided script is first split into [tokens](token/token.go) by the [lexer](lexer/lexer.go), then that is [parsed](parser/parser.go) into an abstract-syntax-tree.  Once the AST exists it is walked, and from it a series of [bytecode](code/code.go) operations are generated.  The bytecode runs through a simple optimizer-stage and then the compiler is done.
 
 Once you're ready to execute the script against a particular object the bytecode is interpreted by a simple [virtual machine](vm/vm.go) in the `Run` method.  As this is a stack-based virtual machine, rather than a register-based one, we have a [stack](stack/stack.go) implementation which is used by the interpreter.
+
+The runtime uses go's reflection package to dump all the fields available in the supplied object, and then executes the virtual machine opcodes until they terminate.
 
 
 ### Bytecode
@@ -125,7 +131,16 @@ The second release was implemented to perform a significant speedup for the case
 
 ## Scripting Facilities
 
-The engine supports scripts which:
+The engine supports the basic types you'd expect:
+
+* Arrays
+* Floating-point numbers
+* Integers
+* Strings
+
+These types are supported both in the language itself, and in the reflection-layer which is used to allow the script access to fields in the Golang object/map you supply to it.
+
+Again as you'd expect the facilities are pretty normal/expected:
 
 * Perform comparisons of strings and numbers:
   * equality:
@@ -135,19 +150,19 @@ The engine supports scripts which:
   * size (`<`, `<=`, `>`, `>=`):
     * "`if ( Count >= 10 ) { return false; }`"
     * "`if ( Hour >= 8 && Hour <= 17 ) { return false; }`"
-  * String matches a regular expression:
+  * String matching against a regular expression:
     * "`if ( Content ~= /needle/ )`"
     * "`if ( Content ~= /needle/i )`"
       * With case insensitivity
   * Does not match a regular expression:
     * "`if ( Content !~ /some text we don't want/ )`"
-* You can also add new primitives to the engine.
+* You can also easily add new primitives to the engine.
   * By implementing them in your golang host application.
   * Your host-application can also set variables which are accessible to the user-script.
 * Finally there is a `print` primitive to allow you to see what is happening, if you need to.
   * This is just one of the built-in functions, but perhaps the most useful.
 
-You'll note that you're referring to structure-fields by name, they are found dynamically via reflection.  The  `if` conditions can be nested, and also support an `else` clause.
+You'll note that you're referring to structure-fields by name, they are found dynamically via reflection.
 
 
 
@@ -163,6 +178,7 @@ As we noted earlier you can export functions from your host-application and make
   * e.g. `int("3")`.
 * `len(field | value)`
   * Returns the length of the given value, or the contents of the given field.
+  * For arrays it returns the number of elements, as you'd expect.
 * `lower(field | value)`
   * Return the lower-case version of the given input.
 * `string( )`
@@ -171,7 +187,7 @@ As we noted earlier you can export functions from your host-application and make
   * Returns the given string, or the contents of the given field, with leading/trailing whitespace removed.
 * `type(field | value)`
   * Returns the type of the given field, as a string.
-    * For example `string`, `integer`, `float`, `boolean`, or `null`.
+    * For example `string`, `integer`, `float`, `array`, `boolean`, or `null`.
 * `upper(field | value)`
   * Return the upper-case version of the given input.
 
