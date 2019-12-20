@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/skx/evalfilter/v2/token"
 )
@@ -253,10 +254,17 @@ func (l *Lexer) NextToken() token.Token {
 			l.prevToken = tok
 			return tok
 		}
+
 		tok.Literal = l.readIdentifier()
-		tok.Type = token.LookupIdentifier(tok.Literal)
-		l.prevToken = tok
-		return tok
+		if len(tok.Literal) > 0 {
+			tok.Type = token.LookupIdentifier(tok.Literal)
+			l.prevToken = tok
+			return tok
+		} else {
+			tok.Type = token.ILLEGAL
+			tok.Literal = fmt.Sprintf("invalid character for indentifier '%c'", l.ch)
+			return tok
+		}
 	}
 
 	l.readChar()
@@ -450,49 +458,19 @@ func (l *Lexer) peekChar() rune {
 	return l.characters[l.readPosition]
 }
 
-// determinate ch is identifier or not
+// determinate ch is identifier or not.  Identifiers may be alphanumeric,
+// but they must start with a letter.  Here that works because we are only
+// called if the first character is alphabetical.
 func isIdentifier(ch rune) bool {
-	return !isDigit(ch) && !isWhitespace(ch) && !isBrace(ch) && !isOperator(ch) && !isComparison(ch) && !isCompound(ch) && !isBrace(ch) && !isParen(ch) && !isBracket(ch) && !isEmpty(ch)
+	if unicode.IsLetter(ch) || unicode.IsDigit(ch) {
+		return true
+	}
+	return false
 }
 
 // is white space
 func isWhitespace(ch rune) bool {
 	return ch == rune(' ') || ch == rune('\t') || ch == rune('\n') || ch == rune('\r')
-}
-
-// is operators
-func isOperator(ch rune) bool {
-	return ch == rune('+') || ch == rune('-') || ch == rune('/') || ch == rune('*')
-}
-
-// is comparison
-func isComparison(ch rune) bool {
-	return ch == rune('=') || ch == rune('!') || ch == rune('>') || ch == rune('<') || ch == rune('~')
-}
-
-// is compound
-func isCompound(ch rune) bool {
-	return ch == rune(',') || ch == rune(':') || ch == rune('"') || ch == rune(';')
-}
-
-// is brace
-func isBrace(ch rune) bool {
-	return ch == rune('{') || ch == rune('}')
-}
-
-// is parenthesis
-func isParen(ch rune) bool {
-	return ch == rune('(') || ch == rune(')')
-}
-
-// is bracket
-func isBracket(ch rune) bool {
-	return ch == rune('[') || ch == rune(']')
-}
-
-// is empty
-func isEmpty(ch rune) bool {
-	return rune(0) == ch
 }
 
 // is Digit

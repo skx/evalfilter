@@ -55,7 +55,7 @@ func (p *lexCmd) Lex(file string) {
 	for {
 		tok := l.NextToken()
 		fmt.Printf("%v\n", tok)
-		if tok.Type == "EOF" {
+		if tok.Type == "EOF" || tok.Type == "ILLEGAL" {
 			break
 		}
 	}

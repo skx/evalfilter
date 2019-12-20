@@ -179,6 +179,10 @@ func (p *Parser) ParseProgram() *ast.Program {
 		program.Statements = append(program.Statements, stmt)
 		p.nextToken()
 	}
+
+	if p.curToken.Type == token.ILLEGAL {
+		p.errors = append(p.errors, p.curToken.Literal)
+	}
 	return program
 }
 
