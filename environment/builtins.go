@@ -196,7 +196,7 @@ func fnType(args []object.Object) object.Object {
 	arg := args[0]
 
 	// Get the type - lower-case
-	val := fmt.Sprintf("%s", arg.Type())
+	val := string(arg.Type())
 	val = strings.ToLower(val)
 
 	// Return
