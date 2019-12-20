@@ -161,6 +161,15 @@ func TestLen(t *testing.T) {
 		{Input: &object.Float{Value: 3.2}, Result: 3},
 		{Input: &object.Boolean{Value: true}, Result: 4},
 		{Input: &object.Boolean{Value: false}, Result: 5},
+
+		// Arrays
+		{Input: &object.Array{Elements: []object.Object{
+			&object.String{Value: "steve"},
+			&object.Integer{Value: 1}}},
+			Result: 2},
+		{Input: &object.Array{Elements: []object.Object{
+			&object.String{Value: "steve"}}},
+			Result: 1},
 	}
 
 	// For each test
@@ -173,6 +182,13 @@ func TestLen(t *testing.T) {
 		if int(x.(*object.Integer).Value) != test.Result {
 			t.Errorf("Invalid length for %s", test.Input)
 		}
+	}
+
+	// Calling the function with no-arguments should return null
+	var args []object.Object
+	out := fnLen(args)
+	if out.Type() != object.NULL {
+		t.Errorf("no arguments returns a weird result")
 	}
 }
 
@@ -203,6 +219,13 @@ func TestLower(t *testing.T) {
 		if x.(*object.String).Value != test.Result {
 			t.Errorf("Invalid result for %t", test.Input)
 		}
+	}
+
+	// Calling the function with no-arguments should return null
+	var args []object.Object
+	out := fnLower(args)
+	if out.Type() != object.NULL {
+		t.Errorf("no arguments returns a weird result")
 	}
 }
 
@@ -316,7 +339,7 @@ func TestType(t *testing.T) {
 	// Calling the function with no-arguments should return null
 	var args []object.Object
 	out := fnType(args)
-	if out.(*object.String).Value != "null" {
+	if out.Type() != object.NULL {
 		t.Errorf("no arguments returns a weird result")
 	}
 
@@ -349,6 +372,13 @@ func TestUpper(t *testing.T) {
 		if x.(*object.String).Value != test.Result {
 			t.Errorf("Invalid result for %s", test.Input)
 		}
+	}
+
+	// Calling the function with no-arguments should return null
+	var args []object.Object
+	out := fnUpper(args)
+	if out.Type() != object.NULL {
+		t.Errorf("no arguments returns a weird result")
 	}
 }
 

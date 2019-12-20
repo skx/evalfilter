@@ -74,16 +74,30 @@ func fnInt(args []object.Object) object.Object {
 // objects, instead we cast all objects to strings and allow their lengths
 // to be calculated.
 //
-// so `len(false)` is 5, len(3) is 1, and `len(0.123)` is 5.
+// The obvious exception is the handling of arrays.  The length of
+// an array is the number of elements which it contains.
+//
+// So `len(false)` is 5, len(3) is 1, and `len(0.123)` is 5, and arrays
+// work as expectd: len([]) is zero, and len(["steve", "kemp"]) is two.
+//
 func fnLen(args []object.Object) object.Object {
-	sum := 0
 
-	for _, e := range args {
-
-		// stringify the value, so we can call "len(3.2)", etc.
-		val := fmt.Sprintf("%v", e.Inspect())
-		sum += utf8.RuneCountInString(val)
+	// We expect one argument
+	if len(args) != 1 {
+		return &object.Null{}
 	}
+
+	// array is handled differently
+	switch arg := args[0].(type) {
+	case *object.Array:
+		return &object.Integer{Value: int64(len(arg.Elements))}
+	}
+
+	// Stringify
+	str := args[0].Inspect()
+	sum := utf8.RuneCountInString(str)
+
+	// return
 	return &object.Integer{Value: int64(sum)}
 }
 
@@ -93,14 +107,17 @@ func fnLen(args []object.Object) object.Object {
 // we lower-case.
 func fnLower(args []object.Object) object.Object {
 
-	out := ""
-
-	// Join all input arguments
-	for _, arg := range args {
-		val := fmt.Sprintf("%v", arg.Inspect())
-		out += strings.ToLower(val)
+	// We expect one argument
+	if len(args) != 1 {
+		return &object.Null{}
 	}
-	return &object.String{Value: out}
+
+	// Stringify and lower-case
+	arg := fmt.Sprintf("%v", args[0].Inspect())
+	arg = strings.ToLower(arg)
+
+	// Return
+	return &object.String{Value: arg}
 }
 
 // fnMatch is the implementation of our regex `match` function.
@@ -169,12 +186,21 @@ func fnTrim(args []object.Object) object.Object {
 
 // fnType is the implementation of our `type` function.
 func fnType(args []object.Object) object.Object {
-	for _, e := range args {
-		return &object.String{Value: strings.ToLower(fmt.Sprintf("%v", e.Type()))}
+
+	// We expect one argument
+	if len(args) != 1 {
+		return &object.Null{}
 	}
 
-	// No argument is the same as a null-argument
-	return &object.String{Value: "null"}
+	// Get the arg
+	arg := args[0]
+
+	// Get the type - lower-case
+	val := fmt.Sprintf("%s", arg.Type())
+	val = strings.ToLower(val)
+
+	// Return
+	return &object.String{Value: val}
 }
 
 // fnPrint is the implementation of our `print` function.
@@ -190,12 +216,15 @@ func fnPrint(args []object.Object) object.Object {
 // Again we stringify our arguments here so `upper(true)` is
 // the string `TRUE`.
 func fnUpper(args []object.Object) object.Object {
-	out := ""
-
-	// Join all input arguments
-	for _, arg := range args {
-		val := fmt.Sprintf("%v", arg.Inspect())
-		out += strings.ToUpper(val)
+	// We expect one argument
+	if len(args) != 1 {
+		return &object.Null{}
 	}
-	return &object.String{Value: out}
+
+	// Stringify and upper-case
+	arg := fmt.Sprintf("%v", args[0].Inspect())
+	arg = strings.ToUpper(arg)
+
+	// Return
+	return &object.String{Value: arg}
 }
