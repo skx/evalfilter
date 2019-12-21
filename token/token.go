@@ -60,6 +60,7 @@ const (
 	SQRT      = "√"
 	STRING    = "STRING"
 	TRUE      = "TRUE"
+	WHILE     = "WHILE"
 )
 
 // reversed keywords
@@ -69,6 +70,7 @@ var keywords = map[string]Type{
 	"if":     IF,
 	"return": RETURN,
 	"true":   TRUE,
+	"while":  WHILE,
 }
 
 // LookupIdentifier used to determinate whether identifier is keyword nor not
