@@ -16,6 +16,9 @@ import (
 //
 type runCmd struct {
 
+	// Disable the bytecode optimizer
+	raw bool
+
 	// The user may specify a JSON file.
 	jsonFile string
 }
@@ -36,7 +39,7 @@ func (*runCmd) Usage() string {
 //
 func (p *runCmd) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&p.jsonFile, "json", "", "The JSON file, containing the object to test the script with.")
-
+	f.BoolVar(&p.raw, "no-optimizer", false, "Disable the bytecode optimizer")
 }
 
 //
@@ -84,9 +87,17 @@ func (p *runCmd) Run(file string) {
 	eval := evalfilter.New(string(dat))
 
 	//
+	// Flags to pass to the preperation function.
+	//
+	var flags []byte
+	if p.raw {
+		flags = append(flags, evalfilter.NoOptimize)
+	}
+
+	//
 	// Prepare
 	//
-	err = eval.Prepare()
+	err = eval.Prepare(flags)
 	if err != nil {
 		fmt.Printf("Error compiling:%s\n", err.Error())
 		return
