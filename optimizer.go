@@ -429,8 +429,11 @@ func (e *Eval) removeNOPs() {
 	//
 	for ip < ln {
 
+		// Get the instruction & length.
 		op := code.Opcode(e.instructions[ip])
 		opLen := code.Length(op)
+
+		// Get the opcode's argument, if any.
 		opArg := 0
 		if opLen > 1 {
 			opArg = int(binary.BigEndian.Uint16(e.instructions[ip+1 : ip+3]))
@@ -442,7 +445,14 @@ func (e *Eval) removeNOPs() {
 		switch op {
 
 		case code.OpNop:
-			// Do nothing.  Appropriate.
+			//
+			// Do nothing here, with the instruction itself.
+			//
+			// However we have to update our map with the mapping
+			// of old-instruction to new, because there might have
+			// been a jump which pointed to this NOP instruction.
+			//
+			rewrite[ip] = len(tmp)
 
 		default:
 
@@ -526,8 +536,11 @@ func (e *Eval) removeNOPs() {
 			tmp[ip+1] = b[0]
 			tmp[ip+2] = b[1]
 
-		default:
 		}
+
+		//
+		// Next instruction.
+		//
 		ip += opLen
 	}
 

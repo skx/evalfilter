@@ -790,3 +790,54 @@ func TestArrayMap(t *testing.T) {
 		t.Fatalf("Found unexpected result running script.")
 	}
 }
+
+// TestOptimizer is a simple test-case to confirm an issue is resolved
+// https://github.com/skx/evalfilter/issues/82
+func TestOptimizer(t *testing.T) {
+
+	//
+	// String
+	//
+	src := `
+value = 0;
+
+if ( 1 == 0 ) {
+   print( "Weird output\n" );
+   value = value + 1;
+}
+
+if ( 0 == 0 ) {
+   print( "Expected output\n");
+   value = value + 1;
+}
+
+if ( 1 != 1 ) {
+   print( "Weird output\n" );
+   value = value + 1;
+}
+
+print( "After" );
+
+// This should match
+if ( value == 1 ) { return true; }
+
+return false;
+`
+	obj := New(src)
+
+	p := obj.Prepare()
+	if p != nil {
+		t.Fatalf("Failed to compile")
+	}
+
+	// Run
+	ret, err := obj.Run(nil)
+	if err != nil {
+		t.Fatalf("Found unexpected error running test - %s\n", err.Error())
+	}
+
+	if !ret {
+		t.Fatalf("Found unexpected result running script.")
+	}
+
+}
