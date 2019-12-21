@@ -559,6 +559,68 @@ func (e *Eval) compile(node ast.Node) error {
 		//  C:
 		//
 
+	case *ast.WhileStatement:
+
+		//
+		// Record our starting position
+		//
+		cur := len(e.instructions)
+
+		//
+		// Compile the condition.
+		//
+		err := e.compile(node.Condition)
+		if err != nil {
+			return err
+		}
+
+		//
+		//  Assume the following input:
+		//
+		//    // A
+		//    while ( cond ) {
+		//       // B
+		//       // b2 -> jump to A to retest the condition
+		//    }
+		//    // C
+		//
+		// We've now compiled `cond`, which is the expression
+		// above.
+		//
+		// If the condition is false we jump to C, skipping the
+		// body.
+		//
+		// If the condition is true we fall through, and at
+		// B2 we jump back to A
+		//
+
+		//
+		// So now we generate an `OpJumpIfFalse` to handle the case
+		// where the condition is not true.
+		//
+		// This will jump to C, the position after the body.
+		//
+		jumpNotTruthyPos := e.emit(code.OpJumpIfFalse, 9999)
+
+		//
+		// Compile the code in the body
+		//
+		err = e.compile(node.Body)
+		if err != nil {
+			return err
+		}
+
+		//
+		// Append the b2 jump to retry the loop
+		//
+		e.emit(code.OpJump, cur)
+
+		//
+		// Change the jump to skip the block if the condition
+		// was false.
+		//
+		e.changeOperand(jumpNotTruthyPos, len(e.instructions))
+
 	case *ast.AssignStatement:
 
 		// Get the value
