@@ -462,7 +462,7 @@ func (l *Lexer) peekChar() rune {
 // but they must start with a letter.  Here that works because we are only
 // called if the first character is alphabetical.
 func isIdentifier(ch rune) bool {
-	if unicode.IsLetter(ch) || unicode.IsDigit(ch) {
+	if unicode.IsLetter(ch) || unicode.IsDigit(ch) || ch == '$' {
 		return true
 	}
 	return false

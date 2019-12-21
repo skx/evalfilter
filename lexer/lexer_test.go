@@ -271,7 +271,7 @@ a = "steve";
  a = "steve\r";
  a = "steve\\";
  a = "steve\"";
- c = 3.113£;
+ c = 3.113/;
  a = "steve\
  kemp";
  b = "steve\
