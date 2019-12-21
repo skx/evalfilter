@@ -8,13 +8,34 @@ if ( Channel !~ /_ALerts$/i ) {
     return false;
 }
 
+
 //
-// Ignore messages from Staff
+// We'll ignore messages from staff-members.
 //
-if ( Author == "Alice" ) { return false; }
-if ( Author == "Bob" ) { return false; }
-if ( Author == "Chris" ) { return false; }
-if ( Author == "Diane" ) { return false; }
+// Here's our list of members to ignore.
+//
+staff = [ "Alice", "Bob", "Chris", "Diane" ];
+
+
+//
+// Declare an index
+//
+i = 0;
+
+//
+// Test each staff-member
+//
+while( i < len(staff) ) {
+
+   //
+   // Got a match?  We're done
+   //
+   if ( Author == staff[i] ) {
+      print( "Ignoring message from staff-member ", Author, "\n" );
+      return false;
+   }
+   i = i + 1;
+}
 
 
 print( "Raising alert!\n");
