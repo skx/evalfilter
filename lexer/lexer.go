@@ -260,11 +260,11 @@ func (l *Lexer) NextToken() token.Token {
 			tok.Type = token.LookupIdentifier(tok.Literal)
 			l.prevToken = tok
 			return tok
-		} else {
-			tok.Type = token.ILLEGAL
-			tok.Literal = fmt.Sprintf("invalid character for indentifier '%c'", l.ch)
-			return tok
 		}
+		tok.Type = token.ILLEGAL
+		tok.Literal = fmt.Sprintf("invalid character for indentifier '%c'", l.ch)
+		return tok
+
 	}
 
 	l.readChar()
