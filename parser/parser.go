@@ -115,6 +115,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.SQRT, p.parsePrefixExpression)
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
 	p.registerPrefix(token.TRUE, p.parseBooleanLiteral)
+	p.registerPrefix(token.WHILE, p.parseWhileStatement)
 
 	p.infixParseFns = make(map[token.Type]infixParseFn)
 	p.registerInfix(token.AND, p.parseInfixExpression)
@@ -389,6 +390,30 @@ func (p *Parser) parseIfExpression() ast.Expression {
 			return nil
 		}
 	}
+	return expression
+}
+
+// parseWhileStatement parses a while-statement.
+func (p *Parser) parseWhileStatement() ast.Expression {
+	expression := &ast.WhileStatement{Token: p.curToken}
+	if expression == nil {
+		return nil
+	}
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+	p.nextToken()
+	expression.Condition = p.parseExpression(LOWEST)
+	if expression.Condition == nil {
+		return nil
+	}
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+	expression.Body = p.parseBlockStatement()
 	return expression
 }
 
