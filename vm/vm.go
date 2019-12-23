@@ -688,7 +688,7 @@ func (vm *VM) evalFloatIntegerInfixExpression(op code.Opcode, left, right object
 		vm.stack.Push(&object.Float{Value: leftVal * rightVal})
 	case code.OpDiv:
 		if rightVal == 0 {
-			return fmt.Errorf("attempted division by zero: %f / %d", leftVal, rightVal)
+			return fmt.Errorf("attempted division by zero: %f / %f", leftVal, rightVal)
 		}
 		vm.stack.Push(&object.Float{Value: leftVal / rightVal})
 	case code.OpMod:
@@ -728,7 +728,7 @@ func (vm *VM) evalIntegerFloatInfixExpression(op code.Opcode, left, right object
 		vm.stack.Push(&object.Float{Value: leftVal * rightVal})
 	case code.OpDiv:
 		if rightVal == 0 {
-			return fmt.Errorf("attempted division by zero: %d / %f", leftVal, rightVal)
+			return fmt.Errorf("attempted division by zero: %f / %f", leftVal, rightVal)
 		}
 		vm.stack.Push(&object.Float{Value: leftVal / rightVal})
 	case code.OpMod:
