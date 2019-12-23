@@ -18,6 +18,7 @@ package evalfilter
 
 import (
 	"encoding/binary"
+	"fmt"
 
 	"github.com/skx/evalfilter/v2/code"
 )
@@ -32,8 +33,21 @@ func (e *Eval) optimize() int {
 	// Count changes we've made
 	changes := 0
 
-	// Attempt to collapse maths
-	for e.optimizeMaths() {
+	// Attempt to collapse maths until we
+	// can do so no more - or until we see
+	// an error.
+	for {
+
+		changed, err := e.optimizeMaths()
+
+		// error?  failed to change?
+		//
+		// Then stop trying.
+		if err != nil || !changed {
+			break
+		}
+
+		// Otherwise we're ready to do the same again
 		changes++
 	}
 
@@ -62,7 +76,7 @@ func (e *Eval) optimize() int {
 //
 // That can be replaced by "OpPush 6", "NOP", "NOP", "NOP", & "NOP".
 //
-func (e *Eval) optimizeMaths() bool {
+func (e *Eval) optimizeMaths() (bool, error) {
 
 	//
 	// Constants we've seen - and their offsets within the
@@ -191,7 +205,7 @@ func (e *Eval) optimizeMaths() bool {
 				}
 
 				// Made a change to the bytecode.
-				return true
+				return true, nil
 			}
 
 			// reset our argument counters.
@@ -236,6 +250,11 @@ func (e *Eval) optimizeMaths() bool {
 					result = b.value - a.value
 				}
 				if op == code.OpDiv {
+
+					// found division by zero
+					if a.value == 0 {
+						return false, fmt.Errorf("attempted division by zero")
+					}
 					result = b.value / a.value
 				}
 
@@ -252,7 +271,7 @@ func (e *Eval) optimizeMaths() bool {
 					e.instructions[ip] = byte(code.OpNop)
 
 					// We changed something, so we stop now.
-					return true
+					return true, nil
 				}
 
 				// The result was not something we can
@@ -288,7 +307,7 @@ func (e *Eval) optimizeMaths() bool {
 	// If we get here we walked all the way over our bytecode
 	// and made zero changes.
 	//
-	return false
+	return false, nil
 }
 
 // optimizeJumps updates simple jump operations in-place.
