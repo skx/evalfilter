@@ -21,23 +21,33 @@
 
 The evalfilter package provides an embeddable evaluation-engine, which allows simple logic which might otherwise be hardwired into your golang application to be delegated to (user-written) script(s).
 
-There is no shortage of embeddable languages which are available to the golang world, this library is intended to be a simple one, allowing simple tests to be made against structures/objects.
+There is no shortage of embeddable languages which are available to the golang world, this library is intended to be something that is:
+
+* Simple to embed.
+* Simple to use.
+* Simple to understand.
+* As fast as it can be, without being too tricky.
+
 
 
 ## Overview
 
 The `evalfilter` library provides the means to embed a small scripting engine in your golang application (which is known as the host application).
 
-The scripting language is C-like, and is intended to allow you to _filter_ objects, with the general expectation that a script will return `true` or `false` allowing you to decide what to do after running it.
+The scripting language is C-like, and is generally intended to allow you to _filter_ objects, with the general expectation that a script will return `true` or `false` allowing you to decide what to do after running it.
+
+The ideal use-case is that your application receives objects of some kind, perhaps as a result of incoming webhook submissions, network events, or similar, and you wish to decide how to handle those objects in a flexible fashion.
+
 
 
 ## Implementation
 
-In terms of implementation the provided script is first split into [tokens](token/token.go) by the [lexer](lexer/lexer.go), then that is [parsed](parser/parser.go) into an abstract-syntax-tree.  Once the AST exists it is walked, and from it a series of [bytecode](code/code.go) operations are generated.  The bytecode runs through a simple optimizer-stage and then the compiler is done.
+In terms of implementation the script to be executed is split into [tokens](token/token.go) by the [lexer](lexer/lexer.go), then those tokens are [parsed](parser/parser.go) into an abstract-syntax-tree.   The AST is then processed, and from it a series of [bytecode](code/code.go) operations are generated.  The bytecode runs through a simple optimizer-stage and then the compiler is done.
 
-Once you're ready to execute the script against a particular object the bytecode is interpreted by a simple [virtual machine](vm/vm.go) in the `Run` method.  As this is a stack-based virtual machine, rather than a register-based one, we have a [stack](stack/stack.go) implementation which is used by the interpreter.
+Once the bytecode has been generated it can be reused multiple times, there is no state which needs to be maintained.  This makes actually executing the script (i.e. running the bytecode) a fast process.
 
-The runtime uses go's reflection package to dump all the fields available in the supplied object, and then executes the virtual machine opcodes until they terminate.
+At execution-time the bytecode which was generated is interpreted by a simple [virtual machine](vm/vm.go) in the `Run` method.  As this is a stack-based virtual machine, rather than a register-based one, we have a simple [stack](stack/stack.go) implementation, along with some runtime support to provide the [builtin-functions](environment/builtins.go).
+
 
 
 ### Bytecode
@@ -49,15 +59,21 @@ The bytecode is not exposed externally, but it is documented in [BYTECODE.md](BY
 
 The backstory behind this project is explained in [this blog-post](https://blog.steve.fi/a_slack_hack.html), but in brief I wanted to read incoming Slack messages and react to specific ones to carry out an action.
 
-The expectation was that non-developers might want to change the matching of messages, without having to know how to rebuild my application, or understand Go.  So the logic was moved into a script and this evaluation engine was born.
+* In brief I wanted to implement a simple "on-call notifier".
+* When messages were posted to Slack channels I wanted to _sometimes_ trigger a phone-call to the on-call engineer who was nominated to handle events/problems/issues that evening.
+* Of course not _all_ Slack-messages were worth waking up an engineer for..
 
-This is a pretty good use for an evaluation engine and operation was pretty simple:
+The expectation was that non-developers might want to change the matching of messages, without having to know how to rebuild the application, or understand Go.  So the logic was moved into a script and this evaluation engine was born.
+
+This is a pretty good use-case for an evaluation engine, solving a real problem, and not requiring a large degree of technical knowledge to update.
+
+As noted the application was pretty simple, logically:
 
 * Create an instance of the `evalfilter`.
 * Load the user's script, which will let messages be matched.
-* For each incoming message run the script against it.
-  * If it returns `true` you know you should carry out your interesting activity.
-  * Otherwise you will not.
+* For each incoming message run the users' script against it.
+  * If it returns `true` you know you should trigger the on-call notification.
+  * Otherwise ignore the message.
 
 To make this more concrete we'll pretend we have the following structure to describe incoming messages:
 
@@ -68,7 +84,7 @@ To make this more concrete we'll pretend we have the following structure to desc
         Sent    time.Time
     }
 
-The user could now write the following script to test if an incoming message was worth reacting to:
+The user could now write the following script to decide whether to initiate a notification:
 
     //
     // You can see that comments are prefixed with "//".
@@ -79,33 +95,36 @@ The user could now write the following script to test if an incoming message was
     // or
     //   return true;
     //
-    // Your host application will then carry out the interesting operation
-    // when it receives a `true` result.
-    //
 
     //
     // If we have a message from Steve it is interesting!
     //
+    // Here `return true` means to initiate the phone-call.
+    //
     if ( Author == "Steve" ) { return true; }
 
     //
-    // A bug is being discussed?  Awesome.
+    // A bug is being discussed?  Awesome.  That's worth waking
+    // somebody for.
     //
     if ( Message ~=  /panic/i ) { return true; }
 
     //
-    // OK the message is uninteresting, and will be discarded, or
-    // otherwise ignored.
+    // At this point we decide the message is not important, so
+    // we ignore it.
+    //
+    // In a real-life implementation we'd probably work the other
+    // way round.  Default to triggering the call unless we knew
+    // it was a low-priority/irrelevant message.
     //
     return false;
 
-You'll notice that we don't define the _object_ here, because it is implied that the script operates upon a single instance of the `Message` structure.   That means `Author` is implicitly the author-field of the message object, which the `Run` method was invoked with.
-
+You'll notice that we test fields such as `Message` here, which come from the object we were given.  That works due to the magic of reflection!
 
 
 ## Sample Usage
 
-To give you a quick feel for how things look you could consult:
+To give you a quick feel for how things look you could consult these two simple examples:
 
 * [example_test.go](example_test.go).
   * This filters a list of people by their age.
@@ -113,7 +132,7 @@ To give you a quick feel for how things look you could consult:
   * This exports a function from the golang-host application to the script.
   * The new function is then used to filter a list of people.
 
-Other examples are available beneath the [_examples/](_examples/) directory, and there is a general-purpose utility located in [cmd/evalfilter](cmd/evalfilter) which allows you to examine bytecode, tokens, and run scripts.
+Additional examples are available beneath the [_examples/](_examples/) directory, and there is a general-purpose utility located in [cmd/evalfilter](cmd/evalfilter) which allows you to examine bytecode, tokens, and run scripts.
 
 
 
@@ -161,8 +180,6 @@ Again as you'd expect the facilities are pretty normal/expected:
   * Your host-application can also set variables which are accessible to the user-script.
 * Finally there is a `print` primitive to allow you to see what is happening, if you need to.
   * This is just one of the built-in functions, but perhaps the most useful.
-
-You'll note that you're referring to structure-fields by name, they are found dynamically via reflection.
 
 
 
@@ -245,7 +262,7 @@ This will test a script against a JSON object, allowing you to experiment with c
 If you wish to run a local benchmark you should be able to do so as follows:
 
 ```
-$ go test -test.bench=evalfilter_ -benchtime=10s -run=^t
+go test -test.bench=evalfilter_ -benchtime=10s -run=^t
 goos: linux
 goarch: amd64
 pkg: github.com/skx/evalfilter/v2
