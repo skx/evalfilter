@@ -607,6 +607,9 @@ func (vm *VM) evalIntegerInfixExpression(op code.Opcode, left, right object.Obje
 	case code.OpMul:
 		vm.stack.Push(&object.Integer{Value: leftVal * rightVal})
 	case code.OpDiv:
+		if rightVal == 0 {
+			return fmt.Errorf("attempted division by zero: %d / %d", leftVal, rightVal)
+		}
 		vm.stack.Push(&object.Integer{Value: leftVal / rightVal})
 	case code.OpMod:
 		vm.stack.Push(&object.Integer{Value: leftVal % rightVal})
@@ -644,6 +647,9 @@ func (vm *VM) evalFloatInfixExpression(op code.Opcode, left, right object.Object
 	case code.OpMul:
 		vm.stack.Push(&object.Float{Value: leftVal * rightVal})
 	case code.OpDiv:
+		if rightVal == 0 {
+			return fmt.Errorf("attempted division by zero: %f / %f", leftVal, rightVal)
+		}
 		vm.stack.Push(&object.Float{Value: leftVal / rightVal})
 	case code.OpMod:
 		vm.stack.Push(&object.Float{Value: float64(int(leftVal) % int(rightVal))})
@@ -681,6 +687,9 @@ func (vm *VM) evalFloatIntegerInfixExpression(op code.Opcode, left, right object
 	case code.OpMul:
 		vm.stack.Push(&object.Float{Value: leftVal * rightVal})
 	case code.OpDiv:
+		if rightVal == 0 {
+			return fmt.Errorf("attempted division by zero: %f / %d", leftVal, rightVal)
+		}
 		vm.stack.Push(&object.Float{Value: leftVal / rightVal})
 	case code.OpMod:
 		vm.stack.Push(&object.Float{Value: float64(int(leftVal) % int(rightVal))})
@@ -718,6 +727,9 @@ func (vm *VM) evalIntegerFloatInfixExpression(op code.Opcode, left, right object
 	case code.OpMul:
 		vm.stack.Push(&object.Float{Value: leftVal * rightVal})
 	case code.OpDiv:
+		if rightVal == 0 {
+			return fmt.Errorf("attempted division by zero: %d / %f", leftVal, rightVal)
+		}
 		vm.stack.Push(&object.Float{Value: leftVal / rightVal})
 	case code.OpMod:
 		vm.stack.Push(&object.Float{Value: float64(int(leftVal) % int(rightVal))})
