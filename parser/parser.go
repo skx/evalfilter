@@ -102,6 +102,7 @@ func New(l *lexer.Lexer) *Parser {
 
 	p.prefixParseFns = make(map[token.Type]prefixParseFn)
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
+	p.registerPrefix(token.EOF, p.parseEOF)
 	p.registerPrefix(token.FALSE, p.parseBooleanLiteral)
 	p.registerPrefix(token.FLOAT, p.parseFloatLiteral)
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
@@ -209,7 +210,7 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	stmt.ReturnValue = p.parseExpression(LOWEST)
 	p.nextToken()
 	if p.curToken.Type != token.SEMICOLON {
-		p.errors = append(p.errors, fmt.Sprintf("expected semicolon after return-value; found token ' %s'", p.curToken.Literal))
+		p.errors = append(p.errors, fmt.Sprintf("expected semicolon after return-value; found token '%v'", p.curToken))
 		stmt.ReturnValue = nil
 		return nil
 	}
@@ -268,8 +269,14 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 //
 // This is generally seen with an unterminated string.
 func (p *Parser) parseIllegal() ast.Expression {
-	msg := fmt.Sprintf("Illegal token hit parsing program %s", p.curToken.Literal)
+	msg := fmt.Sprintf("illegal token hit parsing program %s", p.curToken.Literal)
 	p.errors = append(p.errors, msg)
+	return nil
+}
+
+// report an error if we hit an unexpected end of file.
+func (p *Parser) parseEOF() ast.Expression {
+	p.errors = append(p.errors, "unexpected end of file reached")
 	return nil
 }
 
@@ -429,11 +436,11 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 		}
 		block.Statements = append(block.Statements, stmt)
 		p.nextToken()
-		if p.curToken.Type == token.ILLEGAL {
-			p.errors = append(p.errors, p.curToken.Literal)
+
+		if p.curToken.Type == token.EOF || p.curToken.Type == token.ILLEGAL {
+			p.errors = append(p.errors, "incomplete block statement")
 			return nil
 		}
-
 	}
 	return block
 }
