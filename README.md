@@ -14,6 +14,7 @@
      * [Variables](#variables)
   * [Standalone Use](#standalone-use)
   * [Benchmarking](#benchmarking)
+  * [Fuzz Testing](#fuzz-testing)
   * [Github Setup](#github-setup)
 
 
@@ -280,9 +281,18 @@ engine is unlikely to be a significant bottleneck.
 
 One interesting thing that shows up clearly is that working with a `struct` is significantly faster than working with a `map`.  I can only assume that the reflection overhead is shorter there, but I don't know why.
 
+
+## Fuzz Testing
+
+Fuzz-testing is basically magic - you run your program with random input, which stress-tests it and frequently exposes cornder-cases you've not considered.
+
+This project has been fuzz-tested repeatedly, and [FUZZING.md](FUZZING.md) contains notes on how you can carry out testing of your own.
+
+
 ## Github Setup
 
 This repository is configured to run tests upon every commit, and when pull-requests are created/updated.  The testing is carried out via [.github/run-tests.sh](.github/run-tests.sh) which is used by the [github-action-tester](https://github.com/skx/github-action-tester) action.
+
 
 
 Steve

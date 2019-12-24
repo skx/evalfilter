@@ -3,3 +3,5 @@ _examples/variable/variable
 _examples/state/state
 cmd/evalfilter/evalfilter
 go.sum
+workdir/
+*.zip
