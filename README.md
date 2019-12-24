@@ -284,7 +284,7 @@ One interesting thing that shows up clearly is that working with a `struct` is s
 
 ## Fuzz Testing
 
-Fuzz-testing is basically magic - you run your program with random input, which stress-tests it and frequently exposes cornder-cases you've not considered.
+Fuzz-testing is basically magic - you run your program with random input, which stress-tests it and frequently exposes corner-cases you've not considered.
 
 This project has been fuzz-tested repeatedly, and [FUZZING.md](FUZZING.md) contains notes on how you can carry out testing of your own.
 
