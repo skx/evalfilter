@@ -841,3 +841,53 @@ return false;
 	}
 
 }
+
+// TestArrayIn checks our array-inclusion functionality is sane.
+func TestArrayIn(t *testing.T) {
+
+	type Test struct {
+		Input  string
+		Error  bool
+		Result bool
+	}
+
+	tests := []Test{
+
+		// int OP int
+		{Input: `
+names = [ "Steve", "Kemp" ]
+if ( "Steve" in names ) {
+  return true;
+} else {
+  return false;
+}
+`, Result: true},
+
+		{Input: `
+return( "Steve" in [ "Steve", "Blah", "Kemp" ] );
+`,
+			Result: true},
+		{Input: `return( "Steve" in "Steve" );`, Error: true},
+	}
+
+	for _, tst := range tests {
+
+		obj := New(tst.Input)
+
+		p := obj.Prepare()
+		if p != nil {
+			t.Fatalf("Failed to compile")
+		}
+
+		ret, err := obj.Run(nil)
+		if err != nil {
+			if tst.Error == false {
+				t.Fatalf("Found unexpected error running test '%s' - %s\n", tst.Input, err.Error())
+			}
+		}
+
+		if ret != tst.Result {
+			t.Fatalf("Found unexpected result running script: %s", tst.Input)
+		}
+	}
+}
