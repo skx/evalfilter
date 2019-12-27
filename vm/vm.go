@@ -34,10 +34,10 @@ var Null = &object.Null{}
 // VM is the structure which holds our state.
 type VM struct {
 
-	// constants holds constants in the program source, these
-	// are string-literals, numeric-literals, boolean values
-	// as well as variable names, the names of functions, and
-	// references to object/map values.
+	// constants is an array holding constants which were found in
+	// the script-source.  These constants include string-literals,
+	// numeric-literals, boolean values as well as variable names, the
+	// names of functions, and references to object/map values.
 	//
 	// constants are treated as atoms, so they are unique.
 	constants []object.Object
@@ -62,16 +62,23 @@ type VM struct {
 	// Reflection is slow so the map here is used as a cache, avoiding
 	// the need to reparse the same object multiple times.
 	fields map[string]object.Object
+
+	// debug can be enabled to dump our execution-log as we run.
+	debug bool
 }
 
 // New constructs a new virtual machine.
 func New(constants []object.Object, bytecode code.Instructions, env *environment.Environment) *VM {
+
+	// If we have a `DEBUG` environment then we enable debugging
+	_, present := env.Get("DEBUG")
 
 	return &VM{
 		constants:   constants,
 		environment: env,
 		bytecode:    bytecode,
 		stack:       stack.New(),
+		debug:       present,
 	}
 }
 
@@ -133,6 +140,18 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			// and they might be different sizes.
 			//
 			opArg = int(binary.BigEndian.Uint16(vm.bytecode[ip+1 : ip+3]))
+		}
+
+		if vm.debug {
+			fmt.Printf("\n\tStack: [%s]\n",
+				strings.Join(vm.stack.Export(), ", "))
+
+			if opLen > 1 {
+				fmt.Printf("%04d\t%s\t%04d\n", ip, code.String(op), opArg)
+			} else {
+				fmt.Printf("%04d\t%s\n", ip, code.String(op))
+			}
+
 		}
 
 		switch op {

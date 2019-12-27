@@ -4,6 +4,7 @@ package stack
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/skx/evalfilter/v2/object"
 )
@@ -31,6 +32,21 @@ func New() *Stack {
 // Empty returns true if the stack is empty.
 func (s *Stack) Empty() bool {
 	return (len(s.entries) == 0)
+}
+
+// Export returns copy of the stack-contents, in string-form.
+//
+// This is used when tracing execution of programs.
+func (s *Stack) Export() []string {
+	var ret []string
+
+	for _, ent := range s.entries {
+		s := ent.Inspect()
+		s = strings.ReplaceAll(s, "\n", "\\n")
+
+		ret = append(ret, s)
+	}
+	return ret
 }
 
 // Size retrieves the number of entries stored upon the stack.
