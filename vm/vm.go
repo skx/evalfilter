@@ -143,9 +143,8 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 		}
 
 		if vm.debug {
-			fmt.Printf("\n\tStack: [")
-			fmt.Printf(strings.Join(vm.stack.Export(), ", "))
-			fmt.Printf("]\n")
+			fmt.Printf("\n\tStack: [%s]\n",
+				strings.Join(vm.stack.Export(), ", "))
 
 			if opLen > 1 {
 				fmt.Printf("%04d\t%s\t%04d\n", ip, code.String(op), opArg)
