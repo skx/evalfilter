@@ -36,6 +36,7 @@ const (
 	IDENT     = "IDENT"
 	IF        = "IF"
 	ILLEGAL   = "ILLEGAL"
+	IN        = "IN"
 	INT       = "INT"
 	LBRACE    = "{"
 	LPAREN    = "("
@@ -68,6 +69,7 @@ var keywords = map[string]Type{
 	"else":   ELSE,
 	"false":  FALSE,
 	"if":     IF,
+	"in":     IN,
 	"return": RETURN,
 	"true":   TRUE,
 	"while":  WHILE,
