@@ -269,12 +269,12 @@ go test -test.bench=evalfilter_ -benchtime=10s -run=^t
 goos: linux
 goarch: amd64
 pkg: github.com/skx/evalfilter/v2
-Benchmark_evalfilter_complex_map-4   	 5000000	      2552 ns/op
-Benchmark_evalfilter_complex_obj-4   	10000000	      1664 ns/op
-Benchmark_evalfilter_simple-4        	20000000	       910 ns/op
-Benchmark_evalfilter_trivial-4       	100000000	       115 ns/op
+Benchmark_evalfilter_complex_map-4   	 4426123	      2721 ns/op
+Benchmark_evalfilter_complex_obj-4   	 7657472	      1561 ns/op
+Benchmark_evalfilter_simple-4        	15309301	       818 ns/op
+Benchmark_evalfilter_trivial-4       	100000000	       105 ns/op
 PASS
-ok  	github.com/skx/evalfilter/v2	64.462s
+ok  	github.com/skx/evalfilter/v2	52.258s
 ```
 
 The examples there are not particularly representative, but they will give you
