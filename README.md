@@ -176,6 +176,8 @@ Again as you'd expect the facilities are pretty normal/expected:
       * With case insensitivity
   * Does not match a regular expression:
     * "`if ( Content !~ /some text we don't want/ )`"
+  * Test if an array contains a value:
+    * "`return ( Name in [ "Alice", "Bob", "Chris" ] );`"
 * You can also easily add new primitives to the engine.
   * By implementing them in your golang host application.
   * Your host-application can also set variables which are accessible to the user-script.
