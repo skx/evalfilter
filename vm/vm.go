@@ -77,7 +77,6 @@ func New(constants []object.Object, bytecode code.Instructions, env *environment
 		constants:   constants,
 		environment: env,
 		bytecode:    bytecode,
-		stack:       stack.New(),
 		debug:       present,
 	}
 }
@@ -103,6 +102,26 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 	//
 	vm.fields = make(map[string]object.Object)
 
+	//
+	// When (built-in) functions are invoked they always store their
+	// return values upon the stack.  Usually this is OK because the
+	// return value will be used for something, and thus popped-off.
+	//
+	// However people will rarely test to result of calling `print`,
+	// which means the stack will grow one element every time that
+	// function is invoked.
+	//
+	// Since we allow our `Run` method to be reused on the same
+	// script, and with the same environment, it is possible we'll
+	// have a stack growing to an essentially infinite size if a
+	// script is constantly reused.
+	//
+	// To avoid that explicitly give ourself a new stack every time
+	// we run a script.
+	//
+	vm.stack = stack.New()
+
+	//
 	//
 	// Instruction pointer and length.
 	//
