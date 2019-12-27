@@ -179,7 +179,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			vm.environment.Set(name.Inspect(), val)
 
 			// maths & comparisons
-		case code.OpAdd, code.OpSub, code.OpMul, code.OpDiv, code.OpMod, code.OpPower, code.OpLess, code.OpLessEqual, code.OpGreater, code.OpGreaterEqual, code.OpEqual, code.OpNotEqual, code.OpMatches, code.OpNotMatches, code.OpAnd, code.OpOr:
+		case code.OpAdd, code.OpSub, code.OpMul, code.OpDiv, code.OpMod, code.OpPower, code.OpLess, code.OpLessEqual, code.OpGreater, code.OpGreaterEqual, code.OpEqual, code.OpNotEqual, code.OpMatches, code.OpNotMatches, code.OpAnd, code.OpOr, code.OpArrayIn:
 			err := vm.executeBinaryOperation(op)
 			if err != nil {
 				return nil, err
@@ -583,6 +583,32 @@ func (vm *VM) executeBinaryOperation(op code.Opcode) error {
 			vm.stack.Push(False)
 		}
 		return nil
+	case op == code.OpArrayIn:
+
+		// Ensure we're invoked with an array
+		if right.Type() != object.ARRAY {
+			return fmt.Errorf("operand for 'in' must be an array, not %t", right.Type())
+		}
+
+		// Get the array.
+		values := right.(*object.Array)
+
+		// For each element ..
+		for _, entry := range values.Elements {
+
+			// If the type and values are equal then
+			// the array DOES contain the value.
+			if (left.Type() == entry.Type()) &&
+				(left.Inspect() == entry.Inspect()) {
+				vm.stack.Push(True)
+				return nil
+			}
+		}
+
+		// Examined all members of the array.  No match.
+		vm.stack.Push(False)
+		return nil
+
 	case left.Type() == object.BOOLEAN && right.Type() == object.BOOLEAN:
 		return vm.evalBooleanInfixExpression(op, left, right)
 	case left.Type() != right.Type():
@@ -800,7 +826,6 @@ func (vm *VM) evalStringInfixExpression(op code.Opcode, left object.Object, righ
 		} else {
 			vm.stack.Push(True)
 		}
-
 	case code.OpAdd:
 		vm.stack.Push(&object.String{Value: l.Value + r.Value})
 	default:
