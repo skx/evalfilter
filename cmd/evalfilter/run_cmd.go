@@ -9,12 +9,16 @@ import (
 
 	"github.com/google/subcommands"
 	"github.com/skx/evalfilter/v2"
+	"github.com/skx/evalfilter/v2/object"
 )
 
 //
 // The options set by our command-line flags.  A json file
 //
 type runCmd struct {
+
+	// Show execution as it happens
+	debug bool
 
 	// Disable the bytecode optimizer
 	raw bool
@@ -40,6 +44,7 @@ func (*runCmd) Usage() string {
 func (p *runCmd) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&p.jsonFile, "json", "", "The JSON file, containing the object to test the script with.")
 	f.BoolVar(&p.raw, "no-optimizer", false, "Disable the bytecode optimizer")
+	f.BoolVar(&p.debug, "debug", false, "Show instructions and the stack at ever step")
 }
 
 //
@@ -92,6 +97,15 @@ func (p *runCmd) Run(file string) {
 	var flags []byte
 	if p.raw {
 		flags = append(flags, evalfilter.NoOptimize)
+	}
+
+	//
+	// If we're to debug then set the appropriate variable
+	//
+	// NOTE: This must be done before `prepare` is invoked.
+	//
+	if p.debug {
+		eval.SetVariable("DEBUG", &object.Boolean{Value: true})
 	}
 
 	//
