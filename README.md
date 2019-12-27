@@ -291,7 +291,7 @@ Hello, World
 Script gave result true
 ```
 
-Here you're show the state of the stack and every execution which is executed, along with the arguments.  This is perhaps more useful when coupled with seeing the raw bytecode disassembly:
+Here you're show the state of the stack and every opcode which is executed, along with the arguments.  This is perhaps more useful when coupled with seeing the raw bytecode disassembly:
 
 ```
 $ evalfilter bytecode ./example.in
