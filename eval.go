@@ -409,12 +409,16 @@ func (e *Eval) compile(node ast.Node) error {
 			e.emit(code.OpEqual)
 		case "!=":
 			e.emit(code.OpNotEqual)
+
+			// special matches - regexp and array membership
 		case "~=":
 			e.emit(code.OpMatches)
 		case "!~":
 			e.emit(code.OpNotMatches)
+		case "in":
+			e.emit(code.OpArrayIn)
 
-			// logical
+			// logical operators
 		case "&&":
 			e.emit(code.OpAnd)
 		case "||":
@@ -580,6 +584,7 @@ func (e *Eval) compile(node ast.Node) error {
 		//    // A
 		//    while ( cond ) {
 		//       // B
+		//       statement(s)
 		//       // b2 -> jump to A to retest the condition
 		//    }
 		//    // C
@@ -655,6 +660,10 @@ func (e *Eval) compile(node ast.Node) error {
 		//  "kemp"
 		//  "print"
 		//  call 2
+		//
+		// i.e. We store the arguments on the stack and
+		// emit `OpCall NN` where NN is the number of arguments
+		// to pop and invoke the function with.
 		//
 		args := len(node.Arguments)
 		for _, a := range node.Arguments {
