@@ -140,6 +140,11 @@ const (
 	// Array index operaton
 	OpArrayIndex
 
+	// Pop two values from the the stack, if the first value is
+	// contained in the second-argument (which must be an array),
+	// push TRUE, else push FALSE
+	OpArrayIn
+
 	//
 	// NOTE:  This is a fake opcode.
 	//
@@ -234,6 +239,8 @@ func String(op Opcode) string {
 		return "OpArray"
 	case OpArrayIndex:
 		return "OpArrayIndex"
+	case OpArrayIn:
+		return "OpArrayIn"
 	default:
 		return "OpUnknown"
 	}
