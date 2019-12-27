@@ -587,7 +587,7 @@ func (vm *VM) executeBinaryOperation(op code.Opcode) error {
 
 		// Ensure we're invoked with an array
 		if right.Type() != object.ARRAY {
-			return fmt.Errorf("operand for 'in' must be an array, not %t", right.Type())
+			return fmt.Errorf("operand for 'in' must be an array, not %s", right.Type())
 		}
 
 		// Get the array.
