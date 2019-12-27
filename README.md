@@ -13,7 +13,7 @@
 	 * [Built-In Functions](#built-in-functions)
      * [Variables](#variables)
   * [Standalone Use](#standalone-use)
-     * [Debugging via standalone use](debugging-via-standalone-use)
+     * [Debugging via standalone use](#debugging-via-standalone-use)
   * [Benchmarking](#benchmarking)
   * [Fuzz Testing](#fuzz-testing)
   * [Github Setup](#github-setup)
