@@ -12,7 +12,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
-	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -584,9 +583,7 @@ func (vm *VM) createArrayFromSlice(field reflect.Value) object.Object {
 			continue
 		}
 
-		// FATAL!
 		fmt.Printf("Failed to convert array-member to object")
-		os.Exit(1)
 	}
 
 	return &object.Array{Elements: el}
