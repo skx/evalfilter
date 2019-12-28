@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/skx/evalfilter/v2/object"
@@ -232,4 +233,82 @@ func fnUpper(args []object.Object) object.Object {
 
 	// Return
 	return &object.String{Value: arg}
+}
+
+// getTimeField handles returning a time-related field from an object
+// which is assumed to contain a time in the Unix Epoch format.
+func getTimeField(args []object.Object, val string) object.Object {
+
+	// We expect one argument
+	if len(args) != 1 {
+		return &object.Null{}
+	}
+
+	// It must be an integer
+	if args[0].Type() != object.INTEGER {
+		return &object.Null{}
+	}
+
+	// Convert that to a time
+	time := time.Unix(args[0].(*object.Integer).Value, 0)
+
+	// Now get the fields
+	hr, min, sec := time.Clock()
+	year, month, day := time.Date()
+
+	// And return the one we should
+	switch val {
+	case "hour":
+		return &object.Integer{Value: int64(hr)}
+	case "minute":
+		return &object.Integer{Value: int64(min)}
+	case "seconds":
+		return &object.Integer{Value: int64(sec)}
+	case "day":
+		return &object.Integer{Value: int64(day)}
+	case "month":
+		return &object.Integer{Value: int64(month)}
+	case "year":
+		return &object.Integer{Value: int64(year)}
+	case "weekday":
+		return &object.String{Value: fmt.Sprintf("%s", time.Weekday())}
+	}
+
+	// Unknown field: can't happen?
+	return &object.Null{}
+}
+
+// fnHour returns the hour of the given time-object.
+func fnHour(args []object.Object) object.Object {
+	return getTimeField(args, "hour")
+}
+
+// fnMinute returns the minute of the given time-object.
+func fnMinute(args []object.Object) object.Object {
+	return getTimeField(args, "minute")
+}
+
+// fnSeconds returns the seconds of the given time-object.
+func fnSeconds(args []object.Object) object.Object {
+	return getTimeField(args, "seconds")
+}
+
+// fnDay returns the day of the given time-object.
+func fnDay(args []object.Object) object.Object {
+	return getTimeField(args, "day")
+}
+
+// fnMonth returns the month of the given time-object.
+func fnMonth(args []object.Object) object.Object {
+	return getTimeField(args, "month")
+}
+
+// fnYear returns the year of the given time-object.
+func fnYear(args []object.Object) object.Object {
+	return getTimeField(args, "year")
+}
+
+// fnWeekday returns the name of the day in the given time-object.
+func fnWeekday(args []object.Object) object.Object {
+	return getTimeField(args, "weekday")
 }
