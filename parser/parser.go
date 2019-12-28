@@ -291,17 +291,7 @@ func (p *Parser) parseIdentifier() ast.Expression {
 func (p *Parser) parseIntegerLiteral() ast.Expression {
 	lit := &ast.IntegerLiteral{Token: p.curToken}
 
-	var value int64
-	var err error
-
-	if strings.HasPrefix(p.curToken.Literal, "0b") {
-		value, err = strconv.ParseInt(p.curToken.Literal[2:], 2, 64)
-	} else if strings.HasPrefix(p.curToken.Literal, "0x") {
-		value, err = strconv.ParseInt(p.curToken.Literal[2:], 16, 64)
-	} else {
-		value, err = strconv.ParseInt(p.curToken.Literal, 10, 64)
-	}
-
+	value, err := strconv.ParseInt(p.curToken.Literal, 10, 64)
 	if err != nil {
 		msg := fmt.Sprintf("could not parse %q as integer around line %d", p.curToken.Literal, p.l.GetLine())
 		p.errors = append(p.errors, msg)
