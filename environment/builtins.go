@@ -4,6 +4,7 @@ package environment
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -250,11 +251,24 @@ func getTimeField(args []object.Object, val string) object.Object {
 	}
 
 	// Convert that to a time
-	time := time.Unix(args[0].(*object.Integer).Value, 0)
+	ts := time.Unix(args[0].(*object.Integer).Value, 0)
+
+	// Handle timezones, by reading $TZ, and if not set
+	// defaulting to UTC.
+	env := os.Getenv("TZ")
+	if env == "" {
+		env = "UTC"
+	}
+
+	// Ensure we set that timezone.
+	loc, err := time.LoadLocation(env)
+	if err == nil {
+		ts = ts.In(loc)
+	}
 
 	// Now get the fields
-	hr, min, sec := time.Clock()
-	year, month, day := time.Date()
+	hr, min, sec := ts.Clock()
+	year, month, day := ts.Date()
 
 	// And return the one we should
 	switch val {
@@ -271,7 +285,7 @@ func getTimeField(args []object.Object, val string) object.Object {
 	case "year":
 		return &object.Integer{Value: int64(year)}
 	case "weekday":
-		return &object.String{Value: time.Weekday().String()}
+		return &object.String{Value: ts.Weekday().String()}
 	}
 
 	// Unknown field: can't happen?

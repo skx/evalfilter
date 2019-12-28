@@ -457,7 +457,7 @@ func TestTime(t *testing.T) {
 		t.Errorf("Failed to get the correct date")
 	}
 
-	if fnHour(args).(*object.Integer).Value != 16 {
+	if fnHour(args).(*object.Integer).Value != 14 {
 		t.Errorf("Failed to get the correct time")
 	}
 	if fnMinute(args).(*object.Integer).Value != 15 {
