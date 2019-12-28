@@ -271,7 +271,7 @@ func getTimeField(args []object.Object, val string) object.Object {
 	case "year":
 		return &object.Integer{Value: int64(year)}
 	case "weekday":
-		return &object.String{Value: fmt.Sprintf("%s", time.Weekday())}
+		return &object.String{Value: time.Weekday().String()}
 	}
 
 	// Unknown field: can't happen?
