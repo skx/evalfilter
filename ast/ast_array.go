@@ -30,7 +30,7 @@ func (al *ArrayLiteral) String() string {
 	}
 	out.WriteString("[")
 	out.WriteString(strings.Join(elements, ", "))
-	out.WriteString("]")
+	out.WriteString("];\n")
 	return out.String()
 }
 
