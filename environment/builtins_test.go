@@ -306,6 +306,13 @@ func TestTrim(t *testing.T) {
 			t.Errorf("Invalid result for %s", test.Input)
 		}
 	}
+
+	// Calling the function with no-arguments should return null
+	var args []object.Object
+	out := fnTrim(args)
+	if out.Type() != object.NULL {
+		t.Errorf("no arguments returns a weird result")
+	}
 }
 
 // Test types

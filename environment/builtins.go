@@ -177,11 +177,16 @@ func fnString(args []object.Object) object.Object {
 
 // fnTrim is the implementation of our `trim` function.
 func fnTrim(args []object.Object) object.Object {
-	str := ""
-	for _, e := range args {
-		str += fmt.Sprintf("%v", (e.Inspect()))
+
+	// We expect one argument
+	if len(args) != 1 {
+		return &object.Null{}
 	}
-	return &object.String{Value: strings.TrimSpace(str)}
+
+	arg := args[0]
+	val := strings.TrimSpace(arg.Inspect())
+
+	return &object.String{Value: val}
 }
 
 // fnType is the implementation of our `type` function.
