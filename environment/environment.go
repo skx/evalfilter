@@ -41,6 +41,28 @@ func New() *Environment {
 	env.SetFunction("int", fnInt)
 	env.SetFunction("float", fnFloat)
 
+	//
+	// These all refer to time.Time fields.
+	//
+	// (Though they will work on any object which
+	// is an integer.  Because when we examine time.Time
+	// fields via reflection we convert them to Unix epoch
+	// seconds.)
+	//
+
+	// 10:11:12, etc.
+	env.SetFunction("hour", fnHour)
+	env.SetFunction("minute", fnMinute)
+	env.SetFunction("seconds", fnSeconds)
+
+	// 10/03/1976, etc.
+	env.SetFunction("day", fnDay)
+	env.SetFunction("month", fnMonth)
+	env.SetFunction("year", fnYear)
+
+	// "Saturday", "Sunday", etc.
+	env.SetFunction("weekday", fnWeekday)
+
 	// All done.
 	return env
 }

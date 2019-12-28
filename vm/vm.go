@@ -15,6 +15,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/skx/evalfilter/v2/code"
 	"github.com/skx/evalfilter/v2/environment"
@@ -405,6 +406,11 @@ func (vm *VM) inspectObject(obj interface{}) {
 	}
 
 	//
+	// Time gets special handling
+	//
+	timeKind := reflect.TypeOf(time.Time{}).Kind()
+
+	//
 	// Get the value, be it a "thing", or a pointer to a thing.
 	//
 	val := reflect.Indirect(reflect.ValueOf(obj))
@@ -444,6 +450,11 @@ func (vm *VM) inspectObject(obj interface{}) {
 				ret = &object.String{Value: field.String()}
 			case reflect.Bool:
 				ret = &object.Boolean{Value: field.Bool()}
+			case timeKind:
+				time, ok := field.Interface().(time.Time)
+				if ok {
+					ret = &object.Integer{Value: time.Unix()}
+				}
 			}
 
 			vm.fields[name] = ret
@@ -479,6 +490,13 @@ func (vm *VM) inspectObject(obj interface{}) {
 			ret = &object.String{Value: field.String()}
 		case reflect.Bool:
 			ret = &object.Boolean{Value: field.Bool()}
+		case timeKind:
+			time, ok := field.Interface().(time.Time)
+			if ok {
+				ret = &object.Integer{Value: time.Unix()}
+			}
+		default:
+			fmt.Printf("Failed to reflect on %T\n", field.Interface())
 		}
 
 		vm.fields[name] = ret
@@ -557,6 +575,12 @@ func (vm *VM) createArrayFromSlice(field reflect.Value) object.Object {
 		ddd, ok := in.(int64)
 		if ok {
 			el = append(el, &object.Integer{Value: ddd})
+			continue
+		}
+
+		tm, ok := in.(time.Time)
+		if ok {
+			el = append(el, &object.Integer{Value: tm.Unix()})
 			continue
 		}
 

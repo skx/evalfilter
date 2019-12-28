@@ -27,8 +27,9 @@ There is no shortage of embeddable languages which are available to the golang w
 
 * Simple to embed.
 * Simple to use.
+  * There are only three methods, call `New`, `Prepare`, then `Run(object)`.
 * Simple to understand.
-* As fast as it can be, without being too tricky.
+* As fast as it can be, without being too magical.
 
 
 
@@ -112,6 +113,11 @@ The user could now write the following script to decide whether to initiate a no
     if ( Message ~=  /panic/i ) { return true; }
 
     //
+    // If this is outside office hours we'll raise a phone-call.
+    //
+    if ( hour(Sent) <= 7 || hour(Sent) >= 19) { return true; }
+
+    //
     // At this point we decide the message is not important, so
     // we ignore it.
     //
@@ -121,7 +127,10 @@ The user could now write the following script to decide whether to initiate a no
     //
     return false;
 
-You'll notice that we test fields such as `Message` here, which come from the object we were given.  That works due to the magic of reflection!
+You'll notice that we test fields such as `Message` here, which come from the object we were given.  That works due to the magic of reflection.  Similarly we managed to call the built-in function `hour` to get the hour of the `Sent` field which was a golang `time.Time` value, again this works due to the magic of reflection.
+
+(All `time.Time` values are converted to seconds-past the Unix Epoch, but you can retrieve all the appropriate fields via `hour()`, `minute()`, `day()`, `year()`, `weekday()`, etc, as you would expect.)
+
 
 
 ## Sample Usage
@@ -134,7 +143,7 @@ To give you a quick feel for how things look you could consult these two simple 
   * This exports a function from the golang-host application to the script.
   * The new function is then used to filter a list of people.
 
-Additional examples are available beneath the [_examples/](_examples/) directory, and there is a general-purpose utility located in [cmd/evalfilter](cmd/evalfilter) which allows you to examine bytecode, tokens, and run scripts.
+Additional examples are available beneath the [_examples/](_examples/) directory, and there is a standalone driver located in [cmd/evalfilter](cmd/evalfilter) which allows you to examine bytecode, tokens, and run scripts.
 
 
 
@@ -158,6 +167,9 @@ The engine supports the basic types you'd expect:
 * Floating-point numbers
 * Integers
 * Strings
+* Time / Date values
+  * i.e. We can use reflection to handle `time.Time` values in any structure/map we're operating upon.
+
 
 These types are supported both in the language itself, and in the reflection-layer which is used to allow the script access to fields in the Golang object/map you supply to it.
 
@@ -211,36 +223,21 @@ As we noted earlier you can export functions from your host-application and make
     * For example `string`, `integer`, `float`, `array`, `boolean`, or `null`.
 * `upper(field | value)`
   * Return the upper-case version of the given input.
+* `hour(field|value)`, `minute(field:value)`, `seconds(field:value`
+  * Allow converting a time to HH:MM:SS.
+* `day(field|value)`, `month(field:value)`, `year(field:value`
+  * Allow converting a time to DD/MM/YYYY.
+* `weekday(field|value)`
+  * Allow converting a time to "Saturday", "Sunday", etc.
 
 
 ## Variables
 
 Your host application can also register variables which are accessible to your scripting environment via the `SetVariable` method.  The variables can have their values updated at any time before the call to `Eval` is made.
 
-For example the following example sets the contents of the variable `time`, and then outputs it.  Every second the output will change, because the value has been updated:
+Similarly you can _retrieve_ values which have been set within scripts, via `GetVariable`.
 
-```
-    eval := evalfilter.New(`
-                print("The time is ", time, "\n");
-                return false;
-            `)
-
-    eval.Prepare()
-
-    for {
-
-        // Set the variable `time` to be the seconds past the epoch.
-        eval.SetVariable("time", &object.Integer{Value: time.Now().Unix()})
-
-        // Run the script.
-        eval.Run(nil)
-
-        // Update every second.
-        time.Sleep(1 * time.Second)
-    }
-```
-
-This example is available, with error-checking, in [_examples/variable/](_examples/variable/)
+You can see an example of this in [_examples/variable/](_examples/variable/)
 
 
 ## Standalone Use

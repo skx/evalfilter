@@ -397,3 +397,91 @@ func TestPrint(t *testing.T) {
 	args = append(args, &object.String{Value: ""})
 	fnPrint(args)
 }
+
+// TestTime performs *minimal* invocation of time-fields
+func TestTime(t *testing.T) {
+
+	//
+	// Call all the functions with no arguments
+	//
+	var args []object.Object
+	var out object.Object
+
+	out = fnHour(args)
+	if out.Type() != object.NULL {
+		t.Errorf("no arguments returns a weird result")
+	}
+	out = fnMinute(args)
+	if out.Type() != object.NULL {
+		t.Errorf("no arguments returns a weird result")
+	}
+	out = fnSeconds(args)
+	if out.Type() != object.NULL {
+		t.Errorf("no arguments returns a weird result")
+	}
+	out = fnDay(args)
+	if out.Type() != object.NULL {
+		t.Errorf("no arguments returns a weird result")
+	}
+	out = fnMonth(args)
+	if out.Type() != object.NULL {
+		t.Errorf("no arguments returns a weird result")
+	}
+	out = fnYear(args)
+	if out.Type() != object.NULL {
+		t.Errorf("no arguments returns a weird result")
+	}
+	out = fnWeekday(args)
+	if out.Type() != object.NULL {
+		t.Errorf("no arguments returns a weird result")
+	}
+
+	//
+	// Now create a known-time
+	//
+	args = append(args, &object.Integer{Value: 195315316})
+
+	//
+	// And check the values.
+	//
+	if fnDay(args).(*object.Integer).Value != 10 {
+		t.Errorf("Failed to get the correct date")
+	}
+	if fnMonth(args).(*object.Integer).Value != 3 {
+		t.Errorf("Failed to get the correct date")
+	}
+	if fnYear(args).(*object.Integer).Value != 1976 {
+		t.Errorf("Failed to get the correct date")
+	}
+	if fnWeekday(args).(*object.String).Value != "Wednesday" {
+		t.Errorf("Failed to get the correct date")
+	}
+
+	if fnHour(args).(*object.Integer).Value != 14 {
+		t.Errorf("Failed to get the correct time")
+	}
+	if fnMinute(args).(*object.Integer).Value != 15 {
+		t.Errorf("Failed to get the correct time")
+	}
+	if fnSeconds(args).(*object.Integer).Value != 16 {
+		t.Errorf("Failed to get the correct time")
+	}
+
+	//
+	// Test bogus field-name to the internal-helper.
+	//
+	if getTimeField(args, "bogus").Type() != object.NULL {
+		t.Errorf("unexpected value passing bogus argument")
+	}
+
+	//
+	// Finally check with a bogus-type to one of the methods
+	//
+	var bogus []object.Object
+	bogus = append(bogus, &object.String{Value: "not int"})
+
+	if fnSeconds(bogus).Type() != object.NULL {
+		t.Errorf("unexpected value passing bogus argument")
+	}
+
+}
