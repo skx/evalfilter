@@ -17,7 +17,7 @@ The opcodes we're discussing are found in [code/code.go](code/code.go), and the 
   * [Misc Operations](#misc-operations)
   * [Function Calls](#function-calls)
 * [Example Program](#example-program)
-
+* [Debugging](#debugging)
 
 
 ## Examining Bytecode
@@ -310,3 +310,16 @@ Now we'll walk through what happens:
 * We see the `OpReturn` instruction.
   * This pops a value from the stack, and terminates execution.
   * The stack now looks like this: []
+
+
+# Debugging
+
+Seeing the dump of bytecode, as shown above, is useful but it still can be
+hard to reason about the run-time behaviour.
+
+For this reason it is possible to output each opcode before it is executed,
+as well as view the current state of the stack.
+
+To show this debug-output simply invoke the `run` sub-command with the `-debug` flag:
+
+     $ evalfilter run -debug ./path/to/script
