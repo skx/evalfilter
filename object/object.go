@@ -22,7 +22,6 @@ type Type string
 const (
 	ARRAY   = "ARRAY"
 	BOOLEAN = "BOOLEAN"
-	ERROR   = "ERROR"
 	FLOAT   = "FLOAT"
 	INTEGER = "INTEGER"
 	NULL    = "NULL"

@@ -236,13 +236,6 @@ func (e *Eval) Run(obj interface{}) (bool, error) {
 	}
 
 	//
-	// Is the return-value an error?  If so report that.
-	//
-	if out.Type() == object.ERROR {
-		return false, fmt.Errorf("%s", out.Inspect())
-	}
-
-	//
 	// Otherwise convert the result to a boolean, and return.
 	//
 	return out.True(), err
