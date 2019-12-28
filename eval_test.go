@@ -134,7 +134,7 @@ func TestEq(t *testing.T) {
 	tests := []Test{
 		{Input: `if ( Count == 12.4 ) { return true; } return false;`, Result: true},
 		{Input: `if ( len(trim(" steve " ) ) == 5 ) { return true; } return false;`, Result: true},
-		{Input: `if ( len(trim() ) == 0 ) { return true; } return false;`, Result: true},
+		{Input: `if ( len(trim("   ") ) == 0 ) { return true; } return false;`, Result: true},
 		{Input: `if ( Count == 3 ) { return true; } return false;`, Result: false},
 		{Input: `if ( Count != 1 ) { return true; }`, Result: true},
 		{Input: `if ( Count != 12.4 ) { return false; } return true;`, Result: true},
@@ -157,7 +157,7 @@ func TestEq(t *testing.T) {
 		}
 
 		if ret != tst.Result {
-			t.Fatalf("Found unexpected result running script")
+			t.Fatalf("Found unexpected result running script: %s", tst.Input)
 		}
 	}
 }
