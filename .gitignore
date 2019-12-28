@@ -1,6 +1,7 @@
 _examples/passwd/passwd
 _examples/variable/variable
 _examples/state/state
+_examples/time/time
 cmd/evalfilter/evalfilter
 go.sum
 workdir/
