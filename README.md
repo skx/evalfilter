@@ -305,6 +305,8 @@ Constants:
   000001 Type:STRING Value:"print"
 ```
 
+For more details please see the [bytecode documentation](BYTECODE.md).
+
 
 ## Benchmarking
 
