@@ -91,51 +91,24 @@ func (e *Eval) optimizeMaths() (bool, error) {
 	}
 
 	//
-	// We're going to walk over the bytecode from start to
-	// finish.
-	//
-	ip := 0
-	ln := len(e.instructions)
-
-	//
 	// Keep track of adjacent values here.
 	//
 	var args []Constants
 
 	//
-	// Walk the bytecode.
+	// Did we make changes?
 	//
-	for ip < ln {
+	changed := false
 
-		//
-		// Get the next opcode
-		//
-		op := code.Opcode(e.instructions[ip])
-
-		//
-		// Find out how long it is.
-		//
-		opLen := code.Length(op)
-
-		//
-		// If the opcode is more than a single byte long
-		// we read the argument here.
-		//
-		opArg := 0
-		if opLen > 1 {
-
-			//
-			// Note in the future we might have to cope
-			// with opcodes with more than a single argument,
-			// and they might be different sizes.
-			//
-			opArg = int(binary.BigEndian.Uint16(e.instructions[ip+1 : ip+3]))
-		}
+	//
+	// Walk over the bytecode
+	//
+	e.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (error, bool) {
 
 		//
 		// Now we do the magic.
 		//
-		switch op {
+		switch opCode {
 
 		case code.OpPush:
 
@@ -143,7 +116,7 @@ func (e *Eval) optimizeMaths() (bool, error) {
 			// If we see a constant being pushed we
 			// add that to our list tracking such things.
 			//
-			args = append(args, Constants{offset: ip, value: opArg})
+			args = append(args, Constants{offset: offset, value: opArg.(int)})
 
 		case code.OpNop:
 
@@ -189,23 +162,24 @@ func (e *Eval) optimizeMaths() (bool, error) {
 				// depending on whether the constant values
 				// match.
 				//
-				if op == code.OpEqual {
+				if opCode == code.OpEqual {
 					if a.value == b.value {
-						e.instructions[ip] = byte(code.OpTrue)
+						e.instructions[offset] = byte(code.OpTrue)
 					} else {
-						e.instructions[ip] = byte(code.OpFalse)
+						e.instructions[offset] = byte(code.OpFalse)
 					}
 				}
-				if op == code.OpNotEqual {
+				if opCode == code.OpNotEqual {
 					if a.value != b.value {
-						e.instructions[ip] = byte(code.OpTrue)
+						e.instructions[offset] = byte(code.OpTrue)
 					} else {
-						e.instructions[ip] = byte(code.OpFalse)
+						e.instructions[offset] = byte(code.OpFalse)
 					}
 				}
 
 				// Made a change to the bytecode.
-				return true, nil
+				changed = true
+				return nil, false
 			}
 
 			// reset our argument counters.
@@ -240,20 +214,20 @@ func (e *Eval) optimizeMaths() (bool, error) {
 				//
 				result := 0
 
-				if op == code.OpMul {
+				if opCode == code.OpMul {
 					result = a.value * b.value
 				}
-				if op == code.OpAdd {
+				if opCode == code.OpAdd {
 					result = a.value + b.value
 				}
-				if op == code.OpSub {
+				if opCode == code.OpSub {
 					result = b.value - a.value
 				}
-				if op == code.OpDiv {
+				if opCode == code.OpDiv {
 
 					// found division by zero
 					if a.value == 0 {
-						return false, fmt.Errorf("attempted division by zero")
+						return fmt.Errorf("attempted division by zero"), false
 					}
 					result = b.value / a.value
 				}
@@ -268,10 +242,11 @@ func (e *Eval) optimizeMaths() (bool, error) {
 
 					// and finally replace the math-operation
 					// itself with a Nop.
-					e.instructions[ip] = byte(code.OpNop)
+					e.instructions[offset] = byte(code.OpNop)
 
 					// We changed something, so we stop now.
-					return true, nil
+					changed = true
+					return nil, false
 				}
 
 				// The result was not something we can
@@ -297,17 +272,15 @@ func (e *Eval) optimizeMaths() (bool, error) {
 			args = nil
 		}
 
-		//
-		// Continue to the next instruction.
-		//
-		ip += opLen
-	}
+		// no error, keep going
+		return nil, true
+	})
 
 	//
 	// If we get here we walked all the way over our bytecode
 	// and made zero changes.
 	//
-	return false, nil
+	return changed, nil
 }
 
 // optimizeJumps updates simple jump operations in-place.
@@ -333,36 +306,24 @@ func (e *Eval) optimizeMaths() (bool, error) {
 func (e *Eval) optimizeJumps() bool {
 
 	//
-	// We're going to walk over the bytecode from start to
-	// finish.
-	//
-	ip := 0
-	ln := len(e.instructions)
-
-	//
 	// Previous opcode.
 	//
 	prevOp := code.OpNop
 
 	//
+	// Did we make changes?
+	//
+	changed := false
+
+	//
 	// Walk the bytecode.
 	//
-	for ip < ln {
-
-		//
-		// Get the next opcode
-		//
-		op := code.Opcode(e.instructions[ip])
-
-		//
-		// Find out how long it is.
-		//
-		opLen := code.Length(op)
+	e.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (error, bool) {
 
 		//
 		// Now we do the magic.
 		//
-		switch op {
+		switch opCode {
 
 		case code.OpJumpIfFalse:
 
@@ -373,14 +334,18 @@ func (e *Eval) optimizeJumps() bool {
 			if prevOp == code.OpTrue {
 
 				// wipe the previous instruction, (OpTrue)
-				e.instructions[ip-1] = byte(code.OpNop)
+				e.instructions[offset-1] = byte(code.OpNop)
 
 				// wipe this jump
-				e.instructions[ip] = byte(code.OpNop)
-				e.instructions[ip+1] = byte(code.OpNop)
-				e.instructions[ip+2] = byte(code.OpNop)
+				e.instructions[offset] = byte(code.OpNop)
+				e.instructions[offset+1] = byte(code.OpNop)
+				e.instructions[offset+2] = byte(code.OpNop)
 
-				return true
+				// We made a change
+				changed = true
+
+				// No error, and stop processing,
+				return nil, false
 			}
 
 			//
@@ -393,32 +358,36 @@ func (e *Eval) optimizeJumps() bool {
 			if prevOp == code.OpFalse {
 
 				// wipe the previous instruction, (OpFalse)
-				e.instructions[ip-1] = byte(code.OpNop)
+				e.instructions[offset-1] = byte(code.OpNop)
 
 				// This jump is now unconditional
-				e.instructions[ip] = byte(code.OpJump)
+				e.instructions[offset] = byte(code.OpJump)
 
-				return true
+				// We made a change
+				changed = true
+
+				// No error, and stop processing,
+				return nil, false
 			}
 
 		}
 
 		//
-		// Continue to the next instruction.
-		//
-		ip += opLen
-
-		//
 		// Save the previous opcode.
 		//
-		prevOp = op
-	}
+		prevOp = opCode
+
+		//
+		// No error, keep walking.
+		//
+		return nil, true
+	})
 
 	//
-	// If we get here we walked all the way over our bytecode
-	// and made zero changes.
+	// This function will be invoked until no changes
+	// are made to the bytecode.
 	//
-	return false
+	return changed
 }
 
 // removeNOPs removes any inline NOP instructions.
@@ -426,12 +395,6 @@ func (e *Eval) optimizeJumps() bool {
 // It also rewrites the destinations for jumps as appropriate, to
 // cope with the changed offsets.
 func (e *Eval) removeNOPs() {
-
-	//
-	// Start.
-	//
-	ip := 0
-	ln := len(e.instructions)
 
 	//
 	// Temporary instructions.
@@ -446,22 +409,12 @@ func (e *Eval) removeNOPs() {
 	//
 	// Walk the bytecode.
 	//
-	for ip < ln {
-
-		// Get the instruction & length.
-		op := code.Opcode(e.instructions[ip])
-		opLen := code.Length(op)
-
-		// Get the opcode's argument, if any.
-		opArg := 0
-		if opLen > 1 {
-			opArg = int(binary.BigEndian.Uint16(e.instructions[ip+1 : ip+3]))
-		}
+	e.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (error, bool) {
 
 		//
 		// Now we do the magic.
 		//
-		switch op {
+		switch opCode {
 
 		case code.OpNop:
 			//
@@ -471,7 +424,7 @@ func (e *Eval) removeNOPs() {
 			// of old-instruction to new, because there might have
 			// been a jump which pointed to this NOP instruction.
 			//
-			rewrite[ip] = len(tmp)
+			rewrite[offset] = len(tmp)
 
 		default:
 
@@ -487,33 +440,35 @@ func (e *Eval) removeNOPs() {
 			// position - i.e. the length of the existing
 			// instruction set.  Before we add it.
 			//
-			rewrite[ip] = len(tmp)
+			rewrite[offset] = len(tmp)
 
 			//
 			// Copy the instruction.
 			//
-			tmp = append(tmp, byte(op))
+			tmp = append(tmp, byte(opCode))
 
 			//
 			// Copy any argument.
 			//
-			if opLen > 1 {
+			if opArg != nil {
 				b := make([]byte, 2)
-				binary.BigEndian.PutUint16(b, uint16(opArg))
+				binary.BigEndian.PutUint16(b, uint16(opArg.(int)))
 
 				tmp = append(tmp, b...)
 			}
 		}
-		ip += opLen
-	}
+
+		// No error, keep going
+		return nil, true
+	})
 
 	//
 	// If we've done this correctly we've now got a temporary
 	// program with no NOPs.   We now need to patch up
 	// the jump targets
 	//
-	ip = 0
-	ln = len(tmp)
+	ip := 0
+	ln := len(tmp)
 	for ip < ln {
 
 		// Get the instruction.
@@ -575,81 +530,57 @@ func (e *Eval) removeNOPs() {
 func (e *Eval) removeDeadCode() {
 
 	//
-	// Start.
-	//
-	ip := 0
-	ln := len(e.instructions)
-
-	//
 	// Temporary instructions.
 	//
 	var tmp code.Instructions
 
-	run := true
+	//
+	// Did we make an optimization?
+	//
+	changed := false
 
 	//
 	// Walk the bytecode.
 	//
-	for ip < ln && run {
-
-		//
-		// Get the next opcode
-		//
-		op := code.Opcode(e.instructions[ip])
-
-		//
-		// Find out how long it is.
-		//
-		opLen := code.Length(op)
-
-		//
-		// If the opcode is more than a single byte long
-		// we read the argument here.
-		//
-		opArg := 0
-		if opLen > 1 {
-
-			//
-			// Note in the future we might have to cope
-			// with opcodes with more than a single argument,
-			// and they might be different sizes.
-			//
-			opArg = int(binary.BigEndian.Uint16(e.instructions[ip+1 : ip+3]))
-		}
+	e.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (error, bool) {
 
 		//
 		// Now we do the magic.
 		//
-		switch op {
+		switch opCode {
 
 		case code.OpJumpIfFalse, code.OpJump:
-			return
+			// Stop walking
+			return nil, false
 
 		case code.OpReturn:
 
-			// Stop once we've seen the first return
-			run = false
-
+			// Record the return, and also stop walking
 			tmp = append(tmp, byte(code.OpReturn))
-
+			changed = true
+			return nil, false
 		default:
 
-			tmp = append(tmp, byte(op))
-			if opLen > 1 {
+			tmp = append(tmp, byte(opCode))
+			if opArg != nil {
 
 				// Make a buffer for the arg
 				b := make([]byte, 2)
-				binary.BigEndian.PutUint16(b, uint16(opArg))
+				binary.BigEndian.PutUint16(b, uint16(opArg.(int)))
 
 				// append
 				tmp = append(tmp, b...)
 			}
 		}
-		ip += opLen
-	}
+
+		// keep walking
+		return nil, true
+	})
 
 	//
-	// Replace the instructions.
+	// Replace the instructions, if we made a sane change
 	//
-	e.instructions = tmp
+	if changed {
+		e.instructions = tmp
+	}
 }
