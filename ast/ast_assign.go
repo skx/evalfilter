@@ -6,8 +6,7 @@ import (
 	"github.com/skx/evalfilter/v2/token"
 )
 
-// AssignStatement is used for a (let-less) assignment,
-// such as "x = y;".
+// AssignStatement is used for a assignment statement.
 type AssignStatement struct {
 	Token token.Token
 	Name  *Identifier
