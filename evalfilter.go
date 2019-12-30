@@ -20,8 +20,13 @@ import (
 	"github.com/skx/evalfilter/v2/vm"
 )
 
-// Type to use for the callbackup function which can interate over bytecode
-type BytecodeVisitor func(offset int, instruction code.Opcode, argument interface{}) (error, bool)
+// Type to use for the callbackup function which can interate over bytecode.
+//
+// The callback function can be used via the `WalkBytecode` method, and the
+// return values should make sense:  If there is an error then that is returned
+// otherwise the bool-value will control whether the iteration continues,
+// return true to keep walking, and false to abort the process.
+type BytecodeVisitor func(offset int, instruction code.Opcode, argument interface{}) (bool, error)
 
 // Flags which can be optionally passed to Prepare.
 const (
@@ -157,7 +162,7 @@ func (e *Eval) Dump() error {
 	fmt.Printf("Bytecode:\n")
 
 	// Use the walker to dump our bytecode.
-	e.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (error, bool) {
+	e.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (bool, error) {
 
 		// Show the offset + instruction.
 		fmt.Printf("%06d\t%14s", offset, code.String(opCode))
@@ -182,7 +187,7 @@ func (e *Eval) Dump() error {
 			fmt.Printf("\t// Push %d to stack", opArg.(int))
 		}
 		fmt.Printf("\n")
-		return nil, true
+		return true, nil
 	})
 
 	// Show constants, if any are present.
@@ -331,14 +336,17 @@ func (e *Eval) WalkBytecode(callback BytecodeVisitor) error {
 		var ret bool
 
 		if opLen > 1 {
-			err, ret = callback(ip, op, opArg)
+			ret, err = callback(ip, op, opArg)
 		} else {
-			err, ret = callback(ip, op, nil)
+			ret, err = callback(ip, op, nil)
 		}
 
+		// Error?  Then return that, and stop walking.
 		if err != nil {
 			return err
 		}
+
+		// The callback returned false?  Then stop walking.
 		if !ret {
 			return nil
 		}

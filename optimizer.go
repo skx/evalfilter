@@ -103,7 +103,7 @@ func (e *Eval) optimizeMaths() (bool, error) {
 	//
 	// Walk over the bytecode
 	//
-	e.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (error, bool) {
+	e.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (bool, error) {
 
 		//
 		// Now we do the magic.
@@ -179,7 +179,7 @@ func (e *Eval) optimizeMaths() (bool, error) {
 
 				// Made a change to the bytecode.
 				changed = true
-				return nil, false
+				return false, nil
 			}
 
 			// reset our argument counters.
@@ -227,7 +227,7 @@ func (e *Eval) optimizeMaths() (bool, error) {
 
 					// found division by zero
 					if a.value == 0 {
-						return fmt.Errorf("attempted division by zero"), false
+						return false, fmt.Errorf("attempted division by zero")
 					}
 					result = b.value / a.value
 				}
@@ -246,7 +246,7 @@ func (e *Eval) optimizeMaths() (bool, error) {
 
 					// We changed something, so we stop now.
 					changed = true
-					return nil, false
+					return false, nil
 				}
 
 				// The result was not something we can
@@ -273,7 +273,7 @@ func (e *Eval) optimizeMaths() (bool, error) {
 		}
 
 		// no error, keep going
-		return nil, true
+		return true, nil
 	})
 
 	//
@@ -318,7 +318,7 @@ func (e *Eval) optimizeJumps() bool {
 	//
 	// Walk the bytecode.
 	//
-	e.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (error, bool) {
+	e.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (bool, error) {
 
 		//
 		// Now we do the magic.
@@ -345,7 +345,7 @@ func (e *Eval) optimizeJumps() bool {
 				changed = true
 
 				// No error, and stop processing,
-				return nil, false
+				return false, nil
 			}
 
 			//
@@ -367,7 +367,7 @@ func (e *Eval) optimizeJumps() bool {
 				changed = true
 
 				// No error, and stop processing,
-				return nil, false
+				return false, nil
 			}
 
 		}
@@ -380,7 +380,7 @@ func (e *Eval) optimizeJumps() bool {
 		//
 		// No error, keep walking.
 		//
-		return nil, true
+		return true, nil
 	})
 
 	//
@@ -409,7 +409,7 @@ func (e *Eval) removeNOPs() {
 	//
 	// Walk the bytecode.
 	//
-	e.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (error, bool) {
+	e.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (bool, error) {
 
 		//
 		// Now we do the magic.
@@ -459,7 +459,7 @@ func (e *Eval) removeNOPs() {
 		}
 
 		// No error, keep going
-		return nil, true
+		return true, nil
 	})
 
 	//
@@ -542,7 +542,7 @@ func (e *Eval) removeDeadCode() {
 	//
 	// Walk the bytecode.
 	//
-	e.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (error, bool) {
+	e.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (bool, error) {
 
 		//
 		// Now we do the magic.
@@ -551,14 +551,14 @@ func (e *Eval) removeDeadCode() {
 
 		case code.OpJumpIfFalse, code.OpJump:
 			// Stop walking
-			return nil, false
+			return false, nil
 
 		case code.OpReturn:
 
 			// Record the return, and also stop walking
 			tmp = append(tmp, byte(code.OpReturn))
 			changed = true
-			return nil, false
+			return false, nil
 		default:
 
 			tmp = append(tmp, byte(opCode))
@@ -574,7 +574,7 @@ func (e *Eval) removeDeadCode() {
 		}
 
 		// keep walking
-		return nil, true
+		return true, nil
 	})
 
 	//
