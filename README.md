@@ -45,7 +45,7 @@ The ideal use-case is that your application receives objects of some kind, perha
 
 ## Implementation
 
-In terms of implementation the script to be executed is split into [tokens](token/token.go) by the [lexer](lexer/lexer.go), then those tokens are [parsed](parser/parser.go) into an abstract-syntax-tree.   The AST is then processed, and from it a series of [bytecode](code/code.go) operations are generated.  The bytecode runs through a simple optimizer-stage and then the compiler is done.
+In terms of implementation the script to be executed is split into [tokens](token/token.go) by the [lexer](lexer/lexer.go), then those tokens are [parsed](parser/parser.go) into an abstract-syntax-tree.   The AST is then processed, and from it a series of [bytecode](code/code.go) operations are [compiled](compiler.go).  The bytecode runs through a simple [optimizer-stage](optimizer.go) and then the compiler is done.
 
 Once the bytecode has been generated it can be reused multiple times, there is no state which needs to be maintained.  This makes actually executing the script (i.e. running the bytecode) a fast process.
 
