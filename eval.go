@@ -212,11 +212,16 @@ func (e *Eval) Dump() error {
 	return nil
 }
 
-// Run takes the program which was passed in the constructor, and
-// executes it.
+// Execute executes the program which the user passed in the constructor,
+// and returns the object that the script finished with.
 //
-// The supplied object will be used for performing dynamic field-lookups, etc.
-func (e *Eval) Run(obj interface{}) (bool, error) {
+// This function is very similar to the `Run` method, however the Run
+// method only returns a binary/boolean result, and this method returns
+// the actual object your script returned with.
+//
+// Use of this method allows you to receive the `3` that a script
+// such as `return 1 + 2;` would return.
+func (e *Eval) Execute(obj interface{}) (object.Object, error) {
 
 	//
 	// Launch the program in the VM.
@@ -227,14 +232,43 @@ func (e *Eval) Run(obj interface{}) (bool, error) {
 	// Error executing?  Report that.
 	//
 	if err != nil {
+		return &object.Null{}, err
+	}
+
+	//
+	// Return the resulting object.
+	//
+	return out, nil
+}
+
+// Run executes the program which the user passed in the constructor.
+//
+// The return value, assuming no error, is a binary/boolean result which
+// suits the use of this package as a filter.
+//
+// If you wish to return the actual value the script returned then you can
+// use the `Execute` method instead.  That doesn't attempt to determine whether
+// the result of the script was "true" or not.
+func (e *Eval) Run(obj interface{}) (bool, error) {
+
+	//
+	// Execute the script, getting the resulting error
+	// and return object.
+	//
+	out, err := e.Execute(obj)
+
+	//
+	// Error? Then return that.
+	//
+	if err != nil {
 		return false, err
 	}
 
 	//
-	// Otherwise convert the result to a boolean, and return.
+	// Otherwise case the resulting object into
+	// a boolean and pass that back to the caller.
 	//
-	return out.True(), err
-
+	return out.True(), nil
 }
 
 // AddFunction exposes a golang function from your host application
