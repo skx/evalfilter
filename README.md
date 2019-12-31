@@ -27,7 +27,7 @@ There is no shortage of embeddable languages which are available to the golang w
 * Simple to use, as there are only three methods you need to call:
   * [New](https://godoc.org/github.com/skx/evalfilter#New)
   * [Prepare](https://godoc.org/github.com/skx/evalfilter#Eval.Prepare)
-  * Then either `[Execute(..)](https://godoc.org/github.com/skx/evalfilter#Eval.Execute)` or `[Run(..)](https://godoc.org/github.com/skx/evalfilter#Eval.Run)` depending upon what kind of return value you would like..
+  * Then either `[Execute..](https://godoc.org/github.com/skx/evalfilter#Eval.Execute)` or `[Run..](https://godoc.org/github.com/skx/evalfilter#Eval.Run)` depending upon what kind of return value you would like..
 * Simple to understand.
 * As fast as it can be, without being too magical.
 
