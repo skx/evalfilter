@@ -16,25 +16,12 @@ if ( Channel !~ /_ALerts$/i ) {
 //
 staff = [ "Alice", "Bob", "Chris", "Diane" ];
 
-
 //
-// Declare an index
+// Got a match?  We're done
 //
-i = 0;
-
-//
-// Test each staff-member
-//
-while( i < len(staff) ) {
-
-   //
-   // Got a match?  We're done
-   //
-   if ( Author == staff[i] ) {
-      print( "Ignoring message from staff-member ", Author, "\n" );
-      return false;
-   }
-   i = i + 1;
+if ( Author in staff ) {
+    print( "Ignoring message from staff-member ", Author, "\n" );
+    return false;
 }
 
 
