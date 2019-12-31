@@ -4,9 +4,9 @@
 
 * [eval-filter](#eval-filter)
   * [Implementation](#implementation)
+  * [Scripting Facilities](#scripting-facilities)
   * [Use Cases](#use-cases)
 * [Sample Usage](#sample-usage)
-* [Scripting Facilities](#scripting-facilities)
   * [Built-In Functions](#built-in-functions)
   * [Variables](#variables)
 * [Standalone Use](#standalone-use)
@@ -48,6 +48,45 @@ Once the bytecode has been generated it can be reused multiple times, there is n
 At execution-time the bytecode which was generated is interpreted by a simple [virtual machine](vm/vm.go).  The virtual machine is fairly naive implementation of a [stack-based](stack/stack.go) virtual machine, with some runtime support to provide the [builtin-functions](environment/builtins.go), as well as supporting the addition of host-specific functions.
 
 The bytecode itself is documented briefly in [BYTECODE.md](BYTECODE.md), but it is not something you should need to understand to use the library - although it might be useful for debugging issues.
+
+
+## Scripting Facilities
+
+The scripting-language this package presents supports the basic types you'd expect:
+
+* Arrays.
+* Floating-point numbers.
+* Integers.
+* Strings.
+* Time / Date values.
+  * i.e. We can use reflection to handle `time.Time` values in any structure/map we're operating upon.
+
+The types are supported both in the language itself, and in the reflection-layer which is used to allow the script access to fields in the Golang object/map you supply to it.
+
+Again as you'd expect the facilities are pretty normal/expected:
+
+* Perform comparisons of strings and numbers:
+  * equality:
+    * "`if ( Message == "test" ) { return true; }`"
+  * inequality:
+    * "`if ( Count != 3 ) { return true; }`"
+  * size (`<`, `<=`, `>`, `>=`):
+    * "`if ( Count >= 10 ) { return false; }`"
+    * "`if ( Hour >= 8 && Hour <= 17 ) { return false; }`"
+  * String matching against a regular expression:
+    * "`if ( Content ~= /needle/ )`"
+    * "`if ( Content ~= /needle/i )`"
+      * With case insensitivity
+  * Does not match a regular expression:
+    * "`if ( Content !~ /some text we don't want/ )`"
+  * Test if an array contains a value:
+    * "`return ( Name in [ "Alice", "Bob", "Chris" ] );`"
+* You can also easily add new primitives to the engine.
+  * By implementing them in your golang host application.
+  * Your host-application can also set variables which are accessible to the user-script.
+* There are series of built-in primitives which can be used by your scripts, and you can export your own host-specified functions easily.
+  * For example the `print` function to generate output from your script is just a simple function implemented in Golang and exported to the environment.
+
 
 
 ## Use Cases
@@ -128,48 +167,9 @@ To give you a quick feel for how things look you could consult these two simple 
   * This exports a function from the golang-host application to the script.
   * The new function is then used to filter a list of people.
 
-Additional examples of using this library to embed scripting support into simple host applications are available beneath the [_examples/](_examples/) directory.
+Additional examples of using the library to embed scripting support into simple host applications are available beneath the [_examples/](_examples/) directory.
 
 There is also a standalone driver located in [cmd/evalfilter](cmd/evalfilter) which allows you to examine bytecode, tokens, and run scripts - this is discussed [later](#standalone-use) in this README file.
-
-
-
-# Scripting Facilities
-
-The brief overview, and sample code, presented earlier should give a rough feel for the language but to be concrete the  scripting-language supports the basic types you'd expect:
-
-* Arrays.
-* Floating-point numbers.
-* Integers.
-* Strings.
-* Time / Date values.
-  * i.e. We can use reflection to handle `time.Time` values in any structure/map we're operating upon.
-
-These types are supported both in the language itself, and in the reflection-layer which is used to allow the script access to fields in the Golang object/map you supply to it.
-
-Again as you'd expect the facilities are pretty normal/expected:
-
-* Perform comparisons of strings and numbers:
-  * equality:
-    * "`if ( Message == "test" ) { return true; }`"
-  * inequality:
-    * "`if ( Count != 3 ) { return true; }`"
-  * size (`<`, `<=`, `>`, `>=`):
-    * "`if ( Count >= 10 ) { return false; }`"
-    * "`if ( Hour >= 8 && Hour <= 17 ) { return false; }`"
-  * String matching against a regular expression:
-    * "`if ( Content ~= /needle/ )`"
-    * "`if ( Content ~= /needle/i )`"
-      * With case insensitivity
-  * Does not match a regular expression:
-    * "`if ( Content !~ /some text we don't want/ )`"
-  * Test if an array contains a value:
-    * "`return ( Name in [ "Alice", "Bob", "Chris" ] );`"
-* You can also easily add new primitives to the engine.
-  * By implementing them in your golang host application.
-  * Your host-application can also set variables which are accessible to the user-script.
-* There are series of built-in primitives which can be used by your scripts, and you can export your own host-specified functions easily.
-  * For example the `print` function to generate output from your script is just a simple function implemented in Golang and exported to the environment.
 
 
 
