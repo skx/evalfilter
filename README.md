@@ -3,20 +3,18 @@
 [![license](https://img.shields.io/github/license/skx/evalfilter.svg)](https://github.com/skx/evalfilter/blob/master/LICENSE)
 
 * [eval-filter](#eval-filter)
-  * [Overview](#overview)
   * [Implementation](#implementation)
-    * [Bytecode](#bytecode)
   * [Use Cases](#use-cases)
-  * [Sample Usage](#sample-usage)
   * [API Stability](#api-stability)
-  * [Scripting Facilities](#scripting-facilities)
-	 * [Built-In Functions](#built-in-functions)
-     * [Variables](#variables)
-  * [Standalone Use](#standalone-use)
-     * [Debugging via standalone use](#debugging-via-standalone-use)
-  * [Benchmarking](#benchmarking)
-  * [Fuzz Testing](#fuzz-testing)
-  * [Github Setup](#github-setup)
+* [Sample Usage](#sample-usage)
+* [Scripting Facilities](#scripting-facilities)
+  * [Built-In Functions](#built-in-functions)
+  * [Variables](#variables)
+* [Standalone Use](#standalone-use)
+  * [Debugging via standalone use](#debugging-via-standalone-use)
+* [Benchmarking](#benchmarking)
+* [Fuzz Testing](#fuzz-testing)
+* [Github Setup](#github-setup)
 
 
 # eval-filter
@@ -26,18 +24,16 @@ The evalfilter package provides an embeddable evaluation-engine, which allows si
 There is no shortage of embeddable languages which are available to the golang world, this library is intended to be something that is:
 
 * Simple to embed.
-* Simple to use.
-  * There are only three methods, call `New`, `Prepare`, then `Run(object)`.
+* Simple to use, as there are only three methods you need to call:
+  * [New](https://godoc.org/github.com/skx/evalfilter#New)
+  * [Prepare](https://godoc.org/github.com/skx/evalfilter#Eval.Prepare)
+  * Then either `[Execute(object)](https://godoc.org/github.com/skx/evalfilter#Eval.Execute)` or `[Run(object)](https://godoc.org/github.com/skx/evalfilter#Eval.Run)` depending upon what kind of return value you would like..
 * Simple to understand.
 * As fast as it can be, without being too magical.
 
+The scripting language is C-like, and is generally intended to allow you to _filter_ objects, which means you might call the same script upon multiple objects, and the script will return either `true` or `false` as appropriate to denote whether some action might be taken by your application against that particular object.
 
-
-## Overview
-
-The `evalfilter` library provides the means to embed a small scripting engine in your golang application (which is known as the host application).
-
-The scripting language is C-like, and is generally intended to allow you to _filter_ objects, with the general expectation that a script will return `true` or `false` allowing you to decide what to do after running it.
+It _is_ possible for you to handle arbitrary return-values from the script(s) you execute, and indeed the script itself could call back into your application to carry out tasks, via the addition of new primitives implemented and exported by your host application, which would make the return value almost irrelevant.
 
 The ideal use-case is that your application receives objects of some kind, perhaps as a result of incoming webhook submissions, network events, or similar, and you wish to decide how to handle those objects in a flexible fashion.
 
@@ -45,40 +41,28 @@ The ideal use-case is that your application receives objects of some kind, perha
 
 ## Implementation
 
-In terms of implementation the script to be executed is split into [tokens](token/token.go) by the [lexer](lexer/lexer.go), then those tokens are [parsed](parser/parser.go) into an abstract-syntax-tree.   The AST is then processed, and from it a series of [bytecode](code/code.go) operations are [compiled](compiler.go).  The bytecode runs through a simple [optimizer-stage](optimizer.go) and then the compiler is done.
+In terms of implementation the script to be executed is split into [tokens](token/token.go) by the [lexer](lexer/lexer.go), then those tokens are [parsed](parser/parser.go) into an abstract-syntax-tree.   Once the AST exists it is walked by the [compiler](compiler.go) and a series of [bytecode](code/code.go) operations are generated.
 
-Once the bytecode has been generated it can be reused multiple times, there is no state which needs to be maintained.  This makes actually executing the script (i.e. running the bytecode) a fast process.
+Once the bytecode has been generated it can be reused multiple times, there is no state which needs to be maintained, which makes actually executing the script (i.e. running the bytecode) a fast process.
 
-At execution-time the bytecode which was generated is interpreted by a simple [virtual machine](vm/vm.go) in the `Run` method.  As this is a stack-based virtual machine, rather than a register-based one, we have a simple [stack](stack/stack.go) implementation, along with some runtime support to provide the [builtin-functions](environment/builtins.go).
+At execution-time the bytecode which was generated is interpreted by a simple [virtual machine](vm/vm.go).  The virtual machine is fairly naive implementation of a [stack-based](stack/stack.go) virtual machine, with some runtime support to provide the [builtin-functions](environment/builtins.go), as well as supporting the addition of host-specific functions.
 
-
-
-### Bytecode
-
-The bytecode is not exposed externally, but it is documented in [BYTECODE.md](BYTECODE.md).
+The bytecode itself is documented briefly in [BYTECODE.md](BYTECODE.md), but it is not something you should need to understand to use the library - although it might be useful for debugging issues.
 
 
 ## Use Cases
 
-The backstory behind this project is explained in [this blog-post](https://blog.steve.fi/a_slack_hack.html), but in brief I wanted to read incoming Slack messages and react to specific ones to carry out an action.
+The backstory behind this project is explained in [this blog-post](https://blog.steve.fi/a_slack_hack.html), but in brief I wanted to react to incoming Slack message:
 
-* In brief I wanted to implement a simple "on-call notifier".
-* When messages were posted to Slack channels I wanted to _sometimes_ trigger a phone-call to the on-call engineer who was nominated to handle events/problems/issues that evening.
-* Of course not _all_ Slack-messages were worth waking up an engineer for..
+* I wanted to implement a simple "on-call notifier".
+   * When messages were posted to Slack channels I wanted to _sometimes_ trigger a phone-call to the on-call engineer.
+   * Of course not _all_ Slack-messages were worth waking up an engineer for..
 
-The expectation was that non-developers might want to change the matching of messages, without having to know how to rebuild the application, or understand Go.  So the logic was moved into a script and this evaluation engine was born.
+The expectation was that non-developers might want to change the matching of messages to update the messages which were deemed worthy of waking up the on-call engineer.  They shouldn't need to worry about rebuilding the on-call application, nor should they need to understand Go.  So the logic was moved into a script and this evaluation engine was born.
 
 This is a pretty good use-case for an evaluation engine, solving a real problem, and not requiring a large degree of technical knowledge to update.
 
-As noted the application was pretty simple, logically:
-
-* Create an instance of the `evalfilter`.
-* Load the user's script, which will let messages be matched.
-* For each incoming message run the users' script against it.
-  * If it returns `true` you know you should trigger the on-call notification.
-  * Otherwise ignore the message.
-
-To make this more concrete we'll pretend we have the following structure to describe incoming messages:
+As noted the application was pretty simple, each time a Slack message was received it would be decoded into a simple structure:
 
     type Message struct {
         Author  string
@@ -87,35 +71,37 @@ To make this more concrete we'll pretend we have the following structure to desc
         Sent    time.Time
     }
 
-The user could now write the following script to decide whether to initiate a notification:
+Once the message was decoded a simple script could then be executed against that particular object to decide whether to initiate a phone-call:
 
     //
     // You can see that comments are prefixed with "//".
     //
-    // This script is invoked by your Golang application as a filter,
-    // the intent is that the user's script will terminate with either:
-    //   return false;
-    // or
-    //   return true;
+    // In my case if this script hit `return true;` a phone call would be initiated.
     //
+    // If the script terminated with `return false;` I would do nothing.
 
     //
-    // If we have a message from Steve it is interesting!
+    // If this is within office hours we'll assume somebody is around who
+    // can handle the issue, so there is no need to raise a call.
     //
-    // Here `return true` means to initiate the phone-call.
-    //
-    if ( Author == "Steve" ) { return true; }
+    if ( hour(Sent) >= 9 || hour(Sent) <= 17 ) {
+
+        //
+        // Of course we need to exclude the weekend.  Nobody works
+        // weekends, if they can help it!
+        //
+        if ( day(Sent) != "Saturday" && day(Sent) != "Sunday" ) {
+           return false;
+        }
+    }
 
     //
-    // A bug is being discussed?  Awesome.  That's worth waking
-    // somebody for.
+    // A service crashed with a panic?
+    //
+    // If so raise the engineer.
     //
     if ( Message ~=  /panic/i ) { return true; }
 
-    //
-    // If this is outside office hours we'll raise a phone-call.
-    //
-    if ( hour(Sent) <= 7 || hour(Sent) >= 19) { return true; }
 
     //
     // At this point we decide the message is not important, so
@@ -127,24 +113,9 @@ The user could now write the following script to decide whether to initiate a no
     //
     return false;
 
-You'll notice that we test fields such as `Message` here, which come from the object we were given.  That works due to the magic of reflection.  Similarly we managed to call the built-in function `hour` to get the hour of the `Sent` field which was a golang `time.Time` value, again this works due to the magic of reflection.
+You'll notice that we test fields such as `Sent` and `Message` here which come from the object we were given.  That works due to the magic of reflection.  Similarly we called a number of built-in functions related to time/date.  These functions understand the golang `time.Time` type, from which the `Sent` value was read via reflection.
 
-(All `time.Time` values are converted to seconds-past the Unix Epoch, but you can retrieve all the appropriate fields via `hour()`, `minute()`, `day()`, `year()`, `weekday()`, etc, as you would expect.)
-
-
-
-## Sample Usage
-
-To give you a quick feel for how things look you could consult these two simple examples:
-
-* [example_test.go](example_test.go).
-  * This filters a list of people by their age.
-* [example_function_test.go](example_function_test.go).
-  * This exports a function from the golang-host application to the script.
-  * The new function is then used to filter a list of people.
-
-Additional examples are available beneath the [_examples/](_examples/) directory, and there is a standalone driver located in [cmd/evalfilter](cmd/evalfilter) which allows you to examine bytecode, tokens, and run scripts.
-
+(All `time.Time` values are converted to seconds-past the Unix Epoch, but you can retrieve all the appropriate fields via `hour()`, `minute()`, `day()`, `year()`, `weekday()`, etc, as you would expect.  Using them literally will return the Epoch value.)
 
 
 ## API Stability
@@ -159,17 +130,33 @@ The API will remain as-is for given major release number, so far we've had we've
 The second release was implemented to perform a significant speedup for the case where the same script might be reused multiple times.
 
 
-## Scripting Facilities
 
-The engine supports the basic types you'd expect:
+# Sample Usage
 
-* Arrays
-* Floating-point numbers
-* Integers
-* Strings
-* Time / Date values
+To give you a quick feel for how things look you could consult these two simple examples:
+
+* [example_test.go](example_test.go).
+  * This filters a list of people by their age.
+* [example_function_test.go](example_function_test.go).
+  * This exports a function from the golang-host application to the script.
+  * The new function is then used to filter a list of people.
+
+Additional examples of using this library to embed scripting support into simple host applications are available beneath the [_examples/](_examples/) directory.
+
+There is also a standalone driver located in [cmd/evalfilter](cmd/evalfilter) which allows you to examine bytecode, tokens, and run scripts - this is discussed [later](#standalone-use) in this README file.
+
+
+
+# Scripting Facilities
+
+The brief overview, and sample code, presented earlier should give a rough feel for the language but to be concrete the  scripting-language supports the basic types you'd expect:
+
+* Arrays.
+* Floating-point numbers.
+* Integers.
+* Strings.
+* Time / Date values.
   * i.e. We can use reflection to handle `time.Time` values in any structure/map we're operating upon.
-
 
 These types are supported both in the language itself, and in the reflection-layer which is used to allow the script access to fields in the Golang object/map you supply to it.
 
@@ -194,12 +181,12 @@ Again as you'd expect the facilities are pretty normal/expected:
 * You can also easily add new primitives to the engine.
   * By implementing them in your golang host application.
   * Your host-application can also set variables which are accessible to the user-script.
-* Finally there is a `print` primitive to allow you to see what is happening, if you need to.
-  * This is just one of the built-in functions, but perhaps the most useful.
+* There are series of built-in primitives which can be used by your scripts, and you can export your own host-specified functions easily.
+  * For example the `print` function to generate output from your script is just a simple function implemented in Golang and exported to the environment.
 
 
 
-### Built-In Functions
+## Built-In Functions
 
 As we noted earlier you can export functions from your host-application and make them available to the scripting environment, as demonstrated in the [example_function_test.go](example_function_test.go) sample, but of course there are some built-in functions which are always available:
 
@@ -229,6 +216,8 @@ As we noted earlier you can export functions from your host-application and make
   * Allow converting a time to DD/MM/YYYY.
 * `weekday(field|value)`
   * Allow converting a time to "Saturday", "Sunday", etc.
+* `now()`
+  * Returns the current time.
 
 
 ## Variables
@@ -240,7 +229,8 @@ Similarly you can _retrieve_ values which have been set within scripts, via `Get
 You can see an example of this in [_examples/variable/](_examples/variable/)
 
 
-## Standalone Use
+
+# Standalone Use
 
 If you wish to experiment with script-syntax you can install the standalone driver:
 
@@ -258,7 +248,7 @@ For example in the [cmd/evalfilter](cmd/evalfilter) directory you might run:
 This will test a script against a JSON object, allowing you to experiment with changing either.
 
 
-### Debugging via standalone use
+## Debugging via standalone use
 
 Using the standalone driver is very useful to debug execution of scripts,
 for example the `-debug` and `-no-optimizer` flags will change the way
@@ -308,9 +298,11 @@ Constants:
 For more details please see the [bytecode documentation](BYTECODE.md).
 
 
-## Benchmarking
+# Benchmarking
 
-If you wish to run a local benchmark you should be able to do so as follows:
+The scripting language should be fast enough for most purposes; it will certainly cope well with running simple scripts for every incoming HTTP-request, for example.  If you wish to test the speed there are some local benchmarks available.
+
+You can run the benchmarks as follows:
 
 ```
 go test -test.bench=evalfilter_ -benchtime=10s -run=^t
@@ -332,14 +324,14 @@ engine is unlikely to be a significant bottleneck.
 One interesting thing that shows up clearly is that working with a `struct` is significantly faster than working with a `map`.  I can only assume that the reflection overhead is shorter there, but I don't know why.
 
 
-## Fuzz Testing
+# Fuzz Testing
 
 Fuzz-testing is basically magic - you run your program with random input, which stress-tests it and frequently exposes corner-cases you've not considered.
 
 This project has been fuzz-tested repeatedly, and [FUZZING.md](FUZZING.md) contains notes on how you can carry out testing of your own.
 
 
-## Github Setup
+# Github Setup
 
 This repository is configured to run tests upon every commit, and when pull-requests are created/updated.  The testing is carried out via [.github/run-tests.sh](.github/run-tests.sh) which is used by the [github-action-tester](https://github.com/skx/github-action-tester) action.
 
