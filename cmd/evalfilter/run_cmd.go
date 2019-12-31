@@ -92,7 +92,7 @@ func (p *runCmd) Run(file string) {
 	eval := evalfilter.New(string(dat))
 
 	//
-	// Flags to pass to the preperation function.
+	// Flags to pass to the preparation function.
 	//
 	var flags []byte
 	if p.raw {
