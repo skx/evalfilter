@@ -8,7 +8,6 @@
 package evalfilter
 
 import (
-	"encoding/binary"
 	"fmt"
 	"strings"
 
@@ -122,14 +121,12 @@ func (e *Eval) Prepare(flags ...[]byte) error {
 	}
 
 	//
-	// Attempt to optimize the code, running multiple passes until no
-	// more changes are possible.
-	//
-	// We do this so that each optimizer run only has to try one thing
-	// at a time.
+	// If we've got the optimizer enabled then set the environment
+	// variable, so that the virtual machine knows it should
+	// run a series of optimizations.
 	//
 	if optimize {
-		e.optimize()
+		e.environment.Set("OPTIMIZE", &object.Boolean{Value: true})
 	}
 
 	//
@@ -137,6 +134,9 @@ func (e *Eval) Prepare(flags ...[]byte) error {
 	// we've created - as well as any function pointers and variables
 	// which we were given.
 	//
+	// The optimization will happen at this step, so that it is complete
+	// before Execute/Run are invoked - and we only take the speed hit
+	// once.
 	e.machine = vm.New(e.constants, e.instructions, e.environment)
 
 	//
@@ -145,66 +145,50 @@ func (e *Eval) Prepare(flags ...[]byte) error {
 	return nil
 }
 
-// Dump causes our bytecode to be dumped.
-//
-// This is used by the `evalfilter` CLI-utility, but it might be useful
-// to consumers of our library.
+// Dump causes our bytecode to be dumped, along with the contents
+// of the constant-pool
 func (e *Eval) Dump() error {
 
-	i := 0
 	fmt.Printf("Bytecode:\n")
 
-	for i < len(e.instructions) {
+	// Use the walker to dump the bytecode.
+	e.machine.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (bool, error) {
 
-		// opcode
-		op := e.instructions[i]
+		// Show the offset + instruction.
+		fmt.Printf("%04d\t%14s", offset, code.String(opCode))
 
-		// opcode length
-		opLen := code.Length(code.Opcode(op))
-
-		// opcode as a string
-		str := code.String(code.Opcode(op))
-
-		fmt.Printf("  %06d\t%14s", i, str)
-
-		// show arg
-		if op < byte(code.OpCodeSingleArg) {
-
-			arg := binary.BigEndian.Uint16(e.instructions[i+1 : i+3])
-			fmt.Printf("\t%d", arg)
-
-			//
-			// Show the values, as comments, to make the
-			// bytecode more human-readable.
-			//
-			if code.Opcode(op) == code.OpConstant {
-
-				v := e.constants[arg]
-				s := strings.ReplaceAll(v.Inspect(), "\n", "\\n")
-
-				fmt.Printf("\t// load constant: \"%s\"", s)
-			}
-			if code.Opcode(op) == code.OpLookup {
-				fmt.Printf("\t// lookup field: %v", e.constants[arg])
-			}
-			if code.Opcode(op) == code.OpCall {
-				fmt.Printf("\t// call function with %d arg(s)", arg)
-			}
+		// Show the optional argument, if present.
+		if opArg != nil {
+			fmt.Printf("\t% 4d", opArg.(int))
 		}
 
+		// Some opcodes benefit from inline comments
+		if code.Opcode(opCode) == code.OpConstant {
+			v := e.constants[opArg.(int)]
+			s := strings.ReplaceAll(v.Inspect(), "\n", "\\n")
+			fmt.Printf("\t// push constant onto stack: \"%s\"", s)
+		}
+		if code.Opcode(opCode) == code.OpLookup {
+			fmt.Printf("\t// lookup field/variable: %v", e.constants[opArg.(int)])
+		}
+		if code.Opcode(opCode) == code.OpCall {
+			fmt.Printf("\t// call function with %d arg(s)", opArg.(int))
+		}
+		if code.Opcode(opCode) == code.OpPush {
+			fmt.Printf("\t// Push %d to stack", opArg.(int))
+		}
 		fmt.Printf("\n")
 
-		i += opLen
-	}
+		// Keep walking, no error.
+		return true, nil
+	})
 
 	// Show constants, if any are present.
 	if len(e.constants) > 0 {
-		fmt.Printf("\n\nConstants:\n")
+		fmt.Printf("\n\nConstant Pool:\n")
 		for i, n := range e.constants {
-
 			s := strings.ReplaceAll(n.Inspect(), "\n", "\\n")
-
-			fmt.Printf("  %06d Type:%s Value:\"%s\"\n", i, n.Type(), s)
+			fmt.Printf("%04d Type:%s Value:\"%s\"\n", i, n.Type(), s)
 		}
 	}
 

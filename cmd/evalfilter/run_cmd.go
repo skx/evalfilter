@@ -120,13 +120,19 @@ func (p *runCmd) Run(file string) {
 	//
 	// Run the script.
 	//
-	ret, err := eval.Run(obj)
+	ret, err := eval.Execute(obj)
 	if err != nil {
 		fmt.Printf("Failed to run script: %s\n", err.Error())
 		return
 	}
 
-	fmt.Printf("Script gave result %v\n", ret)
+	//
+	// Show the actual, literal, return-value, as well as the
+	// truthiness of the result.
+	//
+	fmt.Printf("Script gave result type:%s value:%s - which is '%t'.\n",
+		ret.Type(), ret.Inspect(), ret.True())
+
 }
 
 //

@@ -18,7 +18,7 @@ type Token struct {
 	Literal string
 }
 
-// pre-defined Type
+// Our known token-types
 const (
 	AND       = "&&"
 	ASSIGN    = "="
