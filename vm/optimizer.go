@@ -365,11 +365,28 @@ func (vm *VM) optimizeJumps() bool {
 			//
 			if prevOp == code.OpFalse {
 
-				// wipe the previous instruction, (OpFalse)
-				vm.bytecode[offset-1] = byte(code.OpNop)
+				//
+				// If we get here we have:
+				//
+				//   OpFalse
+				//   OpJumpIfFalse Target
+				//
+				//     .. instructions ..
+				//
+				// Target:
+				//     .. instructions ..
+				//
+				// Since the jump is unconditional
+				// the instructions in the middle
+				// can be nuked, as well as the
+				// `OpFalse` and `OpJumpIfFalse`
+				//
 
-				// This jump is now unconditional
-				vm.bytecode[offset] = byte(code.OpJump)
+				i := offset - 1
+				for i < opArg.(int) {
+					vm.bytecode[i] = byte(code.OpNop)
+					i++
+				}
 
 				// We made a change
 				changed = true
