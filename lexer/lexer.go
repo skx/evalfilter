@@ -22,7 +22,7 @@ type Lexer struct {
 	// The next character position
 	readPosition int
 
-	//The current character
+	// The current character
 	ch rune
 
 	// A rune slice of our input string
