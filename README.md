@@ -5,7 +5,6 @@
 * [eval-filter](#eval-filter)
   * [Implementation](#implementation)
   * [Use Cases](#use-cases)
-  * [API Stability](#api-stability)
 * [Sample Usage](#sample-usage)
 * [Scripting Facilities](#scripting-facilities)
   * [Built-In Functions](#built-in-functions)
@@ -14,6 +13,7 @@
   * [Debugging via standalone use](#debugging-via-standalone-use)
 * [Benchmarking](#benchmarking)
 * [Fuzz Testing](#fuzz-testing)
+* [API Stability](#api-stability)
 * [Github Setup](#github-setup)
 
 
@@ -116,19 +116,6 @@ Once the message was decoded a simple script could then be executed against that
 You'll notice that we test fields such as `Sent` and `Message` here which come from the object we were given.  That works due to the magic of reflection.  Similarly we called a number of built-in functions related to time/date.  These functions understand the golang `time.Time` type, from which the `Sent` value was read via reflection.
 
 (All `time.Time` values are converted to seconds-past the Unix Epoch, but you can retrieve all the appropriate fields via `hour()`, `minute()`, `day()`, `year()`, `weekday()`, etc, as you would expect.  Using them literally will return the Epoch value.)
-
-
-## API Stability
-
-The API will remain as-is for given major release number, so far we've had we've had two major releases:
-
-* 1.x.x
-  * The initial implementation which parsed script into an AST then walked it.
-* 2.x.x
-  * The updated design which parses the given script into an AST, then generates bytecode to execute when the script is actually run.
-
-The second release was implemented to perform a significant speedup for the case where the same script might be reused multiple times.
-
 
 
 # Sample Usage
@@ -329,6 +316,19 @@ One interesting thing that shows up clearly is that working with a `struct` is s
 Fuzz-testing is basically magic - you run your program with random input, which stress-tests it and frequently exposes corner-cases you've not considered.
 
 This project has been fuzz-tested repeatedly, and [FUZZING.md](FUZZING.md) contains notes on how you can carry out testing of your own.
+
+
+## API Stability
+
+The API will remain as-is for given major release number, so far we've had we've had two major releases:
+
+* 1.x.x
+  * The initial implementation which parsed script into an AST then walked it.
+* 2.x.x
+  * The updated design which parses the given script into an AST, then generates bytecode to execute when the script is actually run.
+
+The second release was implemented to perform a significant speedup for the case where the same script might be reused multiple times.
+
 
 
 # Github Setup
