@@ -1,5 +1,4 @@
-// Package stack implements a stack which is used for our virtual
-// machine.
+// Package stack implements a stack which is used for our virtual machine.
 package stack
 
 import (
@@ -12,6 +11,8 @@ import (
 // Stack implements a stack which can hold an arbitrary number
 // of objects.  It is used by the virtual-machine to perform
 // calculations, etc.
+//
+// The stack may grow to any size, as it is not capped.
 type Stack struct {
 
 	// entries hold our stack entries.
@@ -60,6 +61,8 @@ func (s *Stack) Push(value object.Object) {
 }
 
 // Pop removes a value from the stack.
+//
+// If the stack is currently empty then an error will be returned.
 func (s *Stack) Pop() (object.Object, error) {
 	if s.Empty() {
 		return nil, errors.New("Pop from an empty stack")
