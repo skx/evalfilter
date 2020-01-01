@@ -1,6 +1,6 @@
 # Bytecode
 
-When the evalfilter package is executed a user-supplied script is lexed, parsed, and transformed into a series of bytecode operations.  These bytecode operations are executed by a simple stack-based virtual machine.
+When the evalfilter package is executed a user-supplied script is lexed, parsed, and transformed into a series of bytecode operations, then these bytecode operations are executed by a simple stack-based virtual machine.
 
 Although we don't expect users to care about the implementation details here are some brief notes.
 
@@ -10,14 +10,14 @@ The opcodes we're discussing are found in [code/code.go](code/code.go), and the 
 * [Bytecode](#bytecode)
   * [Examining Bytecode](#examining-bytecode)
 * [Bytecode Overview](#bytecode-overview)
-  * [Constant / Field Operations](#constant--field-operations)
-  * [Mathematical Operations](#mathematical-operations)
-  * [Comparison Operations](#comparison-operations)
-  * [Control-Flow Operations](#control-flow-operations)
-  * [Misc Operations](#misc-operations)
-  * [Function Calls](#function-calls)
-* [Example Program](#example-program)
+* [Mathematical Operations](#mathematical-operations)
+* [Comparison Operations](#comparison-operations)
+* [Control-Flow Operations](#control-flow-operations)
+* [Misc Operations](#misc-operations)
+* [Function Calls](#function-calls)
+* [Program Walkthrough](#program-walkthrough)
 * [Debugging](#debugging)
+* [Optimization](#optimization)
 
 
 ## Examining Bytecode
@@ -40,28 +40,25 @@ To view the bytecode you would run `evalfilter bytecode ./simple.txt`, which wou
 
 ```
 Bytecode:
-  000000	OpConstant	0		// load constant: &{1}
-  000003	OpConstant	1		// load constant: &{0.5}
-  000006	OpConstant	2		// load constant: &{2}
-  000009	OpMul
-  000010	OpEqual
-  000011	OpJumpIfFalse	19
-  000014	OpTrue
-  000015	OpReturn
-  000016	OpJump	19
-  000019	OpConstant	3		// load constant: &{This is weird\n}
-  000022	OpConstant	4		// load constant: &{print}
-  000025	OpCall	1			// call function with 1 arguments
-  000028	OpFalse
-  000029	OpReturn
+0000	        OpPush	   1	// Push 1 to stack
+0003	    OpConstant	   0	// push constant onto stack: "0.5"
+0006	        OpPush	   2	// Push 2 to stack
+0009	         OpMul
+0010	       OpEqual
+0011	 OpJumpIfFalse	  16
+0014	        OpTrue
+0015	      OpReturn
+0016	    OpConstant	   1	// push constant onto stack: "This is weird\n"
+0019	    OpConstant	   2	// push constant onto stack: "print"
+0022	        OpCall	   1	// call function with 1 arg(s)
+0025	       OpFalse
+0026	      OpReturn
 
 
-Constants:
-  0 - &{1}
-  1 - &{0.5}
-  2 - &{2}
-  3 - &{This is weird\n}
-  4 - &{print}
+Constant Pool:
+0000 Type:FLOAT Value:"0.5"
+0001 Type:STRING Value:"This is weird\n"
+0002 Type:STRING Value:"print"
 ```
 
 
@@ -75,42 +72,43 @@ Our bytecode interpreter understands approximately 30 different instructions, wh
 * Control-flow operations.
 * Misc operations.
 
-
-## Constant / Field Operations
-
 The virtual machine I've implemented needs two things to work:
 
 * A list of instructions to execute.
 * A list of constants.
 
-For example the program "`print( 1 + 2 ); return true;`" contains __three__ constants:
+For example the program "`print( 1.0 + 2.0 ); return true;`" contains __three__ constants:
 
 * The name of the function `print`.
-* The integer value `1`.
-* The integer value `2`.
+* The floating point value `1.0`.
+* The floating point value `2.0`.
+  * See [optimization](#optimization) for details of why this example uses floating-point numbers.
 
 That program would be encoded like so:
 
 ```
 Bytecode:
-  ...
-  0000NN	OpConstant	0		// load constant: &{1}
-  0000NN	OpConstant	1		// load constant: &{2}
-  0000NN	OpAdd
-...
+0000	    OpConstant	   0	// push constant onto stack: "1"
+0003	    OpConstant	   1	// push constant onto stack: "2"
+0006	         OpAdd
+0007	    OpConstant	   2	// push constant onto stack: "print"
+0010	        OpCall	   1	// call function with 1 arg(s)
+0013	        OpTrue
+0014	      OpReturn
 
-Constants:
-  0 - &{1}
-  1 - &{2}
-  2 - &{print}
+
+Constant Pool:
+0000 Type:FLOAT Value:"1"
+0001 Type:FLOAT Value:"2"
+0002 Type:STRING Value:"print"
 ```
 
-This is the first time we've looked at our bytecode so there are several things to note:
+To provide more details about the output:
 
 * The value to the left of the instruction is the position in the code.
   * The control-flow instructions generate jumps to these indexes, so they're worth showing.
 * The middle field is the instruction to be executed.
-  * Some instructions contain a single argument, but most do not.
+  * Some instructions include an argument, but most do not.
   * Some instructions contain helpful comments to the right.
 * After the bytecode has been disassembled you'll see the list of constants.
   * Each of which is identified by numeric ID.
@@ -121,22 +119,22 @@ When we start running the program the stack is empty.
 
 * We run `OpConstant 0`
   * That loads the constant with ID `0` from the constant-area.
-    * This is the number `1`.
+    * This is the floating-point number `1.0`.
   * The constant is then pushed upon the stack.
 * We run `OpConstant 1`
   * That loads the constant with ID `0` from the constant-area.
-    * This is the number `2`.
+    * This is the floating-point number `2.0`.
   * The constant is then pushed upon the stack.
 * We then execute the `OpAdd` instruction.
   * This pops two values from the stack
-    * i.e. The `2` we just added.
-    * Then the `1` we added.
+    * i.e. The `2.0` we just added.
+    * Then the `1.0` we added.
       * The stack is emptied in reverse.
-  * The two values are added, producing a result of `3`.
+  * The two values are added, producing a result of `3.0`.
   * Then the value is placed back upon the stack.
 
 
-## Mathematical Operations
+# Mathematical Operations
 
 The mathematical-related opcodes all work in the same way, they each pop two operands from the stack, carry out the appropriate instruction, and then push the result back upon the stack.
 
@@ -156,7 +154,7 @@ We saw these described briefly earlier, but the full list of instructions is:
   * Raise a number to the power of another.
 
 
-## Comparison Operations
+# Comparison Operations
 
 The comparison operations are very similar to the mathematical operations, and work in the same way:
 
@@ -184,9 +182,11 @@ The full list is:
 * `OpNotEqual` / `!=`
 * `OpMatches` / `~=`
 * `OpNotMatches` / `!~`
+* `OpArrayIn` / `in`
+  * This is an array-specific opcode which tests whether a value is contained within an array.
 
 
-## Control-Flow Operations
+# Control-Flow Operations
 
 There are two control-flow operations:
 
@@ -198,15 +198,15 @@ There are two control-flow operations:
   * Otherwise we proceed to the next instruction as expected.
 
 
-## Misc Operations
+# Misc Operations
 
 There are some miscellaneous instructions:
 
 * `OpBang`
-  * Calculate negation
+  * Calculate negation.
 * `OpMinus`
   * Calculate unary minus.
-* `OpRoot`
+* `OpSquareRoot`
   * Calculate a square root.
 * `OpTrue`
   * Pushes a `true` value to the stack.
@@ -214,7 +214,7 @@ There are some miscellaneous instructions:
   * Pushes a `false` value to the stack.
 * `OpReturn`
   * Pops a value off the stack and terminates processing.
-    * The value is the return-code.
+    * The value taken from the stack is the return-code.
 * `OpLookup`
   * Much like loading a constant by reference this loads the value from the structure field with the given name.
 * `OpCall`
@@ -222,15 +222,15 @@ There are some miscellaneous instructions:
   * Called with an argument noting how many arguments to pass to the function, and pops that many arguments from the stack to use in the function-call.
 
 
-## Function Calls
+# Function Calls
 
-There are several functions supplied with the interpreter, and a host application can install more.
+There are several built-in functions supplied with the interpreter, such as `len()`, `print()`, and similar.  Your host application which embeds the library can install more easily too.
 
 The prototype of all functions is:
 
      func foo( args []object.Object ) object.Object { .. }
 
-i.e. All functions take an array of objects, and return a single object.  The objects allow support of strings, numbers, booleans, and errors.
+i.e. All functions take an array of objects, and return a single object.  The objects allow recieving or returning arrays, strings, numbers, booleans, and errors.
 
 We've already seen how constants can be loaded from the constant area onto the stack, and that along with the `OpCall` instruction is all we need to support calling functions.
 
@@ -247,9 +247,9 @@ This is an excerpt from the program we saw at the top of this document, and show
 ```
 
 * The first operation loads the constant with ID 3 and pushes it onto the stack.
-  * This is the string "This is weird\n", as the comment indicates.
+  * This is the string "`This is weird\n`", as the comment indicates.
 * The second instruction loads the constant with ID 4 and pushes it onto the stack.
-  * This is the string "print", which is the name of the function we're going to invoke.
+  * This is the string "`print`", which is the name of the function we're going to invoke.
 * The third instruction is `OpCall 1` which means that the machine should call a function with one argument.
 
 The end result of that is that the function call happens:
@@ -265,7 +265,7 @@ The end result of that is that the function call happens:
 * The return result from that call is then pushed onto the stack.
 
 
-# Example Program
+# Program Walkthrough
 
 We already demonstrated a simple program earlier, with the following bytecode:
 
@@ -323,3 +323,21 @@ as well as view the current state of the stack.
 To show this debug-output simply invoke the `run` sub-command with the `-debug` flag:
 
      $ evalfilter run -debug ./path/to/script
+
+
+# Optimization
+
+The virtual machine performs some simple optimizations when it is constructed.
+
+The optimizations are naive, but are designed to simplify the bytecode which is intepreted.  There are a few distinct steps which are taken, although precise details will vary over time.
+
+* Mathematical operations which only refer to integers will be collapsed
+  * i.e. The statement `if ( 1 + 2 == 3 ) { ...` will be converted to `if ( true ) { ..`
+  * Because the condition is provably always true.
+
+* Jump statements (i.e. the opcode instructions `OpJump` and `OpJumpIfFalse`) will be removed if appropriate.
+  * In the case of a jump which is never taken `if ( false ) { ..` the code will be removed.
+    * This code wouldn't be written by a user, but could be generated via the first optimization.
+
+* If a program contains no jump operations, and a OpReturn instruction is encounted the program will be truncated.
+  * For example the program `return true; print( "What?"); return false;` will be truncated to become `return true;` because nothing after that can execute.

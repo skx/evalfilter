@@ -274,8 +274,8 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			arr := &object.Array{Elements: elements}
 			vm.stack.Push(arr)
 
-			// Lookup an array index
-		case code.OpArrayIndex:
+			// Array/String index
+		case code.OpIndex:
 			index, err := vm.stack.Pop()
 			if err != nil {
 				return nil, err
@@ -306,7 +306,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			}
 
 			// square root
-		case code.OpRoot:
+		case code.OpSquareRoot:
 			err := vm.executeSquareRoot()
 			if err != nil {
 				return nil, err
@@ -1053,7 +1053,7 @@ func (vm *VM) lookup(obj interface{}, name string) object.Object {
 	return Null
 }
 
-// executeIndexExpression lookup the array value at the given index.
+// executeIndexExpression performs a string/array indexing operation.
 func (vm *VM) executeIndexExpression(left, index object.Object) error {
 
 	// Check arguments
