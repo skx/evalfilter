@@ -202,8 +202,7 @@ As we noted earlier you can export functions from your host-application and make
   * Allow converting a time to DD/MM/YYYY.
 * `weekday(field|value)`
   * Allow converting a time to "Saturday", "Sunday", etc.
-* `now()`
-  * Returns the current time.
+* `now()` & `time()` both return the current time.
 
 
 ## Variables
