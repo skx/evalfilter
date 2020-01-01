@@ -165,6 +165,27 @@ func fnMatch(args []object.Object) object.Object {
 	return &object.Boolean{Value: false}
 }
 
+// fnNow is the implementation of our `now` function.
+func fnNow(args []object.Object) object.Object {
+
+	// Handle timezones, by reading $TZ, and if not set
+	// defaulting to UTC.
+	env := os.Getenv("TZ")
+	if env == "" {
+		env = "UTC"
+	}
+
+	now := time.Now()
+
+	// Ensure we set that timezone.
+	loc, err := time.LoadLocation(env)
+	if err == nil {
+		now = now.In(loc)
+	}
+
+	return &object.Integer{Value: now.Unix()}
+}
+
 // fnString is the implementation of our `string` function.
 func fnString(args []object.Object) object.Object {
 

@@ -1,7 +1,9 @@
 package environment
 
 import (
+	"os"
 	"testing"
+	"time"
 
 	"github.com/skx/evalfilter/v2/object"
 )
@@ -484,4 +486,45 @@ func TestTime(t *testing.T) {
 		t.Errorf("unexpected value passing bogus argument")
 	}
 
+}
+
+// Test `now`
+func TestNow(t *testing.T) {
+
+	// Handle timezones, by reading $TZ, and if not set
+	// defaulting to UTC.
+	env := os.Getenv("TZ")
+	if env == "" {
+		env = "UTC"
+	}
+
+	now := time.Now()
+
+	// Ensure we set that timezone.
+	loc, err := time.LoadLocation(env)
+	if err == nil {
+		now = now.In(loc)
+	}
+
+	// Call the function
+	var empty []object.Object
+	out := fnNow(empty)
+
+	// type-check
+	if out.Type() != object.INTEGER {
+		t.Errorf("output of `now` was not an integer")
+	}
+
+	// get the value
+	val := out.(*object.Integer).Value
+
+	// diff
+	diff := val - now.Unix()
+	if diff < 0 {
+		diff *= -1
+	}
+
+	if diff > 2 {
+		t.Errorf("getting current time differed from expected value by more than two seconds.  weird")
+	}
 }
