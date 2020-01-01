@@ -10,7 +10,6 @@
   * [Built-In Functions](#built-in-functions)
   * [Variables](#variables)
 * [Standalone Use](#standalone-use)
-  * [Debugging via standalone use](#debugging-via-standalone-use)
 * [Benchmarking](#benchmarking)
 * [Fuzz Testing](#fuzz-testing)
 * [API Stability](#api-stability)
@@ -41,7 +40,7 @@ The ideal use-case is that your application receives objects of some kind, perha
 
 ## Implementation
 
-In terms of implementation the script to be executed is split into [tokens](token/token.go) by the [lexer](lexer/lexer.go), then those tokens are [parsed](parser/parser.go) into an abstract-syntax-tree.   Once the AST exists it is walked by the [compiler](compiler.go) and a series of [bytecode](code/code.go) operations are generated.
+In terms of implementation the script to be executed is split into [tokens](token/token.go) by the [lexer](lexer/lexer.go), then those tokens are [parsed](parser/parser.go) into an abstract-syntax-tree.   Once the AST exists it is walked by the [compiler](compiler.go) and a series of [bytecode instructions](code/code.go) operations are generated.
 
 Once the bytecode has been generated it can be reused multiple times, there is no state which needs to be maintained, which makes actually executing the script (i.e. running the bytecode) a fast process.
 
@@ -226,63 +225,11 @@ go get github.com/skx/evalfilter/cmd/evalfilter
 
 ```
 
-The driver has a number of sub-commands to allow you to test a script, for example viewing the parse-tree, the bytecode, or even running a script against a JSON object.
+This driver, contained within the repository at [cmd/evalfilter](cmd/evalfilter) has a number of sub-commands to allow you to experiment with the scripting environment:
 
-For example in the [cmd/evalfilter](cmd/evalfilter) directory you might run:
-
-     ./evalfilter run -json on-call.json on-call.script
-
-This will test a script against a JSON object, allowing you to experiment with changing either.
-
-
-## Debugging via standalone use
-
-Using the standalone driver is very useful to debug execution of scripts,
-for example the `-debug` and `-no-optimizer` flags will change the way
-that the script is run.
-
-Consider this example:
-
-    print( "Hello, World\n" );
-    return true;
-
-You can trace how it is executed via:
-
-```
-$ evalfilter run -debug ./example.in
-
-	Stack: []
-0000	OpConstant	0000
-
-	Stack: [Hello, World\n]
-0003	OpConstant	0001
-
-	Stack: [Hello, World\n, print]
-0006	OpCall	0001
-Hello, World
-
-..
-Script gave result true
-```
-
-Here you're show the state of the stack and every opcode which is executed, along with the arguments.  This is perhaps more useful when coupled with seeing the raw bytecode disassembly:
-
-```
-$ evalfilter bytecode ./example.in
-Bytecode:
-  000000	    OpConstant	0	// load constant: "Hello, World\n"
-  000003	    OpConstant	1	// load constant: "print"
-  000006	        OpCall	1	// call function with 1 arg(s)
-  000009	        OpTrue
-  000010	      OpReturn
-
-
-Constants:
-  000000 Type:STRING Value:"Hello, World\n"
-  000001 Type:STRING Value:"print"
-```
-
-For more details please see the [bytecode documentation](BYTECODE.md).
+* Output a dissassembly of [bytecode](BYTECODE.md).
+* Run a script.
+  * Optionally with a JSON object as input.
 
 
 # Benchmarking
