@@ -97,7 +97,7 @@ const (
 	OpBang
 
 	// Pop a value from the stack, and push back the square root of it.
-	OpRoot
+	OpSquareRoot
 
 	// Pop two values and push TRUE if the first is less than the second,
 	// otherwise push FALSE.
@@ -137,8 +137,8 @@ const (
 	// otherwise push FALSE.
 	OpOr
 
-	// Array index operaton
-	OpArrayIndex
+	// String / Array index operaton
+	OpIndex
 
 	// Pop two values from the the stack, if the first value is
 	// contained in the second-argument (which must be an array),
@@ -213,8 +213,8 @@ func String(op Opcode) string {
 		return "OpMinus"
 	case OpBang:
 		return "OpBang"
-	case OpRoot:
-		return "OpRoot"
+	case OpSquareRoot:
+		return "OpSquareRoot"
 	case OpLess:
 		return "OpLess"
 	case OpLessEqual:
@@ -237,8 +237,8 @@ func String(op Opcode) string {
 		return "OpOr"
 	case OpArray:
 		return "OpArray"
-	case OpArrayIndex:
-		return "OpArrayIndex"
+	case OpIndex:
+		return "OpIndex"
 	case OpArrayIn:
 		return "OpArrayIn"
 	default:

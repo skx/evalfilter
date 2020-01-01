@@ -177,7 +177,7 @@ func (e *Eval) compile(node ast.Node) error {
 		case "-":
 			e.emit(code.OpMinus)
 		case "√":
-			e.emit(code.OpRoot)
+			e.emit(code.OpSquareRoot)
 		default:
 			return fmt.Errorf("unknown operator %s", node.Operator)
 		}
@@ -430,7 +430,7 @@ func (e *Eval) compile(node ast.Node) error {
 			return err
 		}
 
-		e.emit(code.OpArrayIndex)
+		e.emit(code.OpIndex)
 
 	default:
 		return fmt.Errorf("unknown node type %T %v", node, node)

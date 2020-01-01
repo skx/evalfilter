@@ -1,6 +1,6 @@
 # Bytecode
 
-When the evalfilter package is executed a user-supplied script is lexed, parsed, and transformed into a series of bytecode operations.  These bytecode operations are executed by a simple stack-based virtual machine.
+When the evalfilter package is executed a user-supplied script is lexed, parsed, and transformed into a series of bytecode operations, then these bytecode operations are executed by a simple stack-based virtual machine.
 
 Although we don't expect users to care about the implementation details here are some brief notes.
 
