@@ -221,7 +221,7 @@ You can see an example of this in [_examples/variable/](_examples/variable/)
 If you wish to experiment with script-syntax you can install the standalone driver:
 
 ```
-go get github.com/skx/evalfilter/cmd/evalfilter
+go get github.com/skx/evalfilter/v2/cmd/evalfilter
 
 ```
 
