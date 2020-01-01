@@ -30,16 +30,18 @@ func New() *Environment {
 	env := &Environment{store: str, functions: fun}
 
 	// Register our default functions.
+	env.SetFunction("float", fnFloat)
+	env.SetFunction("int", fnInt)
 	env.SetFunction("len", fnLen)
 	env.SetFunction("lower", fnLower)
 	env.SetFunction("match", fnMatch)
+	env.SetFunction("now", fnNow)
 	env.SetFunction("print", fnPrint)
+	env.SetFunction("string", fnString)
+	env.SetFunction("time", fnNow)
 	env.SetFunction("trim", fnTrim)
 	env.SetFunction("type", fnType)
 	env.SetFunction("upper", fnUpper)
-	env.SetFunction("string", fnString)
-	env.SetFunction("int", fnInt)
-	env.SetFunction("float", fnFloat)
 
 	//
 	// These all refer to time.Time fields.
