@@ -114,21 +114,21 @@ Once the message was decoded a simple script could then be executed against that
     //
     // You can see that comments are prefixed with "//".
     //
-    // In my case if this script hit `return true;` a phone call would be initiated.
+    // In my application a phone-call would be trigged if this
+    // script hit `return true;`.  If the return value was `false`
+    // then nothing would happen.
     //
-    // If the script terminated with `return false;` I would do nothing.
 
     //
-    // If this is within office hours we'll assume somebody is around who
-    // can handle the issue, so there is no need to raise a call.
+    // If this is within office hours we'll assume somebody is around to
+    // handle the issue, so there is no need to raise a call.
     //
     if ( hour(Sent) >= 9 || hour(Sent) <= 17 ) {
 
-        //
-        // Of course we need to exclude the weekend.  Nobody works
-        // weekends, if they can help it!
-        //
-        if ( day(Sent) != "Saturday" && day(Sent) != "Sunday" ) {
+        // 09AM - 5PM == Working day.  No need to notify anybody.
+
+        // Unless it is a weekend, of course!
+        if ( weekday(Sent) != "Saturday" && weekday(Sent) != "Sunday" ) {
            return false;
         }
     }
