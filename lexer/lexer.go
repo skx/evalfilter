@@ -422,7 +422,9 @@ func (l *Lexer) readRegexp() (string, error) {
 			//   i -> Ignore-case
 			//   m -> Multiline
 			//
-			for l.ch == rune('i') || l.ch == rune('m') {
+			// We need to consume all letters, so we can
+			// alert on illegal ones.
+			for unicode.IsLetter(l.ch) {
 
 				// save the char - unless it is a repeat
 				if !strings.Contains(flags, string(l.ch)) {
@@ -438,11 +440,24 @@ func (l *Lexer) readRegexp() (string, error) {
 				l.readChar()
 			}
 
+			for _, c := range flags {
+				switch c {
+				case 'i', 'm':
+					// nop
+				default:
+					return "", fmt.Errorf("illegal regexp flag '%c' in string '%s'", c, flags)
+				}
+			}
 			// convert the regexp to go-lang
 			if len(flags) > 0 {
 				out = "(?" + flags + ")" + out
 			}
 			break
+		}
+		if l.ch == '\\' {
+			// Skip the escape-marker, and read the
+			// escaped character literally.
+			l.readChar()
 		}
 		out = out + string(l.ch)
 	}
