@@ -454,6 +454,11 @@ func (l *Lexer) readRegexp() (string, error) {
 			}
 			break
 		}
+		if l.ch == '\\' {
+			// Skip the escape-marker, and read the
+			// escaped character literally.
+			l.readChar()
+		}
 		out = out + string(l.ch)
 	}
 

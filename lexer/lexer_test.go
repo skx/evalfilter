@@ -341,6 +341,7 @@ func TestLine(t *testing.T) {
 func TestRegexp(t *testing.T) {
 	input := `if ( f ~= /steve/i )
 if ( f ~= /steve/m )
+if ( f ~= /steve\//m )
 if ( f ~= /steve/mi )
 if ( f ~= /steve/miiiiiiiiiiiiiiiiimmmmmmmmmmmmmiiiii )
 if ( f ~= /steve/fx )`
@@ -363,6 +364,14 @@ if ( f ~= /steve/fx )`
 		{token.IDENT, "f"},
 		{token.CONTAINS, "~="},
 		{token.REGEXP, "(?m)steve"},
+		{token.RPAREN, ")"},
+
+		// if ( f ~= /steve\//m )
+		{token.IF, "if"},
+		{token.LPAREN, "("},
+		{token.IDENT, "f"},
+		{token.CONTAINS, "~="},
+		{token.REGEXP, "(?m)steve/"},
 		{token.RPAREN, ")"},
 
 		// if ( f ~= /steve/mi )
