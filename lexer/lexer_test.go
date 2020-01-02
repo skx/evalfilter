@@ -342,43 +342,60 @@ func TestRegexp(t *testing.T) {
 	input := `if ( f ~= /steve/i )
 if ( f ~= /steve/m )
 if ( f ~= /steve/mi )
-if ( f ~= /steve/miiiiiiiiiiiiiiiiimmmmmmmmmmmmmiiiii )`
+if ( f ~= /steve/miiiiiiiiiiiiiiiiimmmmmmmmmmmmmiiiii )
+if ( f ~= /steve/fx )`
 
 	tests := []struct {
 		expectedType    token.Type
 		expectedLiteral string
 	}{
+		// if ( f ~= /steve/i )
 		{token.IF, "if"},
 		{token.LPAREN, "("},
 		{token.IDENT, "f"},
 		{token.CONTAINS, "~="},
 		{token.REGEXP, "(?i)steve"},
 		{token.RPAREN, ")"},
+
+		// if ( f ~= /steve/m )
 		{token.IF, "if"},
 		{token.LPAREN, "("},
 		{token.IDENT, "f"},
 		{token.CONTAINS, "~="},
 		{token.REGEXP, "(?m)steve"},
 		{token.RPAREN, ")"},
+
+		// if ( f ~= /steve/mi )
 		{token.IF, "if"},
 		{token.LPAREN, "("},
 		{token.IDENT, "f"},
 		{token.CONTAINS, "~="},
 		{token.REGEXP, "(?mi)steve"},
 		{token.RPAREN, ")"},
+
+		//if ( f ~= /steve/miiiiiiiiiiiiiiiiimmmmmmmmmmmmmiiiii )`
 		{token.IF, "if"},
 		{token.LPAREN, "("},
 		{token.IDENT, "f"},
 		{token.CONTAINS, "~="},
 		{token.REGEXP, "(?mi)steve"},
 		{token.RPAREN, ")"},
+
+		//if ( f ~= /steve/fx )`
+		{token.IF, "if"},
+		{token.LPAREN, "("},
+		{token.IDENT, "f"},
+		{token.CONTAINS, "~="},
+		{token.ILLEGAL, "illegal regexp flag 'f' in string 'fx'"},
+		{token.RPAREN, ")"},
+
 		{token.EOF, ""},
 	}
 	l := New(input)
 	for i, tt := range tests {
 		tok := l.NextToken()
 		if tok.Type != tt.expectedType {
-			t.Fatalf("tests[%d] - tokentype wrong, expected=%q, got=%q", i, tt.expectedType, tok.Type)
+			t.Fatalf("test[%s] - tokentype wrong, expected=%q, got=%q", tt, tt.expectedType, tok.Type)
 		}
 		if tok.Literal != tt.expectedLiteral {
 			t.Fatalf("tests[%d] - Literal wrong, expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
