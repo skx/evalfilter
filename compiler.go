@@ -301,6 +301,71 @@ func (e *Eval) compile(node ast.Node) error {
 		//  C:
 		//
 
+	case *ast.TernaryExpression:
+
+		//
+		// We'll have
+		//
+		//   x = COND ? bar : baz
+		//
+		// We'll emit
+		//
+		//   if ! COND  jmp BAZ
+		//      bar
+		//      jmp END
+		//  BAZ:
+		//      baz
+		//  END:
+		//
+
+		//
+		// Compile COND
+		//
+		err := e.compile(node.Condition)
+		if err != nil {
+			return err
+		}
+
+		//
+		// Jump to BAZ if this fails - placeholder
+		//
+		jumpNotTruthyPos := e.emit(code.OpJumpIfFalse, 9999)
+
+		//
+		// Compile the bar-code
+		//
+		err = e.compile(node.IfTrue)
+		if err != nil {
+			return err
+		}
+
+		//
+		// Jump to the end of this statement - placeholder
+		//
+		jumpEnd := e.emit(code.OpJump, 9999)
+
+		//
+		// Now we're at the start of the baz-handler
+		// we can update our `jump false` to come to this
+		// offset.
+		//
+		e.changeOperand(jumpNotTruthyPos, len(e.instructions))
+
+		//
+		// Compile the baz-code
+		//
+		err = e.compile(node.IfFalse)
+		if err != nil {
+			return err
+		}
+
+		//
+		// And now we know our ending position.
+		//
+		// Update our placeholder.
+		//
+		e.changeOperand(jumpEnd, len(e.instructions))
+
 	case *ast.WhileStatement:
 
 		//

@@ -1,6 +1,7 @@
 package evalfilter
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/skx/evalfilter/v2/object"
@@ -853,7 +854,6 @@ func TestArrayIn(t *testing.T) {
 
 	tests := []Test{
 
-		// int OP int
 		{Input: `
 names = [ "Steve", "Kemp" ]
 if ( "Steve" in names ) {
@@ -888,6 +888,59 @@ return( "Steve" in [ "Steve", "Blah", "Kemp" ] );
 
 		if ret != tst.Result {
 			t.Fatalf("Found unexpected result running script: %s", tst.Input)
+		}
+	}
+}
+
+// TestTernary checks our simple tenary expression(s)
+func TestTernary(t *testing.T) {
+
+	type Test struct {
+		Input  string
+		Error  bool
+		Result bool
+	}
+
+	tests := []Test{
+
+		{Input: `return( true ? true : false );`,
+			Result: true},
+		{Input: `return( false ? true : false );`,
+			Result: false},
+		{Input: `a = "Steve"; return( a == "Steve" ? true : false );`,
+			Result: true},
+		{Input: `return( true ? 3 + 3 == 6 : false);`, Result: true},
+		{Input: `return( 3 + 3 == 7 ? true : false);`, Result: false},
+		{Input: `return( ( 3 + 3 == 7 ) ? ( true ) : ( false ));`,
+			Result: false},
+		{Input: `
+a = 1;
+return( a == 1 ? true ? true : false : false );
+`, Error: true},
+	}
+
+	for _, tst := range tests {
+
+		obj := New(tst.Input)
+
+		p := obj.Prepare()
+		if p != nil {
+			if tst.Error == false {
+				t.Fatalf("Failed to compile: %s - %s", tst.Input, p.Error())
+			} else {
+				fmt.Printf("Received expected error: %s\n", p.Error())
+			}
+
+		}
+
+		if tst.Error == false {
+			ret, err := obj.Run(nil)
+			if err != nil {
+				t.Fatalf("Found unexpected error running script: %s : %s", tst.Input, err.Error())
+			}
+			if ret != tst.Result {
+				t.Fatalf("Found unexpected result running script: %s", tst.Input)
+			}
 		}
 	}
 }

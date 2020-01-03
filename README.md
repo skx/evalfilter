@@ -80,6 +80,9 @@ Again as you'd expect the facilities are pretty normal/expected:
     * "`if ( Content !~ /some text we don't want/ )`"
   * Test if an array contains a value:
     * "`return ( Name in [ "Alice", "Bob", "Chris" ] );`"
+* Ternary expressions are supported - but nesting them is a syntax error :)
+    * "`a = Title ? Title : Subject;`"
+    * "`return( result == 3 ? "Three" : "Four!" );`"
 * You can also easily add new primitives to the engine.
   * By implementing them in your golang host application.
   * Your host-application can also set variables which are accessible to the user-script.

@@ -26,9 +26,10 @@ type (
 const (
 	_ int = iota
 	LOWEST
-	ASSIGN // =
-	COND   // OR or AND
-	EQUALS // == or !=
+	TERNARY // ? :
+	ASSIGN  // =
+	COND    // OR or AND
+	EQUALS  // == or !=
 	CMP
 	LESSGREATER // > or <
 	SUM         // + or -
@@ -43,6 +44,7 @@ const (
 // precedence contains the prededence for each token-type, which
 // is part of the magic of a Pratt-Parser.
 var precedences = map[token.Type]int{
+	token.QUESTION: TERNARY,
 	token.ASSIGN:   ASSIGN,
 	token.EQ:       EQUALS,
 	token.NOTEQ:    EQUALS,
@@ -90,6 +92,12 @@ type Parser struct {
 	// infixParseFns holds a map of parsing methods for
 	// infix-based syntax.
 	infixParseFns map[token.Type]infixParseFn
+
+	// are we inside a ternary expression?
+	//
+	// Nested ternary expressions are illegal so we
+	// need to keep track of this.
+	tern bool
 }
 
 // New returns a new parser.
@@ -139,6 +147,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.OR, p.parseInfixExpression)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
 	p.registerInfix(token.POW, p.parseInfixExpression)
+	p.registerInfix(token.QUESTION, p.parseTernaryExpression)
 	p.registerInfix(token.SLASH, p.parseInfixExpression)
 
 	return p
@@ -341,6 +350,36 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	precedence := p.curPrecedence()
 	p.nextToken()
 	expression.Right = p.parseExpression(precedence)
+	return expression
+}
+
+// parseTernaryExpression parses a ternary expression
+func (p *Parser) parseTernaryExpression(condition ast.Expression) ast.Expression {
+
+	if p.tern {
+		p.errors = append(p.errors, "nested ternary expressions are illegal")
+		return nil
+	}
+
+	p.tern = true
+	defer func() { p.tern = false }()
+
+	expression := &ast.TernaryExpression{
+		Token:     p.curToken,
+		Condition: condition,
+	}
+	p.nextToken() //skip the '?'
+	precedence := p.curPrecedence()
+	expression.IfTrue = p.parseExpression(precedence)
+
+	if !p.expectPeek(token.COLON) { //skip the ":"
+		return nil
+	}
+
+	// Get to next token, then parse the else part
+	p.nextToken()
+	expression.IfFalse = p.parseExpression(precedence)
+
 	return expression
 }
 
