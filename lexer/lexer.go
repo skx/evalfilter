@@ -182,6 +182,11 @@ func (l *Lexer) NextToken() token.Token {
 			tok = newToken(token.ASTERISK, l.ch)
 		}
 
+	case rune('?'):
+		tok = newToken(token.QUESTION, l.ch)
+	case rune(':'):
+		tok = newToken(token.COLON, l.ch)
+
 	case rune('<'):
 		if l.peekChar() == rune('=') {
 			ch := l.ch

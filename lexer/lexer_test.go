@@ -89,6 +89,8 @@ if(5<10){
 0.3
 世界
 'steve'
+[]
+?:
 '
 `
 	tests := []struct {
@@ -162,6 +164,10 @@ if(5<10){
 		{token.FLOAT, "0.3"},
 		{token.IDENT, "世界"},
 		{token.STRING, "steve"},
+		{token.LSQUARE, "["},
+		{token.RSQUARE, "]"},
+		{token.QUESTION, "?"},
+		{token.COLON, ":"},
 		{token.ILLEGAL, "unterminated string"},
 		{token.EOF, ""},
 	}
