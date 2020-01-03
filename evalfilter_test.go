@@ -936,8 +936,8 @@ return( a == 1 ? true ? true : false : false );
 		if tst.Error == false {
 			ret, err := obj.Run(nil)
 			if err != nil {
+				t.Fatalf("Found unexpected error running script: %s : %s", tst.Input, err.Error())
 			}
-
 			if ret != tst.Result {
 				t.Fatalf("Found unexpected result running script: %s", tst.Input)
 			}
