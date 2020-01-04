@@ -552,34 +552,42 @@ func (e *Eval) emit(op code.Opcode, operands ...int) int {
 }
 
 // changeOperand is designed to patch the operand of
-// and instruction.  It is basically used to rewrite the target
-// of our jump instructions in the handling of `if`.
+// an instruction.
+//
+// This function is used to rewrite the target of our jump
+// instructions in the handling of `if`, `while` and our
+// ternary expressions.
 func (e *Eval) changeOperand(opPos int, operand int) {
 
-	// get the opcode
-	op := code.Opcode(e.instructions[opPos])
+	//
+	// We're pointed at the instruction,
+	// so our offset will be something like
+	//
+	//        OpBlah
+	// opPos: OpJump target
+	//
+	// In terms of our bytecode that translates
+	// to our e.instructions containing something
+	// like this:
+	//
+	//  ..
+	//  e.instructions[opPos]   = OpJump
+	//  e.instructions[opPos+1] = arg1
+	//  e.instructions[opPos+2] = arg2
+	//  ..
 
-	// make a new buffer for the opcode
-	ins := make([]byte, 1)
-	ins[0] = byte(op)
+	//
+	// So we ignore the opcode, which doesn't
+	// change, and just update the argument-bytes
+	// in-place.
+	//
 
-	// Make a buffer for the arg
+	// Make a buffer for the arg, which we can
+	// use to split it into two bytes.
 	b := make([]byte, 2)
 	binary.BigEndian.PutUint16(b, uint16(operand))
 
-	// append argument
-	ins = append(ins, b...)
-
-	// replace
-	e.replaceInstruction(opPos, ins)
-}
-
-// replaceInstruction rewrites the instruction at the given
-// bytecode position.
-func (e *Eval) replaceInstruction(pos int, newInstruction []byte) {
-	ins := e.instructions
-
-	for i := 0; i < len(newInstruction); i++ {
-		ins[pos+i] = newInstruction[i]
-	}
+	// replace the argument in-place
+	e.instructions[opPos+1] = b[0]
+	e.instructions[opPos+2] = b[1]
 }
