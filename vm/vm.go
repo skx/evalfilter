@@ -102,7 +102,11 @@ func New(constants []object.Object, bytecode code.Instructions, env *environment
 
 	// Optimize the bytecode, if we should.
 	if optimize {
-		vm.optimizeBytecode()
+		saved := vm.optimizeBytecode()
+
+		if debug && optimize {
+			fmt.Printf("optimizer saved %d bytes\n", saved)
+		}
 	}
 
 	return vm

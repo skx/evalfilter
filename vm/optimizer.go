@@ -27,10 +27,14 @@ import (
 //
 // Mostly this is designed to collapse "maths", simple comparisons,
 // and remove dead-code in cases where that can be proven safe.
+//
+// This function returns the number of opcodes/operands removed from
+// the bytecode.  i.e. 0 for no changes, 10 for the removal of ten
+// instructions, etc.
 func (vm *VM) optimizeBytecode() int {
 
-	// Count changes we've made
-	changes := 0
+	// Starting length of bytecode.
+	sz := len(vm.bytecode)
 
 	// Attempt to collapse maths until we
 	// can do so no more - or until we see
@@ -46,13 +50,10 @@ func (vm *VM) optimizeBytecode() int {
 			break
 		}
 
-		// Otherwise we're ready to do the same again
-		changes++
 	}
 
 	// Attempt to collapse jumps
 	for vm.optimizeJumps() {
-		changes++
 	}
 
 	// Remove NOPs
@@ -62,7 +63,7 @@ func (vm *VM) optimizeBytecode() int {
 	vm.removeDeadCode()
 
 	// And return the changes.
-	return changes
+	return (sz - len(vm.bytecode))
 }
 
 // optimizeMaths updates simple mathematical operations in-place.
