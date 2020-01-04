@@ -402,13 +402,6 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			// store the result back on the stack.
 			vm.stack.Push(ret)
 
-			// These two opcodes are just used for internal
-			// use.  They are never generated, and they should
-			// never be executed either.
-		case code.OpCodeSingleArg, code.OpFinal:
-
-			return nil, fmt.Errorf("tried to execute fake instruction %s - this is definitely a bug", code.String(op))
-
 			// Can't happen?
 		default:
 			return nil, fmt.Errorf("unhandled opcode: %v %s", op, code.String(op))

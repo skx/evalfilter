@@ -2,6 +2,8 @@
 // our compiler emits, and our virtual machine executes.
 package code
 
+import "fmt"
+
 // Opcode is a type-alias.
 type Opcode byte
 
@@ -48,13 +50,6 @@ const (
 
 	// Store a literal array
 	OpArray
-
-	//
-	// NOTE:  This is a fake opcode.
-	//
-	// Every opcode below this one take zero arguments.
-	//
-	OpCodeSingleArg
 
 	// NOP
 	OpNop
@@ -144,105 +139,86 @@ const (
 	// contained in the second-argument (which must be an array),
 	// push TRUE, else push FALSE
 	OpArrayIn
-
-	//
-	// NOTE:  This is a fake opcode.
-	//
-	// This is our final opcode.
-	//
-	OpFinal
 )
 
-// Length returns the length of the given opcode.
+// OpCodeNames allows mapping opcodes to their names.
+var OpCodeNames = [...]string{
+	OpAdd:          "OpAdd",
+	OpAnd:          "OpAnd",
+	OpArray:        "OpArray",
+	OpArrayIn:      "OpArrayIn",
+	OpBang:         "OpBang",
+	OpCall:         "OpCall",
+	OpConstant:     "OpConstant",
+	OpDiv:          "OpDiv",
+	OpEqual:        "OpEqual",
+	OpFalse:        "OpFalse",
+	OpGreater:      "OpGreater",
+	OpGreaterEqual: "OpGreaterEqual",
+	OpIndex:        "OpIndex",
+	OpJump:         "OpJump",
+	OpJumpIfFalse:  "OpJumpIfFalse",
+	OpLess:         "OpLess",
+	OpLessEqual:    "OpLessEqual",
+	OpLookup:       "OpLookup",
+	OpMatches:      "OpMatches",
+	OpMinus:        "OpMinus",
+	OpMod:          "OpMod",
+	OpMul:          "OpMul",
+	OpNop:          "OpNop",
+	OpNotEqual:     "OpNotEqual",
+	OpNotMatches:   "OpNotMatches",
+	OpOr:           "OpOr",
+	OpPower:        "OpPower",
+	OpPush:         "OpPush",
+	OpReturn:       "OpReturn",
+	OpSet:          "OpSet",
+	OpSquareRoot:   "OpSquareRoot",
+	OpSub:          "OpSub",
+	OpTrue:         "OpTrue",
+}
+
+// Length returns the length of the given opcode, including any optional
+// argument.
 //
-// All opcodes are a single byte, but some require a mandatory argument.
+// Opcodes default to being a single byte, but some require a mandatory
+// argument which is currently limited to a single 16-bit / 2-byte
+// value.
 //
-// This function returns the total expected length of the opcode and
-// any required argument.  Note that at the moment all opcodes require
-// either zero or one arguments (where the argument is a two-byte
-// 16-bit integer).  This might change in the future.
+// This means our instructions are either a single 8-bit byte, or
+// three such bytes.
+//
+// This function returns the appropriate length for a given opcode.
 func Length(op Opcode) int {
-	if op < OpCodeSingleArg {
+
+	switch op {
+	case OpArray:
+		return 3
+	case OpCall:
+		return 3
+	case OpConstant:
+		return 3
+	case OpJump, OpJumpIfFalse:
+		return 3
+	case OpLookup:
+		return 3
+	case OpPush:
 		return 3
 	}
+
 	return 1
 }
 
-// String converts the given opcode to a string, this is used by our
-// bytecode disassembler/dumper.
+// String converts the given opcode to a string.
+//
+// This is used by our bytecode disassembler/dumper.
 func String(op Opcode) string {
 
-	switch op {
-	case OpConstant:
-		return "OpConstant"
-	case OpJump:
-		return "OpJump"
-	case OpJumpIfFalse:
-		return "OpJumpIfFalse"
-	case OpCall:
-		return "OpCall"
-	case OpLookup:
-		return "OpLookup"
-	case OpCodeSingleArg:
-		return "OpCodeSingleArg"
-	case OpPush:
-		return "OpPush"
-	case OpNop:
-		return "OpNop"
-	case OpSet:
-		return "OpSet"
-	case OpTrue:
-		return "OpTrue"
-	case OpFalse:
-		return "OpFalse"
-	case OpAdd:
-		return "OpAdd"
-	case OpSub:
-		return "OpSub"
-	case OpMul:
-		return "OpMul"
-	case OpDiv:
-		return "OpDiv"
-	case OpMod:
-		return "OpMod"
-	case OpPower:
-		return "OpPower"
-	case OpReturn:
-		return "OpReturn"
-	case OpMinus:
-		return "OpMinus"
-	case OpBang:
-		return "OpBang"
-	case OpSquareRoot:
-		return "OpSquareRoot"
-	case OpLess:
-		return "OpLess"
-	case OpLessEqual:
-		return "OpLessEqual"
-	case OpGreater:
-		return "OpGreater"
-	case OpGreaterEqual:
-		return "OpGreaterEqual"
-	case OpEqual:
-		return "OpEqual"
-	case OpNotEqual:
-		return "OpNotEqual"
-	case OpMatches:
-		return "OpMatches"
-	case OpNotMatches:
-		return "OpNotMatches"
-	case OpAnd:
-		return "OpAnd"
-	case OpOr:
-		return "OpOr"
-	case OpArray:
-		return "OpArray"
-	case OpIndex:
-		return "OpIndex"
-	case OpArrayIn:
-		return "OpArrayIn"
-	default:
+	// Sanity-check
+	if int(op) >= len(OpCodeNames) {
+		fmt.Printf("Warning: Invalid opcode 0x%02X\n", op)
 		return "OpUnknown"
 	}
 
+	return OpCodeNames[op]
 }
