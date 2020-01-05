@@ -26,3 +26,11 @@ func (f *Float) Type() Type {
 func (f *Float) True() bool {
 	return (f.Value != 0)
 }
+
+// ToInterface converts this object to a go-interface, which will allow
+// it to be used naturally in our sprintf/printf primitives.
+//
+// It might also be helpful for embedded users.
+func (f *Float) ToInterface() interface{} {
+	return f.Value
+}

@@ -26,3 +26,11 @@ func (i *Integer) Type() Type {
 func (i *Integer) True() bool {
 	return (i.Value != 0)
 }
+
+// ToInterface converts this object to a go-interface, which will allow
+// it to be used naturally in our sprintf/printf primitives.
+//
+// It might also be helpful for embedded users.
+func (i *Integer) ToInterface() interface{} {
+	return i.Value
+}

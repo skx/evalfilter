@@ -26,3 +26,11 @@ func (b *Boolean) Inspect() string {
 func (b *Boolean) True() bool {
 	return b.Value
 }
+
+// ToInterface converts this object to a go-interface, which will allow
+// it to be used naturally in our sprintf/printf primitives.
+//
+// It might also be helpful for embedded users.
+func (b *Boolean) ToInterface() interface{} {
+	return b.Value
+}
