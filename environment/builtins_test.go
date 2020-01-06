@@ -528,3 +528,63 @@ func TestNow(t *testing.T) {
 		t.Errorf("getting current time differed from expected value by more than two seconds.  weird")
 	}
 }
+
+// Test formatting strings
+func TestSprintf(t *testing.T) {
+
+	type TestCase struct {
+		Input  []object.Object
+		Result string
+	}
+
+	tests := []TestCase{
+		{Input: []object.Object{
+			&object.String{Value: "%s %s"},
+			&object.String{Value: "steve"},
+			&object.String{Value: "kemp"}},
+			Result: "steve kemp"},
+
+		{Input: []object.Object{
+			&object.String{Value: "%d"},
+			&object.Integer{Value: 12}},
+			Result: "12"},
+
+		{Input: []object.Object{
+			&object.String{Value: "%f %d"},
+			&object.Float{Value: 3.222219},
+			&object.Integer{Value: -3}},
+			Result: "3.222219 -3"},
+
+		{Input: []object.Object{
+			&object.String{Value: "%t %t %t"},
+			&object.Boolean{Value: true},
+			&object.Boolean{Value: false},
+			&object.Boolean{Value: true}},
+			Result: "true false true"},
+
+		{Input: []object.Object{&object.String{Value: "%%"}},
+			Result: "%"},
+
+		{Input: []object.Object{&object.String{Value: "no arguments"}},
+			Result: "no arguments"},
+	}
+
+	// For each test
+	for i, test := range tests {
+
+		var args []object.Object
+		args = append(args, test.Input...)
+
+		x := fnSprintf(args)
+		if x.(*object.String).Value != test.Result {
+			t.Errorf("Invalid result for test %d, got %s", i, x)
+		}
+	}
+
+	// Calling the function with no-arguments should return null
+	var args []object.Object
+	out := fnUpper(args)
+	if out.Type() != object.NULL {
+		t.Errorf("no arguments returns a weird result")
+	}
+}
