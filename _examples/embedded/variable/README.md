@@ -7,20 +7,26 @@ accessing that from inside the filter script.
 
 Compile the script with `go build .`.
 
-Then launch it to see that the value `time`, as accessed by the script
+Then launch it to see that the value `var`, as accessed by the script
 keeps changing each time the script is evaluated:
 
 ```
 $ ./variable
-The time is 1569264364
-	Yay!
-Script gave result false
-The time is 1569264365
-	Yay!
-Script gave result false
-The time is 1569264366
-	Yay!
-Script gave result false
+The variable we received was 0
+	We'll keep going until we hit 20 iterations.
+	Script gave result false
+	The script set new=0
+
+
+The variable we received was 1
+	We'll keep going until we hit 20 iterations.
+	Script gave result false
+	The script set new=4
+
+..
 ^C
 
 ```
+
+Similarly you'll see that the value the script set was retrieved by the host
+application, and also changes each iteration.
