@@ -7,6 +7,7 @@
   * [Scripting Facilities](#scripting-facilities)
   * [Use Cases](#use-cases)
 * [Sample Usage](#sample-usage)
+  * [Additional Examples](#additional-examples)
   * [Built-In Functions](#built-in-functions)
   * [Variables](#variables)
 * [Standalone Use](#standalone-use)
@@ -26,7 +27,7 @@ There is no shortage of embeddable languages which are available to the golang w
 * Simple to use, as there are only three methods you need to call:
   * [New](https://godoc.org/github.com/skx/evalfilter#New)
   * [Prepare](https://godoc.org/github.com/skx/evalfilter#Eval.Prepare)
-  * Then either [Execute(object)](https://godoc.org/github.com/skx/evalfilter#Eval.Execute) or [Run(object)](https://godoc.org/github.com/skx/evalfilter#Eval.Run) depending upon what kind of return value you would like..
+  * Then either [Execute(object)](https://godoc.org/github.com/skx/evalfilter#Eval.Execute) or [Run(object)](https://godoc.org/github.com/skx/evalfilter#Eval.Run) depending upon what kind of return value you would like.
 * Simple to understand.
 * As fast as it can be, without being too magical.
 
@@ -40,9 +41,9 @@ The ideal use-case is that your application receives objects of some kind, perha
 
 ## Implementation
 
-In terms of implementation the script to be executed is split into [tokens](token/token.go) by the [lexer](lexer/lexer.go), then those tokens are [parsed](parser/parser.go) into an abstract-syntax-tree.   Once the AST exists it is walked by the [compiler](compiler.go) and a series of [bytecode instructions](code/code.go) operations are generated.
+In terms of implementation the script to be executed is split into [tokens](token/token.go) by the [lexer](lexer/lexer.go), then those tokens are [parsed](parser/parser.go) into an abstract-syntax-tree.   Once the AST exists it is walked by the [compiler](compiler.go) and a series of [bytecode operations](code/code.go) are generated.
 
-Once the bytecode has been generated it can be reused multiple times, there is no state which needs to be maintained, which makes actually executing the script (i.e. running the bytecode) a fast process.
+Once the bytecode has been generated it can be executed multiple times, there is no state which needs to be maintained, which makes actually executing the script (i.e. running the bytecode) a fast process.
 
 At execution-time the bytecode which was generated is interpreted by a simple [virtual machine](vm/vm.go).  The virtual machine is fairly naive implementation of a [stack-based](stack/stack.go) virtual machine, with some runtime support to provide the [builtin-functions](environment/builtins.go), as well as supporting the addition of host-specific functions.
 
@@ -169,9 +170,14 @@ To give you a quick feel for how things look you could consult these two simple 
   * This exports a function from the golang-host application to the script.
   * The new function is then used to filter a list of people.
 
-Additional examples of using the library to embed scripting support into simple host applications are available beneath the [_examples/](_examples/) directory.
 
-There is also a standalone driver located in [cmd/evalfilter](cmd/evalfilter) which allows you to examine bytecode, tokens, and run scripts - this is discussed [later](#standalone-use) in this README file.
+## Additional Examples
+
+Additional examples of using the library to embed scripting support into simple host applications are available beneath the [_examples/embedded](_examples/embedded) directory.
+
+There are also sample scripts contained beneath [_examples/scripts](_examples/scripts) which you can examine.
+
+The standalone driver located beneath [cmd/evalfilter](cmd/evalfilter) allows you to examine bytecode, tokens, and run the example scripts, as documented [later](#standalone-use) in this README file.
 
 
 
@@ -221,13 +227,13 @@ Your host application can also register variables which are accessible to your s
 
 Similarly you can _retrieve_ values which have been set within scripts, via `GetVariable`.
 
-You can see an example of this in [_examples/variable/](_examples/variable/)
+You can see an example of this in [_examples/embedded/variable/](_examples/embedded/variable/)
 
 
 
 # Standalone Use
 
-If you wish to experiment with script-syntax you can install the standalone driver:
+If you wish to experiment with script-syntax, after looking at the [example scripts](_examples/scripts/) you can install the standalone driver:
 
 ```
 go get github.com/skx/evalfilter/v2/cmd/evalfilter
@@ -236,9 +242,12 @@ go get github.com/skx/evalfilter/v2/cmd/evalfilter
 
 This driver, contained within the repository at [cmd/evalfilter](cmd/evalfilter) has a number of sub-commands to allow you to experiment with the scripting environment:
 
-* Output a dissassembly of [bytecode](BYTECODE.md).
+* Output a dissassembly of the [bytecode instructions](BYTECODE.md) the compilare generated when preparing your script.
 * Run a script.
   * Optionally with a JSON object as input.
+* View the various states of the lexer, parser, and compilation process.
+
+Help is available by running `evalfilter help`, and the sub-commands [are documented thoroughly](cmd/evalfilter/README.md), along with sample output.
 
 
 # Benchmarking

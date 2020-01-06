@@ -1,5 +1,9 @@
 // This example demonstrates setting a variable in the host-application,
+//
 // which is then accessed inside the filter-script.
+//
+// The host application will also retrieve a variable, to prove that works.
+//
 
 package main
 
@@ -22,14 +26,17 @@ func main() {
 	eval := evalfilter.New(`
 
 // Show the time.
-print( "The time is ", $time, "\n" );
+print( "The variable the script received was ", var, "\n" );
 
 // Simple of accessing the variable in a conditional-
-if ( $time < 3000 ) {
-   print( "\tThat is a surprise..\n");
+if ( var >= 20 ) {
+   print( "\tWe've run a long time..\n");
 } else {
-   print("\tYay!\n");
+   print("\tWe'll keep going until we hit 20 iterations.\n");
 }
+
+// Set a variable.
+new = var * 4;
 
 // We're done
 return false;
@@ -45,6 +52,11 @@ return false;
 	}
 
 	//
+	// Counter variable we'll pass to the script.
+	//
+	count := 0
+
+	//
 	// Loop forever.
 	//
 	for {
@@ -52,7 +64,7 @@ return false;
 		//
 		// Set the `time` variable to the current time.
 		//
-		eval.SetVariable("time", &object.Integer{Value: time.Now().Unix()})
+		eval.SetVariable("var", &object.Integer{Value: int64(count)})
 
 		//
 		// Run the script.
@@ -62,10 +74,22 @@ return false;
 			fmt.Printf("Failed to run script: %s\n", err.Error())
 			return
 		}
-		fmt.Printf("Script gave result %v\n", ret)
+		fmt.Printf("\tScript gave result %v\n", ret)
+
+		// Get the variable which the script set
+		set := eval.GetVariable("new")
+		if set.Type() == object.INTEGER {
+			fmt.Printf("\tThe script set the variable 'new' to %d\n", set.(*object.Integer).Value)
+		} else {
+			fmt.Printf("\tRetrieved variable of surprising value: %s\n", set.Inspect())
+		}
 
 		// Sleep for a second, and repeat
 		time.Sleep(1 * time.Second)
 
+		// Bump
+		count++
+
+		fmt.Printf("\n\n")
 	}
 }

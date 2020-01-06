@@ -36,11 +36,15 @@ go test ./...
 
 # If that worked build our examples, to ensure they work
 # and that we've not broken compatibility
-for i in _examples/*; do
-    pushd $i
-    echo "Building example in $(pwd)"
-    go build .
-    popd
+for i in _examples/embedded/*; do
+    if [ -d $i ]; then
+        pushd $i
+        echo "Building example in $(pwd)"
+        go build .
+        popd
+    else
+        echo "Skipping non-directory $i"
+    fi
 done
 
 # Finally run our benchmarks for completeness
