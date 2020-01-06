@@ -36,7 +36,7 @@ go test ./...
 
 # If that worked build our examples, to ensure they work
 # and that we've not broken compatibility
-for i in _examples/*; do
+for i in _examples/embedded/*; do
     pushd $i
     echo "Building example in $(pwd)"
     go build .
