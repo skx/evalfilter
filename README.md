@@ -7,6 +7,7 @@
   * [Scripting Facilities](#scripting-facilities)
   * [Use Cases](#use-cases)
 * [Sample Usage](#sample-usage)
+  * [Additional Examples](#additional-examples)
   * [Built-In Functions](#built-in-functions)
   * [Variables](#variables)
 * [Standalone Use](#standalone-use)
@@ -169,9 +170,14 @@ To give you a quick feel for how things look you could consult these two simple 
   * This exports a function from the golang-host application to the script.
   * The new function is then used to filter a list of people.
 
-Additional examples of using the library to embed scripting support into simple host applications are available beneath the [_examples/](_examples/) directory.
 
-There is also a standalone driver located in [cmd/evalfilter](cmd/evalfilter) which allows you to examine bytecode, tokens, and run scripts - this is discussed [later](#standalone-use) in this README file.
+## Additional Examples
+
+Additional examples of using the library to embed scripting support into simple host applications are available beneath the [_examples/embedded](_examples/embedded) directory.
+
+There are also sample scripts contained beneath [_examples/scripts](_examples/scripts) which you can examine.
+
+The standalone driver located beneath [cmd/evalfilter](cmd/evalfilter) allows you to examine bytecode, tokens, and run the example scripts, as documented [later](#standalone-use) in this README file.
 
 
 
@@ -221,7 +227,7 @@ Your host application can also register variables which are accessible to your s
 
 Similarly you can _retrieve_ values which have been set within scripts, via `GetVariable`.
 
-You can see an example of this in [_examples/variable/](_examples/variable/)
+You can see an example of this in [_examples/embedded/variable/](_examples/embedded/variable/)
 
 
 
