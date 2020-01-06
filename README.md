@@ -190,6 +190,13 @@ As we noted earlier you can export functions from your host-application and make
   * For arrays it returns the number of elements, as you'd expect.
 * `lower(field | value)`
   * Return the lower-case version of the given input.
+* `print(field|value [, fieldN|valueN] )`
+  * Print the given values.
+* `printf("Format string ..", arg1, arg2 .. argN);`
+  * Print the given values, with the specified golang format string
+    * For example `printf("%s %d %t\n", "Steve", 9 / 3 , ! false );`
+* `sprintf("Format string ..", arg1, arg2 .. argN);`
+  * Format the given values, using the specified golang format string.
 * `string( )`
   * Converts a value to a string.  e.g. "`string(3/3.4)`".
 * `trim(field | string)`
