@@ -1,3 +1,28 @@
+//
+// This is the most basic example possible!
+//
+// It is basic because it doesn't require the use of any object,
+// or map, to process.  Instead it does the same thing every time
+// it is executed.
+//
+// You can run this via the `evalfilter` command like so:
+//
+//    $ evalfilter run hello-world.script
+//
+// Once you do so you'll see the output, and the return-code displayed:
+//
+//    $ evalfilter run hello-world.script
+//    Hello, world!
+//    Script gave result type:BOOLEAN value:false - which is 'false'.
+//
+
+
+//
+// Show a greeting.
+//
 print( "Hello, world!\n" );
 
+//
+// Return a fixed value.
+//
 return false;

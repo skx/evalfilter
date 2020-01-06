@@ -1,9 +1,37 @@
 //
-// This is a simple on-call script.
+// This is a script which is designed to work as a simple "on-call notifier".
+//
+// The intention is that the script would be invoked for every incoming
+// slack message, and would decide whether to generate a phone-call to the
+// engineer assigned to handle events.
+//
+// If this script returns `true` then the host-application would trigger
+// a phone-call, via twilio, otherwise it would not.
+//
+// On-call notifications are only generated overnight, or over weekends,
+// on the basis that Monday-Friday the office would be populated and
+// people would react to the notifications directly.
+//
+// This script can be executed like so:
+//
+//     $ evalfilter run -json on-call.json on-call.script
+//
+// Here the JSON-file is used as the object to pass to the script, to
+// simulate how it would be invoked for real against an object.
+//
+// You can modify the script, or the JSON file, to see how the output
+// changes.
 //
 
 
-if ( Channel !~ /_ALerts$/i ) {
+
+//
+// We pretend this script is invoked by incoming Slack messages.
+//
+// In that case we ignore messages which are sent to channels which
+// don't have an "_alerts" suffix.
+//
+if ( Channel !~ /_Alerts$/i ) {
     print("The channel `" + Channel + "` is not important\n");
     return false;
 }
@@ -12,12 +40,20 @@ if ( Channel !~ /_ALerts$/i ) {
 //
 // We'll ignore messages from staff-members.
 //
-// Here's our list of members to ignore.
+// In a real application using Slack we'd have user-ids such as
+// UBNM1234X, UBNM1234Y, and UBNM1234Z.  But this is just a demo.
 //
 staff = [ "Alice", "Bob", "Chris", "Diane" ];
 
 //
-// Got a match?  We're done
+// Got a match?  Then we have a message sent to an alerting-channel
+// from a staff-member, probably something like:
+//
+//   "This is a false-alarm."
+//
+//   "I'm looking at this now .."
+//
+// So we ignore the message.
 //
 if ( Author in staff ) {
     print( "Ignoring message from staff-member ", Author, "\n" );
@@ -25,5 +61,40 @@ if ( Author in staff ) {
 }
 
 
-print( "Raising alert!\n");
-return true;
+//
+// Here's where we ignore some events we don't consider urgent.
+//
+if ( Message ~= /backup complete/ ) {
+   print( "We don't care about backup notifications\n" );
+   return false;
+}
+
+if ( Channel == "dev_alerts" ) {
+   print( "development-environment is not worth waking somebody over\n" );
+   return false;
+}
+
+//
+// OK we've got a message to an alert-channel, which is not from
+// a staff-member.
+//
+// If this is the weekend raise an alert now.
+//
+if ( weekday(now()) == "Saturday" || weekday(now()) == "Sunday" ) {
+
+    print("This is the weekend, triggering call ..\n" );
+    return true;
+}
+
+//
+// Otherwise we just raise an alert if this is outside working hours.
+//
+if ( hour(now()) <= 7 || hour(now()) >= 18 ) {
+   print( "Outside working hours on a week-day - triggering call\n" );
+   return true;
+}
+
+
+print( "Working hours, on a working day, ignoring the event\n");
+
+return false;
