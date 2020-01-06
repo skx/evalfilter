@@ -1,8 +1,8 @@
 # Examples
 
-This directory hosts two sets of examples:
+This directory contains some example-code for this library:
 
 * [embedded](embedded/)
-  * Using this library, embedded in a host-application.
+  * Using this library, to embed a scripting language / evaluation engine inside your golang (host) application.
 * [scripts](scripts/)
-  * Sample scripts which can be used to demonstrate syntax, usage, etc.
+  * Sample scripts which can be used to demonstrate the syntax, usage, etc of the scripting language itself.
