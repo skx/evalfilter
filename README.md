@@ -233,7 +233,7 @@ You can see an example of this in [_examples/embedded/variable/](_examples/embed
 
 # Standalone Use
 
-If you wish to experiment with script-syntax you can install the standalone driver:
+If you wish to experiment with script-syntax, after looking at the [example scripts](_examples/scripts/) you can install the standalone driver:
 
 ```
 go get github.com/skx/evalfilter/v2/cmd/evalfilter
