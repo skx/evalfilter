@@ -239,6 +239,58 @@ func fnPrint(args []object.Object) object.Object {
 	return &object.Integer{Value: 0}
 }
 
+// fnPrintf is the implementation of our `printf` function.
+func fnPrintf(args []object.Object) object.Object {
+
+	// Convert to the formatted version, via our `sprintf`
+	// function.
+	out := fnSprintf(args)
+
+	// If that returned a string then we can print it
+	if out.Type() == object.STRING {
+		fmt.Print(out.(*object.String).Value)
+
+		// Success.
+		return &object.Boolean{Value: true}
+	}
+
+	// Failure.
+	return &object.Boolean{Value: false}
+}
+
+// fnSprintf is the implementation of our `sprintf` function.
+func fnSprintf(args []object.Object) object.Object {
+
+	// We expect 1+ arguments
+	if len(args) < 1 {
+		return &object.Null{}
+	}
+
+	// Type-check
+	if args[0].Type() != object.STRING {
+		return &object.Null{}
+	}
+
+	// Get the format-string.
+	fs := args[0].(*object.String).Value
+
+	// Convert the arguments to something go's sprintf
+	// code will understand.
+	argLen := len(args)
+	fmtArgs := make([]interface{}, argLen-1)
+
+	// Here we convert and assign.
+	for i, v := range args[1:] {
+		fmtArgs[i] = v.ToInterface()
+	}
+
+	// Call the helper
+	out := fmt.Sprintf(fs, fmtArgs...)
+
+	// And now return the value.
+	return &object.String{Value: out}
+}
+
 // fnUpper is the implementation of our `upper` function.
 //
 // Again we stringify our arguments here so `upper(true)` is
