@@ -242,9 +242,10 @@ go get github.com/skx/evalfilter/v2/cmd/evalfilter
 
 This driver, contained within the repository at [cmd/evalfilter](cmd/evalfilter) has a number of sub-commands to allow you to experiment with the scripting environment:
 
-* Output a dissassembly of [bytecode](BYTECODE.md).
+* Output a dissassembly of the [bytecode instructions](BYTECODE.md) the compilare generated when preparing your script.
 * Run a script.
   * Optionally with a JSON object as input.
+* View the various states of the lexer, parser, and compilation process.
 
 Help is available by running `evalfilter help`, and the sub-commands [are documented thoroughly](cmd/evalfilter/README.md), along with sample output.
 
