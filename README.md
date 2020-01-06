@@ -27,7 +27,7 @@ There is no shortage of embeddable languages which are available to the golang w
 * Simple to use, as there are only three methods you need to call:
   * [New](https://godoc.org/github.com/skx/evalfilter#New)
   * [Prepare](https://godoc.org/github.com/skx/evalfilter#Eval.Prepare)
-  * Then either [Execute(object)](https://godoc.org/github.com/skx/evalfilter#Eval.Execute) or [Run(object)](https://godoc.org/github.com/skx/evalfilter#Eval.Run) depending upon what kind of return value you would like..
+  * Then either [Execute(object)](https://godoc.org/github.com/skx/evalfilter#Eval.Execute) or [Run(object)](https://godoc.org/github.com/skx/evalfilter#Eval.Run) depending upon what kind of return value you would like.
 * Simple to understand.
 * As fast as it can be, without being too magical.
 
@@ -41,9 +41,9 @@ The ideal use-case is that your application receives objects of some kind, perha
 
 ## Implementation
 
-In terms of implementation the script to be executed is split into [tokens](token/token.go) by the [lexer](lexer/lexer.go), then those tokens are [parsed](parser/parser.go) into an abstract-syntax-tree.   Once the AST exists it is walked by the [compiler](compiler.go) and a series of [bytecode instructions](code/code.go) operations are generated.
+In terms of implementation the script to be executed is split into [tokens](token/token.go) by the [lexer](lexer/lexer.go), then those tokens are [parsed](parser/parser.go) into an abstract-syntax-tree.   Once the AST exists it is walked by the [compiler](compiler.go) and a series of [bytecode operations](code/code.go) are generated.
 
-Once the bytecode has been generated it can be reused multiple times, there is no state which needs to be maintained, which makes actually executing the script (i.e. running the bytecode) a fast process.
+Once the bytecode has been generated it can be executed multiple times, there is no state which needs to be maintained, which makes actually executing the script (i.e. running the bytecode) a fast process.
 
 At execution-time the bytecode which was generated is interpreted by a simple [virtual machine](vm/vm.go).  The virtual machine is fairly naive implementation of a [stack-based](stack/stack.go) virtual machine, with some runtime support to provide the [builtin-functions](environment/builtins.go), as well as supporting the addition of host-specific functions.
 
