@@ -5,7 +5,7 @@ This directory contains some example programs which embed the evalfilter scripti
 
 ## [passwd](passwd/)
 
-This loops over the entries in yoru system `/etc/passwd` file, running a script against each entry.
+This loops over the entries in your system `/etc/passwd` file, running a script against each entry.
 
 
 ## [state](state/)
