@@ -37,6 +37,8 @@ func New() *Environment {
 	env.SetFunction("match", fnMatch)
 	env.SetFunction("now", fnNow)
 	env.SetFunction("print", fnPrint)
+	env.SetFunction("printf", fnPrintf)
+	env.SetFunction("sprintf", fnSprintf)
 	env.SetFunction("string", fnString)
 	env.SetFunction("time", fnNow)
 	env.SetFunction("trim", fnTrim)

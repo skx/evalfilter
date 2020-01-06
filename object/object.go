@@ -45,4 +45,9 @@ type Object interface {
 	// This is used when an object is used in an `if` expression,
 	// for example, or with the logical `&&` and `||` operations.
 	True() bool
+
+	// ToInterface converts the given object to a "native" golang value,
+	// which is required to ensure that we can use the object
+	// in our `sprintf` or `printf` primitives.
+	ToInterface() interface{}
 }

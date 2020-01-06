@@ -35,3 +35,18 @@ func (ao *Array) Inspect() string {
 func (ao *Array) True() bool {
 	return (len(ao.Elements) != 0)
 }
+
+// ToInterface converts this object to a go-interface, which will allow
+// it to be used naturally in our sprintf/printf primitives.
+//
+// It might also be helpful for embedded users.
+func (ao *Array) ToInterface() interface{} {
+
+	res := make([]interface{}, len(ao.Elements))
+
+	for _, v := range ao.Elements {
+		res = append(res, v.ToInterface())
+	}
+
+	return res
+}
