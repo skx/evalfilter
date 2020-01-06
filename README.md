@@ -246,6 +246,8 @@ This driver, contained within the repository at [cmd/evalfilter](cmd/evalfilter)
 * Run a script.
   * Optionally with a JSON object as input.
 
+Help is available by running `evalfilter help`, and the sub-commands [are documented thoroughly](cmd/evalfilter/README.md), along with sample output.
+
 
 # Benchmarking
 
