@@ -114,6 +114,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.EOF, p.parseEOF)
 	p.registerPrefix(token.FALSE, p.parseBooleanLiteral)
 	p.registerPrefix(token.FLOAT, p.parseFloatLiteral)
+	p.registerPrefix(token.FOREACH, p.parseForEach)
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
 	p.registerPrefix(token.IF, p.parseIfExpression)
 	p.registerPrefix(token.ILLEGAL, p.parseIllegal)
@@ -428,6 +429,32 @@ func (p *Parser) parseIfExpression() ast.Expression {
 			return nil
 		}
 	}
+	return expression
+}
+
+// parseForEach parses 'foreach x X { .. block .. }`
+func (p *Parser) parseForEach() ast.Expression {
+	expression := &ast.ForeachStatement{Token: p.curToken}
+
+	// get the id
+	p.nextToken()
+	expression.Ident = p.curToken.Literal
+
+	// skip to the next token - which should be IN
+	p.nextToken()
+	if p.curTokenIs(token.IN) {
+		p.nextToken()
+	} else {
+		return nil
+	}
+
+	// get the ranged item
+	expression.Value = p.parseExpression(LOWEST)
+
+	// get the body
+	p.nextToken()
+	expression.Body = p.parseBlockStatement()
+
 	return expression
 }
 
