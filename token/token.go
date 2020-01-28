@@ -32,6 +32,7 @@ const (
 	EQ        = "=="
 	FALSE     = "FALSE"
 	FLOAT     = "FLOAT"
+	FOREACH   = "FOREACH"
 	GT        = ">"
 	GTEQUALS  = ">="
 	IDENT     = "IDENT"
@@ -68,13 +69,14 @@ const (
 
 // reversed keywords
 var keywords = map[string]Type{
-	"else":   ELSE,
-	"false":  FALSE,
-	"if":     IF,
-	"in":     IN,
-	"return": RETURN,
-	"true":   TRUE,
-	"while":  WHILE,
+	"else":    ELSE,
+	"false":   FALSE,
+	"foreach": FOREACH,
+	"if":      IF,
+	"in":      IN,
+	"return":  RETURN,
+	"true":    TRUE,
+	"while":   WHILE,
 }
 
 // LookupIdentifier used to determinate whether identifier is keyword nor not
