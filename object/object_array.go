@@ -9,6 +9,9 @@ import (
 type Array struct {
 	// Elements holds the individual members of the array we're wrapping.
 	Elements []Object
+
+	// Offset is used for array walking.
+	Offset int
 }
 
 // Type returns the type of this object.
