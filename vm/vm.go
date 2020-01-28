@@ -416,7 +416,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
 			obj, ok := out.(*object.Array)
 			if !ok {
-				return nil, fmt.Errorf("object not an array:%t", obj)
+				return nil, fmt.Errorf("object not an array:%v", obj)
 			}
 
 			if obj.Offset < len(obj.Elements) {
