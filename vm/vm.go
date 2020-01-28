@@ -369,6 +369,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			if err != nil {
 				return nil, err
 			}
+			name := fName.Inspect()
 
 			//
 			// The argument to the call-instruction is the
@@ -390,19 +391,43 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			}
 
 			// Get the function we're to invoke.
-			fn, ok := vm.environment.GetFunction(fName.Inspect())
+			fn, ok := vm.environment.GetFunction(name)
 			if !ok {
-				return nil, fmt.Errorf("the function %s does not exist", fName.Inspect())
+				return nil, fmt.Errorf("the function %s does not exist", name)
 			}
 
 			// Cast the function & call it
 			out := fn.(func(args []object.Object) object.Object)
 			ret := out(fnArgs)
 
-			// store the result back on the stack.
-			vm.stack.Push(ret)
+			// store the result back on the stack - unless
+			// it's a weird one.
+			if name != "print" && name != "printf" {
+				vm.stack.Push(ret)
+			}
 
-			// Can't happen?
+		case code.OpNext:
+
+			// get the next item from the given array.
+			out, err := vm.stack.Pop()
+			if err != nil {
+				return nil, err
+			}
+
+			obj, ok := out.(*object.Array)
+			if !ok {
+				return nil, fmt.Errorf("object not an array:%t", obj)
+			}
+
+			if obj.Offset < len(obj.Elements) {
+				obj.Offset++
+				vm.stack.Push(obj)
+				vm.stack.Push(obj.Elements[obj.Offset-1])
+				vm.stack.Push(True)
+			} else {
+				vm.stack.Push(False)
+			}
+
 		default:
 			return nil, fmt.Errorf("unhandled opcode: %v %s", op, code.String(op))
 		}

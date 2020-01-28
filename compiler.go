@@ -182,6 +182,42 @@ func (e *Eval) compile(node ast.Node) error {
 			return fmt.Errorf("unknown operator %s", node.Operator)
 		}
 
+	case *ast.ForeachStatement:
+
+		// Put the array on the stack
+		err := e.compile(node.Value)
+		if err != nil {
+			return err
+		}
+
+		// The start of our loop
+		start := len(e.instructions)
+
+		// Setup
+		e.emit(code.OpNext)
+
+		// jump end
+		end := e.emit(code.OpJumpIfFalse, 9999)
+
+		// Set the content of the body-variable
+		str := &object.String{Value: node.Ident}
+		e.emit(code.OpConstant, e.addConstant(str))
+		e.emit(code.OpSet)
+
+		// Output the body
+		err = e.compile(node.Body)
+		if err != nil {
+			return nil
+		}
+
+		// repeat
+		e.emit(code.OpJump, start)
+
+		e.emit(code.OpNop)
+		// back-patch
+		e.changeOperand(end, len(e.instructions))
+
+		return nil
 	case *ast.IfExpression:
 
 		// Compile the expression.
