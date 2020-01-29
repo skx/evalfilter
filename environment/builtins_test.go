@@ -652,3 +652,147 @@ func TestPrintf(t *testing.T) {
 
 	}
 }
+
+// Test sorting works
+func TestSort(t *testing.T) {
+
+	// Calling the function with no-arguments should return null
+	var args []object.Object
+	out := fnSort(args)
+	if out.Type() != object.NULL {
+		t.Errorf("no arguments returns a weird result")
+	}
+
+	// Calling the an initial argument which isn't an array
+	args = append(args, &object.Integer{Value: 32})
+	out = fnSort(args)
+	if out.Type() != object.NULL {
+		t.Errorf("non-string argument returns a weird result")
+	}
+
+	// Now calling with a first argument which is an array,
+	// but a second argument which isn't.
+	args = []object.Object{&object.Array{Elements: []object.Object{
+		&object.String{Value: "steve"}}},
+		&object.Integer{Value: 32}}
+	out = fnSort(args)
+	if out.Type() != object.NULL {
+		t.Errorf("non-string argument returns a weird result")
+	}
+
+	//
+	// OK now we test sorting works
+	//
+	var items []object.Object
+	items = append(items, &object.String{Value: "Cake"})
+	items = append(items, &object.String{Value: "Apples"})
+	items = append(items, &object.String{Value: "and"})
+
+	var in []object.Object
+	in = append(in, &object.Array{Elements: items})
+
+	//
+	// Expected result: "Apples", "Cake", "and"
+	//
+	out = fnSort(in)
+	first := out.(*object.Array).Elements[0]
+	if first.(*object.String).Value != "Apples" {
+		t.Errorf("post-sort the result was wrong")
+	}
+
+	//
+	// Case-insensitive - via the second-argument of `true`
+	//
+	// Expected result: "and", "Apples", "Cake".
+	//
+	in = append(in, &object.Boolean{Value: true})
+	out = fnSort(in)
+	first = out.(*object.Array).Elements[0]
+	if first.(*object.String).Value != "and" {
+		t.Errorf("post-sort the result was wrong")
+	}
+
+	//
+	// Final test of case
+	//
+	cased := []object.Object{
+		&object.Array{Elements: []object.Object{&object.String{Value: "x"},
+			&object.String{Value: "A"}},
+		},
+		&object.Boolean{Value: true}}
+
+	out = fnSort(cased)
+	first = out.(*object.Array).Elements[0]
+	if first.(*object.String).Value != "A" {
+		t.Errorf("post-sort the result was wrong")
+	}
+}
+
+// Test sorting works in reverse
+func TestReverseSort(t *testing.T) {
+
+	// Calling the function with no-arguments should return null
+	var args []object.Object
+	out := fnReverse(args)
+	if out.Type() != object.NULL {
+		t.Errorf("no arguments returns a weird result")
+	}
+
+	// Calling the an initial argument which isn't an array
+	args = append(args, &object.Integer{Value: 32})
+	out = fnReverse(args)
+	if out.Type() != object.NULL {
+		t.Errorf("non-string argument returns a weird result")
+	}
+
+	// Now calling with a first argument which is an array,
+	// but a second argument which isn't.
+	args = []object.Object{&object.Array{Elements: []object.Object{
+		&object.String{Value: "steve"}}},
+		&object.Integer{Value: 32}}
+	out = fnReverse(args)
+	if out.Type() != object.NULL {
+		t.Errorf("non-string argument returns a weird result")
+	}
+
+	//
+	// OK now we test sorting works
+	//
+	var items []object.Object
+	items = append(items, &object.String{Value: "Cake"})
+	items = append(items, &object.String{Value: "Apples"})
+	items = append(items, &object.String{Value: "and"})
+
+	var in []object.Object
+	in = append(in, &object.Array{Elements: items})
+
+	//
+	// Expected result: "and", "Cake", "Apples"
+	//
+	out = fnReverse(in)
+	first := out.(*object.Array).Elements[0]
+	if first.(*object.String).Value != "and" {
+		t.Errorf("post-sort the result was wrong")
+	}
+	last := out.(*object.Array).Elements[2]
+	if last.(*object.String).Value != "Apples" {
+		t.Errorf("post-sort the result was wrong")
+	}
+
+	//
+	// Case-insensitive - via the second-argument of `true`
+	//
+	// Expected result: "Cake", "Apples", "and"
+	//
+	in = append(in, &object.Boolean{Value: true})
+	out = fnReverse(in)
+	first = out.(*object.Array).Elements[0]
+	if first.(*object.String).Value != "Cake" {
+		t.Errorf("post-sort the result was wrong")
+	}
+	last = out.(*object.Array).Elements[2]
+	if last.(*object.String).Value != "and" {
+		t.Errorf("post-sort the result was wrong")
+	}
+
+}
