@@ -90,12 +90,18 @@ Again as you'd expect the facilities are pretty normal/expected:
 * There are series of built-in primitives which can be used by your scripts, and you can export your own host-specified functions easily.
   * For example the `print` function to generate output from your script is just a simple function implemented in Golang and exported to the environment.
 
-Our script allows looping over arrays, via the `foreach` function:
+Our script allows looping over arrays and string, via the `foreach` function:
 
     foreach item in [ "My", "name", "is", "Steve" ] {
         print( item, "\t" );
     }
     return false;
+
+    len = 0;
+    foreach char in "狐犬" {
+        len++;
+    }
+    return( len == 2 );
 
 And new arrays can be created with integers via the `..` helper:
 

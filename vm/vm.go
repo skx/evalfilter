@@ -414,12 +414,11 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			}
 
 			// Reset it.
-			obj, ok := out.(*object.Array)
+			helper, ok := out.(object.Iterable)
 			if !ok {
-				return nil, fmt.Errorf("object not an array:%v", obj)
+				return nil, fmt.Errorf("%s object doesn't implement the Iterable interface", out.Type())
 			}
-
-			obj.Offset = 0
+			helper.Reset()
 			vm.stack.Push(out)
 
 		case code.OpIterationNext:
@@ -430,15 +429,15 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 				return nil, err
 			}
 
-			obj, ok := out.(*object.Array)
+			helper, ok := out.(object.Iterable)
 			if !ok {
-				return nil, fmt.Errorf("object not an array:%v", obj)
+				return nil, fmt.Errorf("%s object doesn't implement the Iterable interface", out.Type())
 			}
 
-			if obj.Offset < len(obj.Elements) {
-				obj.Offset++
+			obj, _, ok := helper.Next()
+			if ok {
+				vm.stack.Push(out)
 				vm.stack.Push(obj)
-				vm.stack.Push(obj.Elements[obj.Offset-1])
 				vm.stack.Push(True)
 			} else {
 				vm.stack.Push(False)
@@ -496,6 +495,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			helper.Increase()
 			vm.environment.Set(name, val)
 
+			vm.stack.Pop()
 		case code.OpDec:
 			// Get the name of the variable whos' contents
 			// we should decrement.
@@ -513,7 +513,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			// Mutate & store
 			helper.Decrease()
 			vm.environment.Set(name, val)
-
+			vm.stack.Pop()
 		default:
 			return nil, fmt.Errorf("unhandled opcode: %v %s", op, code.String(op))
 		}

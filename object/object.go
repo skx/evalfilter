@@ -72,3 +72,14 @@ type Decrement interface {
 	// Decrease lowers the object's value by one.
 	Decrease()
 }
+
+// Iterable is the interface that any object must implement if
+// it is to be iterated over with the `foreach` built-in.
+type Iterable interface {
+
+	// Reset the state of any previous iteration.
+	Reset()
+
+	// Get the next "thing" from the object.
+	Next() (Object, int, bool)
+}
