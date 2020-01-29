@@ -38,6 +38,8 @@ func New() *Environment {
 	env.SetFunction("now", fnNow)
 	env.SetFunction("print", fnPrint)
 	env.SetFunction("printf", fnPrintf)
+	env.SetFunction("sort", fnSort)
+	env.SetFunction("reverse", fnReverse)
 	env.SetFunction("sprintf", fnSprintf)
 	env.SetFunction("string", fnString)
 	env.SetFunction("time", fnNow)

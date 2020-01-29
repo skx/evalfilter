@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -253,6 +254,140 @@ func fnPrintf(args []object.Object) object.Object {
 	}
 
 	return &object.Void{}
+}
+
+// fnSort implements our `sort` function
+func fnSort(args []object.Object) object.Object {
+
+	// We expect either one or two arguments
+	//    sort([array], bool)
+	if len(args) != 1 && len(args) != 2 {
+		return &object.Null{}
+	}
+
+	// Type-check the first argument
+	if args[0].Type() != object.ARRAY {
+		return &object.Null{}
+	}
+
+	// Default to not lower-casing items
+	lower := false
+
+	// Second (optional) argument controls case-sensitivity.
+	if len(args) == 2 {
+
+		// Type-check second argument
+		if args[1].Type() != object.BOOLEAN {
+			return &object.Null{}
+		}
+
+		// Copy value.
+		lower = args[1].(*object.Boolean).Value
+	}
+
+	// defer to our helper methd
+	return (sortHelper(args, lower, false))
+}
+
+// fnReverse implements our `reverse` function
+func fnReverse(args []object.Object) object.Object {
+
+	// We expect either one or two arguments
+	//    reverse([array], bool)
+	if len(args) != 1 && len(args) != 2 {
+		return &object.Null{}
+	}
+
+	// Type-check the first argument
+	if args[0].Type() != object.ARRAY {
+		return &object.Null{}
+	}
+
+	// Default to not lower-casing items
+	lower := false
+
+	// Second (optional) argument controls case-sensitivity.
+	if len(args) == 2 {
+
+		// Type-check second argument
+		if args[1].Type() != object.BOOLEAN {
+			return &object.Null{}
+		}
+
+		// Copy value.
+		lower = args[1].(*object.Boolean).Value
+	}
+
+	// Defer to our helper method.
+	return (sortHelper(args, lower, true))
+}
+
+// sortHelper is a helper function which allows sorting/reversing an array of items.
+//
+// TODO: See if we can avoid juggling this sort with a temporary object.
+// TODO: It might be we can sort.Slice on array.Elements,  but when I tried
+// TODO: that first I got "panic Swapper on nil"
+func sortHelper(args []object.Object, lowerCase bool, doReverse bool) object.Object {
+
+	// We convert the input-array we're sorting into an
+	// array of structures which we can sort natively.
+	type Temp struct {
+
+		// key is the (stringified) copy of the
+		// object-members contents
+		key string
+
+		// index is the ORIGINAL index of the item
+		// in the input array.
+		index int
+	}
+
+	//
+	// Make a copy of the keys + indexes
+	//
+	items := make([]Temp, len(args[0].(*object.Array).Elements))
+	for i := range items {
+		items[i].key = args[0].(*object.Array).Elements[i].Inspect()
+		items[i].index = i
+	}
+
+	// Sort the temporary structure we have been given.
+	//
+	// Here we handle "sort vs. reverse".
+	//
+	// We also handle the optional case-insensitivity.
+	sort.Slice(items, func(i, j int) bool {
+
+		a := items[i].key
+		b := items[j].key
+
+		if lowerCase {
+			a = strings.ToLower(a)
+			b = strings.ToLower(b)
+		}
+
+		if doReverse {
+			return b < a
+		}
+		return a < b
+	})
+
+	// Now we've sorted our result - populate an array
+	// with the values which have been sorted.
+	//
+	// Here we copy items from the original array so
+	// the types are the same.
+	//
+	// e.g. "sort(["Steve", 3])" works as expected with
+	// regard to the items keeping their types.
+	//
+	out := make([]object.Object, len(items))
+	for i, e := range items {
+		out[i] = args[0].(*object.Array).Elements[e.index]
+	}
+
+	// All done.
+	return &object.Array{Elements: out}
 }
 
 // fnSprintf is the implementation of our `sprintf` function.
