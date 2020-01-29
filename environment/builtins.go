@@ -236,7 +236,7 @@ func fnPrint(args []object.Object) object.Object {
 	for _, e := range args {
 		fmt.Printf("%s", e.Inspect())
 	}
-	return &object.Integer{Value: 0}
+	return &object.Void{}
 }
 
 // fnPrintf is the implementation of our `printf` function.
@@ -250,12 +250,9 @@ func fnPrintf(args []object.Object) object.Object {
 	if out.Type() == object.STRING {
 		fmt.Print(out.(*object.String).Value)
 
-		// Success.
-		return &object.Boolean{Value: true}
 	}
 
-	// Failure.
-	return &object.Boolean{Value: false}
+	return &object.Void{}
 }
 
 // fnSprintf is the implementation of our `sprintf` function.

@@ -26,6 +26,7 @@ const (
 	INTEGER = "INTEGER"
 	NULL    = "NULL"
 	STRING  = "STRING"
+	VOID    = "VOID"
 )
 
 // Object is the interface that all of our various object-types must implement.
