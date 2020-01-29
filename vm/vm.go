@@ -402,7 +402,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
 			// store the result back on the stack - unless
 			// it's a weird one.
-			if name != "print" && name != "printf" {
+			if ret.Type() != object.VOID {
 				vm.stack.Push(ret)
 			}
 

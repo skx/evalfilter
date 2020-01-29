@@ -600,8 +600,7 @@ func TestSprintf(t *testing.T) {
 func TestPrintf(t *testing.T) {
 
 	type TestCase struct {
-		Input  []object.Object
-		Result bool
+		Input []object.Object
 	}
 
 	tests := []TestCase{
@@ -609,39 +608,35 @@ func TestPrintf(t *testing.T) {
 			&object.String{Value: "%s %s"},
 			&object.String{Value: "steve"},
 			&object.String{Value: "kemp"}},
-			Result: true},
+		},
 
 		{Input: []object.Object{
 			&object.String{Value: "%d"},
 			&object.Integer{Value: 12}},
-			Result: true},
+		},
 
 		{Input: []object.Object{
 			&object.String{Value: "%f %d"},
 			&object.Float{Value: 3.222219},
 			&object.Integer{Value: -3}},
-			Result: true},
+		},
 
 		{Input: []object.Object{
 			&object.String{Value: "%t %t %t"},
 			&object.Boolean{Value: true},
 			&object.Boolean{Value: false},
 			&object.Boolean{Value: true}},
-			Result: true},
+		},
 
-		{Input: []object.Object{&object.String{Value: "%%"}},
-			Result: true},
+		{Input: []object.Object{&object.String{Value: "%%"}}},
 
-		{Input: []object.Object{&object.String{Value: "no arguments"}},
-			Result: true},
+		{Input: []object.Object{&object.String{Value: "no arguments"}}},
 
 		// no arg
-		{Input: []object.Object{},
-			Result: false},
+		{Input: []object.Object{}},
 
 		// bad type
-		{Input: []object.Object{&object.Boolean{Value: false}},
-			Result: false},
+		{Input: []object.Object{&object.Boolean{Value: false}}},
 	}
 
 	// For each test
@@ -651,8 +646,9 @@ func TestPrintf(t *testing.T) {
 		args = append(args, test.Input...)
 
 		x := fnPrintf(args)
-		if x.(*object.Boolean).Value != test.Result {
-			t.Errorf("Invalid result for test %d, got %s", i, x)
+		if x.Type() != object.VOID {
+			t.Errorf("Invalid return type for test %d, got %s", i, x)
 		}
+
 	}
 }
