@@ -416,7 +416,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			// Reset it.
 			helper, ok := out.(object.Iterable)
 			if !ok {
-				return nil, fmt.Errorf("%s object doesn't implement the Iterable interface.", out.Type())
+				return nil, fmt.Errorf("%s object doesn't implement the Iterable interface", out.Type())
 			}
 			helper.Reset()
 			vm.stack.Push(out)
@@ -431,7 +431,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
 			helper, ok := out.(object.Iterable)
 			if !ok {
-				return nil, fmt.Errorf("%s object doesn't implement the Iterable interface.", out.Type())
+				return nil, fmt.Errorf("%s object doesn't implement the Iterable interface", out.Type())
 			}
 
 			obj, _, ok := helper.Next()
