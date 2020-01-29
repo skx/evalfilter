@@ -428,6 +428,40 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 				vm.stack.Push(False)
 			}
 
+			// Create an array of numbers.
+		case code.OpRange:
+			var min object.Object
+			var max object.Object
+			max, err := vm.stack.Pop()
+			if err != nil {
+				return nil, err
+			}
+			min, err = vm.stack.Pop()
+			if err != nil {
+				return nil, err
+			}
+
+			if min.Type() != object.INTEGER {
+				return nil, fmt.Errorf("argument for range must be integer")
+			}
+			if max.Type() != object.INTEGER {
+				return nil, fmt.Errorf("argument for range must be integer")
+			}
+
+			// holder for elements
+			elements := make([]object.Object, opArg)
+
+			minI := min.(*object.Integer).Value
+			maxI := max.(*object.Integer).Value
+
+			// Make the array
+			for minI <= maxI {
+				elements = append(elements, &object.Integer{Value: minI})
+				minI++
+			}
+			arr := &object.Array{Elements: elements}
+			vm.stack.Push(arr)
+
 		default:
 			return nil, fmt.Errorf("unhandled opcode: %v %s", op, code.String(op))
 		}
