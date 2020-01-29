@@ -156,6 +156,10 @@ func (e *Eval) compile(node ast.Node) error {
 		case "in":
 			e.emit(code.OpArrayIn)
 
+			// misc
+		case "..":
+			e.emit(code.OpRange)
+
 			// logical operators
 		case "&&":
 			e.emit(code.OpAnd)
