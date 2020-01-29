@@ -216,6 +216,12 @@ As we noted earlier you can export functions from your host-application and make
 * `printf("Format string ..", arg1, arg2 .. argN);`
   * Print the given values, with the specified golang format string
     * For example `printf("%s %d %t\n", "Steve", 9 / 3 , ! false );`
+* `reverse(["Surname", "Forename"]);`
+  * Sorts the given array in reverse.
+  * Add `true` as the second argument to ignore case.
+* `sort(["Surname", "Forename"]);`
+  * Sorts the given array.
+  * Add `true` as the second argument to ignore case.
 * `sprintf("Format string ..", arg1, arg2 .. argN);`
   * Format the given values, using the specified golang format string.
 * `string( )`
