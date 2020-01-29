@@ -46,6 +46,7 @@ const (
 var precedences = map[token.Type]int{
 	token.QUESTION: TERNARY,
 	token.ASSIGN:   ASSIGN,
+	token.DOTDOT:   ASSIGN,
 	token.EQ:       EQUALS,
 	token.NOTEQ:    EQUALS,
 	token.LT:       LESSGREATER,
@@ -133,6 +134,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.ASSIGN, p.parseAssignExpression)
 	p.registerInfix(token.ASTERISK, p.parseInfixExpression)
 	p.registerInfix(token.CONTAINS, p.parseInfixExpression)
+	p.registerInfix(token.DOTDOT, p.parseInfixExpression)
 	p.registerInfix(token.EQ, p.parseInfixExpression)
 	p.registerInfix(token.GT, p.parseInfixExpression)
 	p.registerInfix(token.GTEQUALS, p.parseInfixExpression)

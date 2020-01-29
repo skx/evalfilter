@@ -34,12 +34,13 @@ func TestWhile(t *testing.T) {
 }
 
 func TestNextToken1(t *testing.T) {
-	input := `=+√%(){},;~= !~"`
+	input := `..=+√%(){},;~= !~"`
 
 	tests := []struct {
 		expectedType    token.Type
 		expectedLiteral string
 	}{
+		{token.DOTDOT, ".."},
 		{token.ASSIGN, "="},
 		{token.PLUS, "+"},
 		{token.SQRT, "√"},
@@ -68,7 +69,8 @@ func TestNextToken1(t *testing.T) {
 }
 
 func TestNextToken2(t *testing.T) {
-	input := `five=5;
+	input := `a = 1..4;
+five=5;
 ten =10;
 result = add(five, ten);
 !- *5;
@@ -97,6 +99,12 @@ if(5<10){
 		expectedType    token.Type
 		expectedLiteral string
 	}{
+		{token.IDENT, "a"},
+		{token.ASSIGN, "="},
+		{token.INT, "1"},
+		{token.DOTDOT, ".."},
+		{token.INT, "4"},
+		{token.SEMICOLON, ";"},
 		{token.IDENT, "five"},
 		{token.ASSIGN, "="},
 		{token.INT, "5"},

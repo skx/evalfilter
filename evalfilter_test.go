@@ -913,6 +913,17 @@ sum = sum + item; }
 return( sum == 10 );
 `,
 			Result: true},
+		{Input: `sum = 0 ; foreach item in 1..4 {
+sum = sum + item; }
+return( sum == 10 );
+`,
+			Result: true},
+		{Input: `return( len( 1..10 ) == 10);`,
+			Result: true},
+		{Input: `return( len( 9..10 ) == 2);`,
+			Result: true},
+		{Input: `if( len( 2..10 )  == 2) { return false; } return true;`,
+			Result: true},
 	}
 
 	for _, tst := range tests {

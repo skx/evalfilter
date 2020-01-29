@@ -163,6 +163,10 @@ const (
 	//  2.  We push FALSE - breaking out of out body.
 	//
 	OpNext
+
+	// Given two integer values produce an array holding
+	// items between them.
+	OpRange
 )
 
 // OpCodeNames allows mapping opcodes to their names.
@@ -195,6 +199,7 @@ var OpCodeNames = [...]string{
 	OpOr:           "OpOr",
 	OpPower:        "OpPower",
 	OpPush:         "OpPush",
+	OpRange:        "OpRange",
 	OpReturn:       "OpReturn",
 	OpSet:          "OpSet",
 	OpSquareRoot:   "OpSquareRoot",
