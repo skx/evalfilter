@@ -153,6 +153,13 @@ We saw these described briefly earlier, but the full list of instructions is:
 * `OpPower`
   * Raise a number to the power of another.
 
+There are two "maths-like" operations which we also allocate an opcode instruction to:
+
+* OpDec
+* OpInc
+
+They take a pointer to a variable name, fetch the value, adjust it, and store back.  The major difference here is that these instructions do not return anything, since they don't push anything onto the stack they essentially work via side-effects.
+
 
 # Comparison Operations
 

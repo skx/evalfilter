@@ -37,6 +37,8 @@ func TestOpcodes(t *testing.T) {
 				c != OpJump &&
 				c != OpJumpIfFalse &&
 				c != OpLookup &&
+				c != OpInc &&
+				c != OpDec &&
 				c != OpPush {
 
 				t.Errorf("found opcode which requires an argument %s", x)

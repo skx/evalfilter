@@ -81,6 +81,12 @@ const (
 	// Pop two values from the stack, raise to the power, push the result.
 	OpPower
 
+	// Increment the value of the given object
+	OpInc
+
+	// Decrement the value of the given object
+	OpDec
+
 	// Use  the top value from the stack as a the return value
 	// and cease exeution.
 	OpReturn
@@ -158,7 +164,7 @@ const (
 	//
 	// UNLESS we're at the end, in which case we do:
 	//
-	//  1.  We pop the value FRM the stack
+	//  1.  We pop the value FROM the stack
 	//
 	//  2.  We push FALSE - breaking out of out body.
 	//
@@ -178,11 +184,13 @@ var OpCodeNames = [...]string{
 	OpBang:         "OpBang",
 	OpCall:         "OpCall",
 	OpConstant:     "OpConstant",
+	OpDec:          "OpDec",
 	OpDiv:          "OpDiv",
 	OpEqual:        "OpEqual",
 	OpFalse:        "OpFalse",
 	OpGreater:      "OpGreater",
 	OpGreaterEqual: "OpGreaterEqual",
+	OpInc:          "OpInc",
 	OpIndex:        "OpIndex",
 	OpJump:         "OpJump",
 	OpJumpIfFalse:  "OpJumpIfFalse",
@@ -193,6 +201,7 @@ var OpCodeNames = [...]string{
 	OpMinus:        "OpMinus",
 	OpMod:          "OpMod",
 	OpMul:          "OpMul",
+	OpNext:         "OpNext",
 	OpNop:          "OpNop",
 	OpNotEqual:     "OpNotEqual",
 	OpNotMatches:   "OpNotMatches",
@@ -205,7 +214,6 @@ var OpCodeNames = [...]string{
 	OpSquareRoot:   "OpSquareRoot",
 	OpSub:          "OpSub",
 	OpTrue:         "OpTrue",
-	OpNext:         "OpNext",
 }
 
 // Length returns the length of the given opcode, including any optional
@@ -228,7 +236,11 @@ func Length(op Opcode) int {
 		return 3
 	case OpConstant:
 		return 3
+	case OpDec:
+		return 3
 	case OpJump, OpJumpIfFalse:
+		return 3
+	case OpInc:
 		return 3
 	case OpLookup:
 		return 3
