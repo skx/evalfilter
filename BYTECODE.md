@@ -13,6 +13,7 @@ The opcodes we're discussing are found in [code/code.go](code/code.go), and the 
 * [Mathematical Operations](#mathematical-operations)
 * [Comparison Operations](#comparison-operations)
 * [Control-Flow Operations](#control-flow-operations)
+* [Iteration Operations](#iteration-operations)
 * [Misc Operations](#misc-operations)
 * [Function Calls](#function-calls)
 * [Program Walkthrough](#program-walkthrough)
@@ -209,6 +210,23 @@ There are two control-flow operations:
 * `OpJumpIfFalse`
   * A value is popped from the stack, if it is false then control moves to the offset specified as the argument.
   * Otherwise we proceed to the next instruction as expected.
+
+
+# Iteration Operations
+
+There is support for iterating over things, currently just arrays but
+soon strings too.
+
+This is implemented via a pair of opcodes:
+
+* OpIterationReset
+  * Reset state of the object being iterated over.
+* OpIterationNext
+  * Get the next thing from the object on the stack being iterated over.
+
+There's a lot of magic in the compiler/vm to make this work, as both
+pieces need to know how the stack is setup.  That's not so unusual but
+care will need to be taken if either is changed alone.
 
 
 # Misc Operations
