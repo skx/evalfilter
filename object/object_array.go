@@ -10,8 +10,8 @@ type Array struct {
 	// Elements holds the individual members of the array we're wrapping.
 	Elements []Object
 
-	// Offset is used for array walking.
-	Offset int
+	// offset holds our iteration-offset.
+	offset int
 }
 
 // Type returns the type of this object.
@@ -52,4 +52,23 @@ func (ao *Array) ToInterface() interface{} {
 	}
 
 	return res
+}
+
+// Reset implements the Iterable interface, and allows the contents
+// of the array to be reset to allow re-iteration.
+func (ao *Array) Reset() {
+	ao.offset = 0
+}
+
+// Next implements the Iterable interface, and allows the contents
+// of our array to be iterated over.
+func (ao *Array) Next() (Object, int, bool) {
+	if ao.offset < len(ao.Elements) {
+		ao.offset++
+
+		element := ao.Elements[ao.offset-1]
+		return element, ao.offset - 1, true
+	}
+
+	return nil, 0, false
 }
