@@ -918,6 +918,19 @@ sum = sum + item; }
 return( sum == 10 );
 `,
 			Result: true},
+		{Input: `
+str = "狐犬"; len = 0;
+foreach char in str { len++ }
+return len == 2 ;
+`,
+			Result: true},
+		{Input: `
+str = "狐犬"; len = 0;
+foreach char in str { len++ }
+foreach char in str { len++ }
+return len == 4 ;
+`,
+			Result: true},
 		{Input: `return( len( 1..10 ) == 10);`,
 			Result: true},
 		{Input: `return( len( 9..10 ) == 2);`,
