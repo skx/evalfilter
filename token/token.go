@@ -27,6 +27,7 @@ const (
 	COLON     = ":"
 	COMMA     = ","
 	CONTAINS  = "~="
+	DOTDOT    = ".."
 	ELSE      = "ELSE"
 	EOF       = "EOF"
 	EQ        = "=="
