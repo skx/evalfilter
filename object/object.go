@@ -52,3 +52,23 @@ type Object interface {
 	// in our `sprintf` or `printf` primitives.
 	ToInterface() interface{}
 }
+
+// Increment is an interface that some objects might support.
+//
+// If this interface is implemented then the postfix `++` operator will
+// use it.
+type Increment interface {
+
+	// Increase raises the object's value by one.
+	Increase()
+}
+
+// Decrement is an interface that some objects might support.
+//
+// If this interface is implemented then the postfix `--` operator will
+// use it.
+type Decrement interface {
+
+	// Decrease lowers the object's value by one.
+	Decrease()
+}

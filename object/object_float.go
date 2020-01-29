@@ -34,3 +34,15 @@ func (f *Float) True() bool {
 func (f *Float) ToInterface() interface{} {
 	return f.Value
 }
+
+// Increase implements the Increment interface, and allows the postfix
+// "++" operator to be applied to float-objects
+func (f *Float) Increase() {
+	f.Value++
+}
+
+// Decrease implements the Decrement interface, and allows the postfix
+// "--" operator to be applied to float-objects
+func (f *Float) Decrease() {
+	f.Value--
+}

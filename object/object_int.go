@@ -34,3 +34,15 @@ func (i *Integer) True() bool {
 func (i *Integer) ToInterface() interface{} {
 	return i.Value
 }
+
+// Increase implements the Increment interface, and allows the postfix
+// "++" operator to be applied to integer-objects
+func (i *Integer) Increase() {
+	i.Value++
+}
+
+// Decrease implements the Decrement interface, and allows the postfix
+// "--" operator to be applied to integer-objects
+func (i *Integer) Decrease() {
+	i.Value--
+}
