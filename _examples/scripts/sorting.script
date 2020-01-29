@@ -1,0 +1,59 @@
+//
+// This is an example which demonstrates iterating over
+// the contents of an array, and sorting/reversing an
+// array too.
+//
+// In the general case we'd assume you're working on
+// an array from a structure, rather than an inline
+// one here, but this is simpler to demonstrate.
+//
+// You can run this via the `evalfilter` command like so:
+//
+//    $ evalfilter run sorting.script
+//
+
+
+//
+// A simple array of strings.
+//
+input = [ "Hello", "my", "name", "is", "Steve" ];
+
+//
+// Show the array contents.
+//
+print("Showing array items:\n");
+foreach entry in input {
+   print("\t", entry, "\n" );
+}
+
+
+//
+// Now sort the array.
+//
+print( "Showing sorted array items:\n");
+sorted = sort(input);
+foreach entry in sorted {
+   print("\t", entry, "\n" );
+}
+
+//
+// Finally reverse the array.
+//
+print( "Showing reversed array items:\n");
+reversed = reverse(input);
+foreach entry in reversed {
+   print("\t", entry, "\n" );
+}
+
+//
+// Just to recap
+//
+print( "Original:", input, "\n");
+print( "Sorted:", sorted, "\n");
+print( "Reversed:", reversed, "\n");
+
+
+//
+// All done
+//
+return false;
