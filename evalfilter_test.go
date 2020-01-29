@@ -908,6 +908,11 @@ func TestForeach(t *testing.T) {
 return len(item) == 5 ; };
 return false;`,
 			Result: true},
+		{Input: `sum = 0 ; foreach item in [1, 2, 3, 4] {
+sum = sum + item; }
+return( sum == 10 );
+`,
+			Result: true},
 	}
 
 	for _, tst := range tests {
