@@ -206,11 +206,19 @@ func (e *Eval) compile(node ast.Node) error {
 			return err
 		}
 
-		// The start of our loop
+		// Reset the iteration state of the
+		// object - in case it has been iterated
+		// over in the post.
+		e.emit(code.OpIterationReset)
+
+		// Now we're at the start of our loop,
+		// we'll jump back to this point each
+		// time round.
 		start := len(e.instructions)
 
-		// Setup
-		e.emit(code.OpNext)
+		// Get the next piece of the iterable,
+		// or push False if that fails..
+		e.emit(code.OpIterationNext)
 
 		// jump end
 		end := e.emit(code.OpJumpIfFalse, 9999)

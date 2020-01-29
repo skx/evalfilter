@@ -406,7 +406,23 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 				vm.stack.Push(ret)
 			}
 
-		case code.OpNext:
+		case code.OpIterationReset:
+			// get the given array.
+			out, err := vm.stack.Pop()
+			if err != nil {
+				return nil, err
+			}
+
+			// Reset it.
+			obj, ok := out.(*object.Array)
+			if !ok {
+				return nil, fmt.Errorf("object not an array:%v", obj)
+			}
+
+			obj.Offset = 0
+			vm.stack.Push(out)
+
+		case code.OpIterationNext:
 
 			// get the next item from the given array.
 			out, err := vm.stack.Pop()

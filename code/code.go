@@ -146,7 +146,12 @@ const (
 	// push TRUE, else push FALSE
 	OpArrayIn
 
-	// OpNext is used for walking over items in an array.
+	// OpIterationReset resets the state of a given object,
+	// such that the same object can be iterated upon multiple
+	// times.
+	OpIterationReset
+
+	// OpIterationNext is used for walking over items in an array.
 	//
 	// It is a horrible opcode because the interpreter shares
 	// knowledge on the back-end with the fake-code generated
@@ -168,7 +173,7 @@ const (
 	//
 	//  2.  We push FALSE - breaking out of out body.
 	//
-	OpNext
+	OpIterationNext
 
 	// Given two integer values produce an array holding
 	// items between them.
@@ -177,43 +182,44 @@ const (
 
 // OpCodeNames allows mapping opcodes to their names.
 var OpCodeNames = [...]string{
-	OpAdd:          "OpAdd",
-	OpAnd:          "OpAnd",
-	OpArray:        "OpArray",
-	OpArrayIn:      "OpArrayIn",
-	OpBang:         "OpBang",
-	OpCall:         "OpCall",
-	OpConstant:     "OpConstant",
-	OpDec:          "OpDec",
-	OpDiv:          "OpDiv",
-	OpEqual:        "OpEqual",
-	OpFalse:        "OpFalse",
-	OpGreater:      "OpGreater",
-	OpGreaterEqual: "OpGreaterEqual",
-	OpInc:          "OpInc",
-	OpIndex:        "OpIndex",
-	OpJump:         "OpJump",
-	OpJumpIfFalse:  "OpJumpIfFalse",
-	OpLess:         "OpLess",
-	OpLessEqual:    "OpLessEqual",
-	OpLookup:       "OpLookup",
-	OpMatches:      "OpMatches",
-	OpMinus:        "OpMinus",
-	OpMod:          "OpMod",
-	OpMul:          "OpMul",
-	OpNext:         "OpNext",
-	OpNop:          "OpNop",
-	OpNotEqual:     "OpNotEqual",
-	OpNotMatches:   "OpNotMatches",
-	OpOr:           "OpOr",
-	OpPower:        "OpPower",
-	OpPush:         "OpPush",
-	OpRange:        "OpRange",
-	OpReturn:       "OpReturn",
-	OpSet:          "OpSet",
-	OpSquareRoot:   "OpSquareRoot",
-	OpSub:          "OpSub",
-	OpTrue:         "OpTrue",
+	OpAdd:            "OpAdd",
+	OpAnd:            "OpAnd",
+	OpArray:          "OpArray",
+	OpArrayIn:        "OpArrayIn",
+	OpBang:           "OpBang",
+	OpCall:           "OpCall",
+	OpConstant:       "OpConstant",
+	OpDec:            "OpDec",
+	OpDiv:            "OpDiv",
+	OpEqual:          "OpEqual",
+	OpFalse:          "OpFalse",
+	OpGreater:        "OpGreater",
+	OpGreaterEqual:   "OpGreaterEqual",
+	OpInc:            "OpInc",
+	OpIndex:          "OpIndex",
+	OpIterationNext:  "OpIterationNext",
+	OpIterationReset: "OpIterationReset",
+	OpJump:           "OpJump",
+	OpJumpIfFalse:    "OpJumpIfFalse",
+	OpLess:           "OpLess",
+	OpLessEqual:      "OpLessEqual",
+	OpLookup:         "OpLookup",
+	OpMatches:        "OpMatches",
+	OpMinus:          "OpMinus",
+	OpMod:            "OpMod",
+	OpMul:            "OpMul",
+	OpNop:            "OpNop",
+	OpNotEqual:       "OpNotEqual",
+	OpNotMatches:     "OpNotMatches",
+	OpOr:             "OpOr",
+	OpPower:          "OpPower",
+	OpPush:           "OpPush",
+	OpRange:          "OpRange",
+	OpReturn:         "OpReturn",
+	OpSet:            "OpSet",
+	OpSquareRoot:     "OpSquareRoot",
+	OpSub:            "OpSub",
+	OpTrue:           "OpTrue",
 }
 
 // Length returns the length of the given opcode, including any optional
