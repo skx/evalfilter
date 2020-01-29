@@ -139,6 +139,30 @@ const (
 	// contained in the second-argument (which must be an array),
 	// push TRUE, else push FALSE
 	OpArrayIn
+
+	// OpNext is used for walking over items in an array.
+	//
+	// It is a horrible opcode because the interpreter shares
+	// knowledge on the back-end with the fake-code generated
+	// on the front-end.
+	//
+	// Assuming an array is on the stack (!):
+	//
+	//  1. We pop the array FROM the stack.
+	//
+	//  2. We push the array back, after bumping the count-field.
+	//
+	//  3. We then push the next item.
+	//
+	//  4. We then push TRUE - which lets our OpJumpIfFalse work.
+	//
+	// UNLESS we're at the end, in which case we do:
+	//
+	//  1.  We pop the value FRM the stack
+	//
+	//  2.  We push FALSE - breaking out of out body.
+	//
+	OpNext
 )
 
 // OpCodeNames allows mapping opcodes to their names.
@@ -176,6 +200,7 @@ var OpCodeNames = [...]string{
 	OpSquareRoot:   "OpSquareRoot",
 	OpSub:          "OpSub",
 	OpTrue:         "OpTrue",
+	OpNext:         "OpNext",
 }
 
 // Length returns the length of the given opcode, including any optional

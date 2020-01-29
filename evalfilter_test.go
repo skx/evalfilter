@@ -892,6 +892,48 @@ return( "Steve" in [ "Steve", "Blah", "Kemp" ] );
 	}
 }
 
+// TestForeach tests our foreach loop, at least a little
+func TestForeach(t *testing.T) {
+
+	type Test struct {
+		Input  string
+		Result bool
+	}
+
+	tests := []Test{
+
+		{Input: `foreach item in ["Steve" ] { return true; }`,
+			Result: true},
+		{Input: `foreach item in ["Steve", "Kemp"] {
+return len(item) == 5 ; };
+return false;`,
+			Result: true},
+		{Input: `sum = 0 ; foreach item in [1, 2, 3, 4] {
+sum = sum + item; }
+return( sum == 10 );
+`,
+			Result: true},
+	}
+
+	for _, tst := range tests {
+
+		obj := New(tst.Input)
+
+		p := obj.Prepare()
+		if p != nil {
+			t.Fatalf("Failed to compile: %s - %s", tst.Input, p.Error())
+		}
+
+		ret, err := obj.Run(nil)
+		if err != nil {
+			t.Fatalf("Found unexpected error running script: %s : %s", tst.Input, err.Error())
+		}
+		if ret != tst.Result {
+			t.Fatalf("Found unexpected result running script: %s", tst.Input)
+		}
+	}
+}
+
 // TestTernary checks our simple tenary expression(s)
 func TestTernary(t *testing.T) {
 
