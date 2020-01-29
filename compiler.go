@@ -186,6 +186,18 @@ func (e *Eval) compile(node ast.Node) error {
 			return fmt.Errorf("unknown operator %s", node.Operator)
 		}
 
+	case *ast.PostfixExpression:
+
+		if node.Operator == "++" {
+			name := &object.String{Value: node.Token.Literal}
+			e.emit(code.OpInc, e.addConstant(name))
+		} else if node.Operator == "--" {
+			name := &object.String{Value: node.Token.Literal}
+			e.emit(code.OpDec, e.addConstant(name))
+		} else {
+			return fmt.Errorf("unknown postfix operator %s", node.Operator)
+		}
+
 	case *ast.ForeachStatement:
 
 		// Put the array on the stack

@@ -462,6 +462,42 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			arr := &object.Array{Elements: elements}
 			vm.stack.Push(arr)
 
+		case code.OpInc:
+			// Get the name of the variable whos' contents
+			// we should increment.
+			name := vm.constants[opArg].Inspect()
+
+			// Lookup the current value of that object.
+			val := vm.lookup(obj, name)
+
+			// Can we use our interface?
+			helper, ok := val.(object.Increment)
+			if !ok {
+				return nil, fmt.Errorf("%s object doesn't implement the Increment() interface", val.Type())
+			}
+
+			// Mutate & store
+			helper.Increase()
+			vm.environment.Set(name, val)
+
+		case code.OpDec:
+			// Get the name of the variable whos' contents
+			// we should decrement.
+			name := vm.constants[opArg].Inspect()
+
+			// Lookup the current value of that object.
+			val := vm.lookup(obj, name)
+
+			// Can we use our interface?
+			helper, ok := val.(object.Decrement)
+			if !ok {
+				return nil, fmt.Errorf("%s object doesn't implement the Decrement() interface", val.Type())
+			}
+
+			// Mutate & store
+			helper.Decrease()
+			vm.environment.Set(name, val)
+
 		default:
 			return nil, fmt.Errorf("unhandled opcode: %v %s", op, code.String(op))
 		}

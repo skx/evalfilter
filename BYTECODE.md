@@ -153,6 +153,19 @@ We saw these described briefly earlier, but the full list of instructions is:
 * `OpPower`
   * Raise a number to the power of another.
 
+There are two "maths-like" operations which we also allocate an opcode instruction to:
+
+* `OpDec`
+  * Decrease the contents of the given variable by one.
+* `OpInc`
+  * Increase the contents of the given variable by one.
+
+These two opcodes take a pointer to a variable name, fetch the value, adjust it, and store it back.  The major difference here is that these instructions do __not__ return anything, since they don't push anything onto the stack they essentially work via side-effects.
+
+Adding support for these operations only requires that the `object.XXX` structure implement the `object.Decrement` and `object.Increment` interfaces.
+
+
+
 
 # Comparison Operations
 

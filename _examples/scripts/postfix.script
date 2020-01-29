@@ -1,0 +1,38 @@
+//
+// This is a simple example showing how to implement a loop with
+// the postfix operator (`++`).
+//
+// It is basic because it doesn't require the use of any object,
+// or map, to process.  Instead it does the same thing every time
+// it is executed.
+//
+// You can run this via the `evalfilter` command like so:
+//
+//    $ evalfilter run postfix.script
+//
+// Once you do so you'll see the output, and the return-code displayed:
+//
+//    $ evalfilter run postfix.script
+//    Starting value: 3
+//    In loop, value: 3
+//    In loop, value: 4
+//    In loop, value: 5
+//    In loop, value: 6
+//    In loop, value: 7
+//    In loop, value: 8
+//    In loop, value: 9
+//    Completed.  Value is: 10
+//    Script gave result type:INTEGER value:0 - which is 'false'.
+//
+
+i = 3;
+
+print( "Starting value: ", i, "\n");
+
+while( i < 10 ) {
+   print("In loop, value: ", i, "\n");
+   i++
+}
+
+print( "Completed.  Value is: ", i, "\n");
+return 0;

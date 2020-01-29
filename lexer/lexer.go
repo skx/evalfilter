@@ -127,7 +127,13 @@ func (l *Lexer) NextToken() token.Token {
 		}
 
 	case rune('+'):
-		tok = newToken(token.PLUS, l.ch)
+		if l.peekChar() == rune('+') {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.PLUSPLUS, Literal: string(ch) + string(l.ch)}
+		} else {
+			tok = newToken(token.PLUS, l.ch)
+		}
 
 	case rune('%'):
 		tok = newToken(token.MOD, l.ch)
@@ -148,7 +154,13 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.RSQUARE, l.ch)
 
 	case rune('-'):
-		tok = newToken(token.MINUS, l.ch)
+		if l.peekChar() == rune('-') {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.MINUSMINUS, Literal: string(ch) + string(l.ch)}
+		} else {
+			tok = newToken(token.MINUS, l.ch)
+		}
 
 	case rune('/'):
 
