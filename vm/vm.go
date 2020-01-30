@@ -15,6 +15,7 @@ import (
 	"reflect"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/skx/evalfilter/v2/code"
 	"github.com/skx/evalfilter/v2/environment"
@@ -1179,11 +1180,21 @@ func (vm *VM) executeIndexExpression(left, index object.Object) error {
 	if left.Type() == object.STRING {
 
 		str := left.(*object.String).Inspect()
-		if idx < 0 || int(idx) > len(str) {
+
+		// Count the characters
+		len := utf8.RuneCountInString(str)
+		if idx < 0 || int(idx) > len {
 			vm.stack.Push(Null)
 			return nil
 		}
-		vm.stack.Push(&object.String{Value: string(str[idx])})
+
+		// Get the characters as an array of runes
+		chars := []rune(str)
+
+		// Now index
+		val := &object.String{Value: string(chars[idx])}
+
+		vm.stack.Push(val)
 		return nil
 	}
 

@@ -1010,3 +1010,35 @@ return( a == 1 ? true ? true : false : false );
 		}
 	}
 }
+
+// TestStringIndex tests that we handle UTF characters.
+func TestStringIndex(t *testing.T) {
+
+	type Test struct {
+		Input  string
+		Result bool
+	}
+
+	tests := []Test{
+		{Input: `return( "Hachikō"[6] == "ō" );`, Result: true},
+	}
+
+	for _, tst := range tests {
+
+		obj := New(tst.Input)
+
+		p := obj.Prepare()
+		if p != nil {
+			t.Fatalf("Failed to compile")
+		}
+
+		ret, err := obj.Run(nil)
+		if err != nil {
+			t.Fatalf("Found unexpected error running test '%s' - %s\n", tst.Input, err.Error())
+		}
+
+		if ret != tst.Result {
+			t.Fatalf("Found unexpected result running script")
+		}
+	}
+}
