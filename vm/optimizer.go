@@ -547,8 +547,9 @@ func (vm *VM) removeNOPs() {
 			// a jump to `LABEL:` but there is nothing there..
 			//
 			if opArg >= len(tmp) {
-				fmt.Fprintln(os.Stderr, "optimizer.go: removeNops: BUG: Jump outside program bounds!\n")
-				fmt.Fprintln(os.Stderr, "Terminating optimization process.\nPlease report a bug against the evalfilter package.\n")
+				fmt.Fprintln(os.Stderr, "optimizer.go: removeNops: BUG: Jump outside program bounds!")
+				fmt.Fprintln(os.Stderr, "Terminating optimization process.")
+				fmt.Fprintln(os.Stderr, "Please report a bug against the evalfilter package.")
 				return
 			}
 
@@ -566,8 +567,9 @@ func (vm *VM) removeNOPs() {
 				// Probably a consequence of the previous
 				// potential bug.
 				//
-				fmt.Fprintln(os.Stderr, "optimizer.go: removeNops: BUG: Remapped location doesn't exist!\n")
-				fmt.Fprintln(os.Stderr, "Terminating optimization process.\nPlease report a bug against the evalfilter package.\n")
+				fmt.Fprintln(os.Stderr, "optimizer.go: removeNops: BUG: Remapped location doesn't exist!")
+				fmt.Fprintln(os.Stderr, "Terminating optimization process.")
+				fmt.Fprintln(os.Stderr, "Please report a bug against the evalfilter package.")
 				return
 			}
 
