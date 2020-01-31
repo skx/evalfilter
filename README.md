@@ -35,7 +35,9 @@ The scripting language is C-like, and is generally intended to allow you to _fil
 
 It _is_ possible for you to handle arbitrary return-values from the script(s) you execute, and indeed the script itself could call back into your application to carry out tasks, via the addition of new primitives implemented and exported by your host application, which would make the return value almost irrelevant.
 
-The ideal use-case is that your application receives objects of some kind, perhaps as a result of incoming webhook submissions, network events, or similar, and you wish to decide how to handle those objects in a flexible fashion.
+My GMail [labeller](https://github.com/skx/labeller) uses the evalfilter in that manner - executing a script for each new/unread email by default, to add labels to messages based upon their sender/recipients/subjects. etc.
+
+However the _ideal_ use-case is that your application receives objects of some kind, perhaps as a result of incoming webhook submissions, network events, or similar, and you wish to decide how to handle those objects in a flexible fashion.
 
 
 
