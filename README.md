@@ -228,6 +228,8 @@ As we noted earlier you can export functions from your host-application and make
 * `sort(["Surname", "Forename"]);`
   * Sorts the given array.
   * Add `true` as the second argument to ignore case.
+* `split("string", "value");`
+  * Splits a string into an array, by the given substring..
 * `sprintf("Format string ..", arg1, arg2 .. argN);`
   * Format the given values, using the specified golang format string.
 * `string( )`
