@@ -187,6 +187,40 @@ func fnNow(args []object.Object) object.Object {
 	return &object.Integer{Value: now.Unix()}
 }
 
+// fnSplit is the implementation of our `split` primitive.
+func fnSplit(args []object.Object) object.Object {
+
+	// We expect two arguments
+	if len(args) != 2 {
+		return &object.Null{}
+	}
+
+	// String to split
+	input := args[0]
+
+	// String to split by
+	split := args[1]
+
+	// Typecheck
+	if input.Type() != object.STRING ||
+		split.Type() != object.STRING {
+		return &object.Null{}
+	}
+
+	// Perform the split
+	pieces := strings.Split(input.(*object.String).Value,
+		split.(*object.String).Value)
+
+	// Convert the results into an array of string-objects
+	elements := make([]object.Object, len(pieces))
+	for i, e := range pieces {
+		elements[i] = &object.String{Value: e}
+	}
+
+	// Now return that as an array.
+	return (&object.Array{Elements: elements})
+}
+
 // fnString is the implementation of our `string` function.
 func fnString(args []object.Object) object.Object {
 

@@ -102,6 +102,43 @@ func TestInt(t *testing.T) {
 	}
 }
 
+// Test split-primitive
+func TestSplit(t *testing.T) {
+
+	// Two arguments are required
+	var args []object.Object
+	out := fnSplit(args)
+	if out.Type() != object.NULL {
+		t.Errorf("no arguments returns a weird result")
+	}
+
+	// 1 arg
+	args = append(args, &object.Null{})
+	out = fnSplit(args)
+	if out.Type() != object.NULL {
+		t.Errorf("one argument returns a weird result")
+	}
+
+	// 2 args - but wrong types
+	args = append(args, &object.Null{})
+	out = fnSplit(args)
+	if out.Type() != object.NULL {
+		t.Errorf("one argument returns a weird result")
+	}
+
+	// Valid
+	args = []object.Object{&object.String{Value: "Steve\nKemp"},
+		&object.String{Value: "\n"}}
+
+	out = fnSplit(args)
+	if out.Type() != object.ARRAY {
+		t.Errorf("didn't get an array back with two string-args")
+	}
+	if (len(out.(*object.Array).Elements)) != 2 {
+		t.Errorf("return value was incorrect")
+	}
+}
+
 // Test string-conversion.
 func TestString(t *testing.T) {
 
