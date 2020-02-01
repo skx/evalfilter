@@ -470,6 +470,10 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			minI := min.(*object.Integer).Value
 			maxI := max.(*object.Integer).Value
 
+			if minI > maxI {
+				return nil, fmt.Errorf("the start of a range must be smaller than the end")
+			}
+
 			// Make the array
 			for minI <= maxI {
 				elements = append(elements, &object.Integer{Value: minI})
