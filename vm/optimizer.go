@@ -18,7 +18,6 @@ package vm
 import (
 	"encoding/binary"
 	"fmt"
-	"os"
 
 	"github.com/skx/evalfilter/v2/code"
 )
@@ -534,25 +533,6 @@ func (vm *VM) removeNOPs() {
 		//
 		case code.OpJump, code.OpJumpIfFalse:
 
-			//
-			// Potential bug here - something is trying to
-			// jump past the end of our code.
-			//
-			// This probably means something like this:
-			//
-			//   if ( blah ) {  ... }
-			//   // LABEL: END OF SCRIPT
-			//
-			// If the `blah` test fails then we'd expect
-			// a jump to `LABEL:` but there is nothing there..
-			//
-			if opArg >= len(tmp) {
-				fmt.Fprintln(os.Stderr, "optimizer.go: removeNops: BUG: Jump outside program bounds!")
-				fmt.Fprintln(os.Stderr, "Terminating optimization process.")
-				fmt.Fprintln(os.Stderr, "Please report a bug against the evalfilter package.")
-				return
-			}
-
 			// The old destination is in "opArg".
 			//
 			// So the new one `rewrite[old]`
@@ -561,15 +541,10 @@ func (vm *VM) removeNOPs() {
 			if !ok {
 
 				//
-				// Did we fail to find an updated
-				// location?  That's a bug.
+				// Did we fail to find an updated/ location?  That's a bug.
+                //
+                // Since we can't do anything we'll just avoid rewriting further.
 				//
-				// Probably a consequence of the previous
-				// potential bug.
-				//
-				fmt.Fprintln(os.Stderr, "optimizer.go: removeNops: BUG: Remapped location doesn't exist!")
-				fmt.Fprintln(os.Stderr, "Terminating optimization process.")
-				fmt.Fprintln(os.Stderr, "Please report a bug against the evalfilter package.")
 				return
 			}
 
