@@ -35,7 +35,7 @@ The scripting language is C-like, and is generally intended to allow you to _fil
 
 It _is_ possible for you to handle arbitrary return-values from the script(s) you execute, and indeed the script itself could call back into your application to carry out tasks, via the addition of new primitives implemented and exported by your host application, which would make the return value almost irrelevant.
 
-My GMail [labeller](https://github.com/skx/labeller) uses the evalfilter in that manner - executing a script for each new/unread email by default, to add labels to messages based upon their sender/recipients/subjects. etc.
+My [Google GMail message labeller](https://github.com/skx/labeller) uses the evalfilter in a standalone manner, executing a script for each new/unread email by default, to add labels to messages based upon their sender/recipients/subjects. etc.  The notion of filtering there doesn't make sense, it just wants to execute operations on the messages so the return-code is ignored.
 
 However the _ideal_ use-case is that your application receives objects of some kind, perhaps as a result of incoming webhook submissions, network events, or similar, and you wish to decide how to handle those objects in a flexible fashion.
 
@@ -43,13 +43,13 @@ However the _ideal_ use-case is that your application receives objects of some k
 
 ## Implementation
 
-In terms of implementation the script to be executed is split into [tokens](token/token.go) by the [lexer](lexer/lexer.go), then those tokens are [parsed](parser/parser.go) into an abstract-syntax-tree.   Once the AST exists it is walked by the [compiler](compiler.go) and a series of [bytecode operations](code/code.go) are generated.
+In terms of implementation the script to be executed is split into [tokens](token/token.go) by the [lexer](lexer/lexer.go), then those tokens are [parsed](parser/parser.go) into an abstract-syntax-tree.   Once the AST exists it is walked by the [compiler](compiler.go) and a series of [bytecode instructions](code/code.go) are generated.
 
 Once the bytecode has been generated it can be executed multiple times, there is no state which needs to be maintained, which makes actually executing the script (i.e. running the bytecode) a fast process.
 
 At execution-time the bytecode which was generated is interpreted by a simple [virtual machine](vm/vm.go).  The virtual machine is fairly naive implementation of a [stack-based](stack/stack.go) virtual machine, with some runtime support to provide the [builtin-functions](environment/builtins.go), as well as supporting the addition of host-specific functions.
 
-The bytecode itself is documented briefly in [BYTECODE.md](BYTECODE.md), but it is not something you should need to understand to use the library - although it might be useful for debugging issues.
+The bytecode itself is documented briefly in [BYTECODE.md](BYTECODE.md), but it is not something you should need to understand to use the library, only if you're interested in debugging a misbehaving script.
 
 
 ## Scripting Facilities
@@ -92,12 +92,30 @@ Again as you'd expect the facilities are pretty normal/expected:
 * There are series of built-in primitives which can be used by your scripts, and you can export your own host-specified functions easily.
   * For example the `print` function to generate output from your script is just a simple function implemented in Golang and exported to the environment.
 
-Our script allows looping over arrays and string, via the `foreach` function:
+Our script implements a golang-style for-loop:
 
-    foreach item in [ "My", "name", "is", "Steve" ] {
-        print( item, "\t" );
+    count = 0;
+    for ( count < 10 ) {
+         print( "Count: ", count, "\n" );
+         count++;
     }
-    return false;
+
+You could use the for-loop to iterate over an array contents, but that would be a little inefficient:
+
+    items = [ "Some", "Content", "Here" ];
+    i = 0;
+    for ( i < len(items) ) {
+       print( items[i], "\n" );
+       i++
+    }
+
+To avoid that we allow looping over arrays and the characters inside a string, via `foreach`.  You can receive both the index and the item at each step of the iteration like :
+
+    foreach index, item in [ "My", "name", "is", "Steve" ] {
+        printf( "%d: %s\n", index, item );
+    }
+
+If you don't supply an index you receive just the item being iterated over instead, as you would expect (i.e. we don't default to returning the index, but the value in this case):
 
     len = 0;
     foreach char in "狐犬" {
@@ -105,14 +123,13 @@ Our script allows looping over arrays and string, via the `foreach` function:
     }
     return( len == 2 );
 
-And new arrays can be created with integers via the `..` helper:
+The final helper is the ability to create arrays of integers via the `..` primitive:
 
     sum = 0;
     foreach item in 1..10 {
         sum = sum + item;
     }
     print( "Sum is ", sum, "\n" );
-    return false;
 
 
 ## Use Cases
