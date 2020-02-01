@@ -363,6 +363,12 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 	}
 	p.nextToken()
 	expression.Right = p.parseExpression(PREFIX)
+
+	// If there was an error parsing the target of our
+	// prefix operation then we must abort.
+	if expression.Right == nil {
+		return nil
+	}
 	return expression
 }
 
@@ -377,6 +383,12 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	precedence := p.curPrecedence()
 	p.nextToken()
 	expression.Right = p.parseExpression(precedence)
+
+	// If there was an error parsing the second operand
+	// then we must abort.
+	if expression.Right == nil {
+		return nil
+	}
 	return expression
 }
 
@@ -408,6 +420,11 @@ func (p *Parser) parseTernaryExpression(condition ast.Expression) ast.Expression
 	precedence := p.curPrecedence()
 	expression.IfTrue = p.parseExpression(precedence)
 
+	// error?
+	if expression.IfTrue == nil {
+		return nil
+	}
+
 	if !p.expectPeek(token.COLON) { //skip the ":"
 		return nil
 	}
@@ -415,6 +432,11 @@ func (p *Parser) parseTernaryExpression(condition ast.Expression) ast.Expression
 	// Get to next token, then parse the else part
 	p.nextToken()
 	expression.IfFalse = p.parseExpression(precedence)
+
+	// error?
+	if expression.IfFalse == nil {
+		return nil
+	}
 
 	return expression
 }
@@ -424,6 +446,9 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 	p.nextToken()
 
 	exp := p.parseExpression(LOWEST)
+	if exp == nil {
+		return nil
+	}
 	if !p.expectPeek(token.RPAREN) {
 		return nil
 	}
@@ -584,11 +609,24 @@ func (p *Parser) parseExpressionList(end token.Type) []ast.Expression {
 		return list
 	}
 	p.nextToken()
-	list = append(list, p.parseExpression(LOWEST))
+
+	// parse first item
+	first := p.parseExpression(LOWEST)
+	if first == nil {
+		return nil
+	}
+	list = append(list, first)
+
+	// Keep going if we hit a comma
 	for p.peekTokenIs(token.COMMA) {
 		p.nextToken()
 		p.nextToken()
-		list = append(list, p.parseExpression(LOWEST))
+
+		ent := p.parseExpression(LOWEST)
+		if ent == nil {
+			return nil
+		}
+		list = append(list, ent)
 	}
 	if !p.expectPeek(end) {
 		return nil
@@ -610,6 +648,9 @@ func (p *Parser) parseAssignExpression(name ast.Expression) ast.Expression {
 	p.nextToken()
 
 	stmt.Value = p.parseExpression(LOWEST)
+	if stmt.Value == nil {
+		return nil
+	}
 	return stmt
 }
 
@@ -625,6 +666,12 @@ func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
 	exp := &ast.IndexExpression{Token: p.curToken, Left: left}
 	p.nextToken()
 	exp.Index = p.parseExpression(LOWEST)
+
+	// error?
+	if exp.Index == nil {
+		return nil
+	}
+
 	if !p.expectPeek(token.RSQUARE) {
 		return nil
 	}
