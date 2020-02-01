@@ -237,7 +237,6 @@ func (e *Eval) compile(node ast.Node) error {
 		// repeat
 		e.emit(code.OpJump, start)
 
-		e.emit(code.OpNop)
 		// back-patch
 		e.changeOperand(end, len(e.instructions))
 
