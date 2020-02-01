@@ -11,6 +11,11 @@ type ForeachStatement struct {
 	// Token is the actual token
 	Token token.Token
 
+	// Index is the variable we'll set with the index, for the blocks' scope
+	//
+	// This is optional.
+	Index string
+
 	// Ident is the variable we'll set with each item, for the blocks' scope
 	Ident string
 

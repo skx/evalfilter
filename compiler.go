@@ -216,17 +216,20 @@ func (e *Eval) compile(node ast.Node) error {
 		// time round.
 		start := len(e.instructions)
 
+		// Store the name of the index-variable.
+		str := &object.String{Value: node.Index}
+		e.emit(code.OpConstant, e.addConstant(str))
+
+		// Set the name of the body-variable
+		str = &object.String{Value: node.Ident}
+		e.emit(code.OpConstant, e.addConstant(str))
+
 		// Get the next piece of the iterable,
 		// or push False if that fails..
 		e.emit(code.OpIterationNext)
 
 		// jump end
 		end := e.emit(code.OpJumpIfFalse, 9999)
-
-		// Set the content of the body-variable
-		str := &object.String{Value: node.Ident}
-		e.emit(code.OpConstant, e.addConstant(str))
-		e.emit(code.OpSet)
 
 		// Output the body
 		err = e.compile(node.Body)

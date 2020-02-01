@@ -424,23 +424,53 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
 		case code.OpIterationNext:
 
-			// get the next item from the given array.
-			out, err := vm.stack.Pop()
+			// Should be three values on the stack
+			//
+			//   variable name
+			//   index name
+			//   item
+			//
+			varName, err := vm.stack.Pop()
+			if err != nil {
+				return nil, err
+			}
+			idxName, err := vm.stack.Pop()
+			if err != nil {
+				return nil, err
+			}
+			obj, err := vm.stack.Pop()
 			if err != nil {
 				return nil, err
 			}
 
-			helper, ok := out.(object.Iterable)
+			// Ensure that it is an iterable thing.
+			helper, ok := obj.(object.Iterable)
 			if !ok {
-				return nil, fmt.Errorf("%s object doesn't implement the Iterable interface", out.Type())
+				return nil, fmt.Errorf("%s object doesn't implement the Iterable interface", obj.Type())
 			}
 
-			obj, _, ok := helper.Next()
+			// Get the next value, it's index, and a
+			// success/fail result.
+			ret, idx, ok := helper.Next()
+
 			if ok {
-				vm.stack.Push(out)
+
+				// Set the index + ame
+				vm.environment.Set(varName.Inspect(), ret)
+				vm.environment.Set(idxName.Inspect(),
+					&object.Integer{Value: int64(idx)})
+
+				// We succeeded - push the object
+				// back for next time
 				vm.stack.Push(obj)
+
+				// And a true so the next time round
+				// our loop works
 				vm.stack.Push(True)
 			} else {
+
+				// We failed, so next time we'll fall-through
+				// to after the loop.
 				vm.stack.Push(False)
 			}
 

@@ -500,18 +500,48 @@ func (p *Parser) parseForEach() ast.Expression {
 	p.nextToken()
 	expression.Ident = p.curToken.Literal
 
-	// skip to the next token - which should be IN
-	p.nextToken()
-	if p.curTokenIs(token.IN) {
+	// If we find a "," we then get a second identifier too.
+	if p.peekTokenIs(token.COMMA) {
+
+		//
+		// Generally we have:
+		//
+		//    foreach IDENT in THING { .. }
+		//
+		// If we have two arguments the first becomes
+		// the index, and the second becomes the IDENT.
+		//
+
+		// skip the comma
 		p.nextToken()
-	} else {
+
+		if !p.peekTokenIs(token.IDENT) {
+			p.errors = append(p.errors, fmt.Sprintf("second argument to foreach must be ident, got %v", p.peekToken))
+			return nil
+		}
+		p.nextToken()
+
+		//
+		// Record the updated values.
+		//
+		expression.Index = expression.Ident
+		expression.Ident = p.curToken.Literal
+
+	}
+
+	// The next token, after the ident(s), should be `in`.
+	if !p.expectPeek(token.IN) {
+		return nil
+	}
+	p.nextToken()
+
+	// get the thing we're going to iterate  over.
+	expression.Value = p.parseExpression(LOWEST)
+	if expression.Value == nil {
 		return nil
 	}
 
-	// get the ranged item
-	expression.Value = p.parseExpression(LOWEST)
-
-	// get the body
+	// parse the block
 	p.nextToken()
 	expression.Body = p.parseBlockStatement()
 
