@@ -10,9 +10,11 @@
 // * Null
 // * String value.
 //
-// To allow these objects to be used interchanagably there is a simple
-// interface which all object-types must implement, which is simple to
-// satisfy.
+// To allow these objects to be used interchanagably each kind of object
+// must implement the same simple interface.
+//
+// There are additional interfaces for adding support for more advanced
+// operations - such as iteration, incrementing, and decrementing.
 package object
 
 // Type describes the type of an object.
@@ -48,15 +50,16 @@ type Object interface {
 	True() bool
 
 	// ToInterface converts the given object to a "native" golang value,
-	// which is required to ensure that we can use the object
-	// in our `sprintf` or `printf` primitives.
+    // which is required to ensure that we can use the object in our
+    // `sprintf` or `printf` primitives.
 	ToInterface() interface{}
 }
 
-// Increment is an interface that some objects might support.
+// Increment is an interface that some objects might wish to support.
 //
-// If this interface is implemented then the postfix `++` operator will
-// use it.
+// If this interface is implemented then it will be possible to use the
+// the postfix `++` operator upon objects of that type, without that
+// a run-time error will be generated.
 type Increment interface {
 
 	// Increase raises the object's value by one.
@@ -65,21 +68,35 @@ type Increment interface {
 
 // Decrement is an interface that some objects might support.
 //
-// If this interface is implemented then the postfix `--` operator will
-// use it.
+// If this interface is implemented then it will be possible to use the
+// the postfix `--` operator upon objects of that type, without that
+// a run-time error will be generated.
 type Decrement interface {
 
 	// Decrease lowers the object's value by one.
 	Decrease()
 }
 
-// Iterable is the interface that any object must implement if
-// it is to be iterated over with the `foreach` built-in.
+// Iterable is an interface that some objects might support.
+//
+// If this interface is implemented then it will be possible to
+// use the `foreach` function to iterate over the object.  If
+// the interface is not implemented then a run-time error will
+// be generated instead.
 type Iterable interface {
 
 	// Reset the state of any previous iteration.
 	Reset()
 
-	// Get the next "thing" from the object.
+	// Get the next "thing" from the object being iterated
+	// over.
+	//
+	// The return values are the item which is to be returned
+	// next, the index of that object, and finally a boolean
+	// to say whether the function succeeded.
+	//
+	// If the boolean value returned is false then that
+	// means the iteration has completed and no further
+	// items are available.
 	Next() (Object, int, bool)
 }

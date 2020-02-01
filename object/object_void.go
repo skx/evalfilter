@@ -1,6 +1,11 @@
 package object
 
 // Void wraps nothing and implements our Object interface.
+//
+// If you're implementing a primitive in your host application,
+// and the return value of that primitive doesn't matter, doesn't
+// get used, and shouldn't be stored then this is the return-type
+// you should use.
 type Void struct{}
 
 // Type returns the type of this object.
