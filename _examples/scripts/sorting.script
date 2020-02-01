@@ -22,8 +22,8 @@ input = [ "Hello", "my", "name", "is", "Steve" ];
 // Show the array contents.
 //
 print("Showing array items:\n");
-foreach entry in input {
-   print("\t", entry, "\n" );
+foreach index,entry in input {
+   printf("\t%d:%s\n", index, entry );
 }
 
 
@@ -32,8 +32,8 @@ foreach entry in input {
 //
 print( "Showing sorted array items:\n");
 sorted = sort(input);
-foreach entry in sorted {
-   print("\t", entry, "\n" );
+foreach index,entry in sorted {
+   printf("\t%d:%s\n", index, entry );
 }
 
 //
@@ -46,11 +46,12 @@ foreach entry in reversed {
 }
 
 //
-// Just to recap
+// Just to recap what we had
 //
-print( "Original:", input, "\n");
-print( "Sorted:", sorted, "\n");
-print( "Reversed:", reversed, "\n");
+print( "\n" );
+print( "Original input:", input, "\n");
+print( "Sorted  result:", sorted, "\n");
+print( "Reversed  list:", reversed, "\n");
 
 
 //
