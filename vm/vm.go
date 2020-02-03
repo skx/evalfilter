@@ -137,25 +137,23 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 	vm.fields = make(map[string]object.Object)
 
 	//
-	// When (built-in) functions are invoked they always store their
-	// return values upon the stack.  Usually this is OK because the
-	// return value will be used for something, and thus popped-off.
+	// When built-in functions are invoked their return value is stored
+	// upon the stack.  Usually this is OK because the return value will
+	// be used for something, and thus popped-off.
 	//
-	// However people will rarely test to result of calling `print`,
-	// which means the stack will grow one element every time that
-	// function is invoked.
+	// However it is possible that user-added functions place their
+	// return value upon the stack, where it is never used.  This will
+	// cause the stack to needlessly grow, so we ensure that we
+	// reset it between runs here to avoid unbounded growth.
 	//
-	// Since we allow our `Run` method to be reused on the same
-	// script, and with the same environment, it is possible we'll
-	// have a stack growing to an essentially infinite size if a
-	// script is constantly reused.
-	//
-	// To avoid that explicitly give ourself a new stack every time
-	// we run a script.
+	// (This used to be the case with the built-in functions `print`
+	// and `printf`.  They would always store a value upon the stack
+	// which no user would ever test/use/care-about.  This was resolved
+	// via the addition of the &object.Void{} type.   However we
+	// cannot assume everybody remember to use that.)
 	//
 	vm.stack = stack.New()
 
-	//
 	//
 	// Instruction pointer and length.
 	//
@@ -165,8 +163,8 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 	//
 	// Loop over all the bytecode.
 	//
-	// Note that the instruction set supports control-flow, so it
-	// is possible we'll run forever.
+	// NOTE: Our instruction-set supports control-flow, so it
+	// is possible this function will run forever, and never terminate.
 	//
 	// NOTE: We should port this to use our WalkBytecode function,
 	// however we've not done so because that won't cope with changing
@@ -408,23 +406,25 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			}
 
 		case code.OpIterationReset:
-			// get the given array.
+			// get object we're iterating over..
 			out, err := vm.stack.Pop()
 			if err != nil {
 				return nil, err
 			}
 
-			// Reset it.
+			// Cast it to the interface.
 			helper, ok := out.(object.Iterable)
 			if !ok {
 				return nil, fmt.Errorf("%s object doesn't implement the Iterable interface", out.Type())
 			}
+
+			// Reset it, and place back upon the stack.
 			helper.Reset()
 			vm.stack.Push(out)
 
 		case code.OpIterationNext:
-
-			// Should be three values on the stack
+			//
+			// There should be three values on the stack
 			//
 			//   variable name
 			//   index name
@@ -455,17 +455,21 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
 			if ok {
 
-				// Set the index + ame
+				// Set the index + name
 				vm.environment.Set(varName.Inspect(), ret)
-				vm.environment.Set(idxName.Inspect(),
-					&object.Integer{Value: int64(idx)})
 
-				// We succeeded - push the object
-				// back for next time
+				idxName := idxName.Inspect()
+				if idxName != "" {
+					vm.environment.Set(idxName,
+						&object.Integer{Value: int64(idx)})
+				}
+
+				// Push the iterable object back upon the
+				// stack for the next loop.
 				vm.stack.Push(obj)
 
-				// And a true so the next time round
-				// our loop works
+				// And also push `True` so our loop will
+				// continue.
 				vm.stack.Push(True)
 			} else {
 
@@ -478,7 +482,8 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 		case code.OpRange:
 			var min object.Object
 			var max object.Object
-			max, err := vm.stack.Pop()
+			var err error
+			max, err = vm.stack.Pop()
 			if err != nil {
 				return nil, err
 			}
@@ -488,15 +493,13 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			}
 
 			if min.Type() != object.INTEGER {
-				return nil, fmt.Errorf("argument for range must be integer")
+				return nil, fmt.Errorf("argument for the start of the range must be an integer")
 			}
 			if max.Type() != object.INTEGER {
-				return nil, fmt.Errorf("argument for range must be integer")
+				return nil, fmt.Errorf("argument for the end of the range must be an integer")
 			}
 
-			// holder for elements
-			elements := make([]object.Object, opArg)
-
+			// The actual min/max values we're going to range over.
 			minI := min.(*object.Integer).Value
 			maxI := max.(*object.Integer).Value
 
@@ -504,11 +507,21 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 				return nil, fmt.Errorf("the start of a range must be smaller than the end")
 			}
 
+			// length
+			len := maxI - minI + 1
+
+			// holder for elements of the correct size
+			elements := make([]object.Object, len)
+
 			// Make the array
-			for minI <= maxI {
-				elements = append(elements, &object.Integer{Value: minI})
-				minI++
+			var i int64
+			i = 0
+			for i < len {
+				elements[i] = &object.Integer{Value: minI + i}
+				i++
 			}
+
+			// Now store the elements
 			arr := &object.Array{Elements: elements}
 			vm.stack.Push(arr)
 
