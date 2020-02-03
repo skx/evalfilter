@@ -134,7 +134,7 @@ The final helper is the ability to create arrays of integers via the `..` primit
 
 ## Use Cases
 
-The backstory behind this project is explained in [this blog-post](https://blog.steve.fi/a_slack_hack.html), but in brief I wanted to react to incoming Slack message:
+The motivation for this project came from a genuine problem encountered while working:
 
 * I wanted to implement a simple "on-call notifier".
    * When messages were posted to Slack channels I wanted to _sometimes_ trigger a phone-call to the on-call engineer.
