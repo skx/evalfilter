@@ -216,7 +216,8 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
 		// NOP
 		case code.OpNop:
-			// NOP
+			// NOP should only be seen if we're running
+			// an unoptimized / partially optimized program.
 
 			// Store an integer upon the stack
 		case code.OpPush:
@@ -256,7 +257,26 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			vm.environment.Set(name.Inspect(), val)
 
 			// maths & comparisons
-		case code.OpAdd, code.OpSub, code.OpMul, code.OpDiv, code.OpMod, code.OpPower, code.OpLess, code.OpLessEqual, code.OpGreater, code.OpGreaterEqual, code.OpEqual, code.OpNotEqual, code.OpMatches, code.OpNotMatches, code.OpAnd, code.OpOr, code.OpArrayIn:
+		case code.OpAdd, // addition
+			code.OpSub,          // subtraction
+			code.OpMul,          // multiplication
+			code.OpDiv,          // division
+			code.OpMod,          // modulus
+			code.OpPower,        // power
+			code.OpLess,         // comparison: <
+			code.OpLessEqual,    // comparison: <=
+			code.OpGreater,      // comparison: >
+			code.OpGreaterEqual, // comparison: >=
+			code.OpEqual,        // comparison: ==
+			code.OpNotEqual,     // comparison: !=
+			code.OpMatches,      // regexp match
+			code.OpNotMatches,   // regexp negative match
+			code.OpAnd,          // logical AND
+			code.OpOr,           // logical OR
+			code.OpArrayIn:      // array membership test
+
+			// Run the test, error gets returned, otherwise
+			// we're done.
 			err := vm.executeBinaryOperation(op)
 			if err != nil {
 				return nil, err
@@ -405,7 +425,12 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 				vm.stack.Push(ret)
 			}
 
+			// reset the state of an object which is to be iterated upon
 		case code.OpIterationReset:
+
+			// Create a scoped environment
+			vm.environment.AddScope()
+
 			// get object we're iterating over..
 			out, err := vm.stack.Pop()
 			if err != nil {
@@ -422,6 +447,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			helper.Reset()
 			vm.stack.Push(out)
 
+			// Iterate over an object that implements the Iterable interface.
 		case code.OpIterationNext:
 			//
 			// There should be three values on the stack
@@ -456,11 +482,11 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			if ok {
 
 				// Set the index + name
-				vm.environment.Set(varName.Inspect(), ret)
+				vm.environment.SetLocal(varName.Inspect(), ret)
 
 				idxName := idxName.Inspect()
 				if idxName != "" {
-					vm.environment.Set(idxName,
+					vm.environment.SetLocal(idxName,
 						&object.Integer{Value: int64(idx)})
 				}
 
@@ -473,9 +499,21 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 				vm.stack.Push(True)
 			} else {
 
-				// We failed, so next time we'll fall-through
-				// to after the loop.
+				// The iteration is over.
+				//
+				// So next time we'll fall-through to after
+				// the foreach-loop.
+				//
 				vm.stack.Push(False)
+
+				// Remove our scoped environment now to
+				// discard the name/index values that
+				// might have been set.
+				err := vm.environment.RemoveScope()
+				if err != nil {
+					return nil, err
+				}
+
 			}
 
 			// Create an array of numbers.
@@ -525,6 +563,8 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			arr := &object.Array{Elements: elements}
 			vm.stack.Push(arr)
 
+			// Increment the value of an object, by name, if the Increment
+			// interface is implemented by it.
 		case code.OpInc:
 			// Get the name of the variable whos' contents
 			// we should increment.
@@ -544,6 +584,9 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			vm.environment.Set(name, val)
 
 			vm.stack.Pop()
+
+			// Decrement the value of an object, by name, if the Decrement
+			// interface is implemented by it.
 		case code.OpDec:
 			// Get the name of the variable whos' contents
 			// we should decrement.
@@ -562,6 +605,8 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			helper.Decrease()
 			vm.environment.Set(name, val)
 			vm.stack.Pop()
+
+			// Unknown opcode
 		default:
 			return nil, fmt.Errorf("unhandled opcode: %v %s", op, code.String(op))
 		}
