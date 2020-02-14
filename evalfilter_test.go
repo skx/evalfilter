@@ -937,6 +937,20 @@ return len == 4 ;
 			Result: true},
 		{Input: `if( len( 2..10 )  == 2) { return false; } return true;`,
 			Result: true},
+
+		{Input: `
+// ensure that we don't leak scoped-variables
+name = "Steve";
+
+foreach index,name in [ "Bob", "Chris" ] {
+   index++;
+   printf("%d:%s\n", index, name);
+}
+if ( name != "Steve") {    print( "Test failed: name is changed\n");  return false; }
+if ( index ) {    print( "Test FAILED: index is set: ", index, "\n"); return false; }
+return true;
+`,
+			Result: true},
 	}
 
 	for _, tst := range tests {
@@ -1020,6 +1034,9 @@ func TestStringIndex(t *testing.T) {
 	}
 
 	tests := []Test{
+		{Input: `return( "√√1"[0] == "√" );`, Result: true},
+		{Input: `return( "√√1"[1] == "√" );`, Result: true},
+		{Input: `return( "√√1"[2] == "1" );`, Result: true},
 		{Input: `return( "Hachikō"[6] == "ō" );`, Result: true},
 	}
 
