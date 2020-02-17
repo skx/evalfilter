@@ -583,7 +583,11 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			helper.Increase()
 			vm.environment.Set(name, val)
 
-			vm.stack.Pop()
+			// OpInc follows OpLookup, so we can drop the value we were given
+			_, err := vm.stack.Pop()
+			if err != nil {
+				return nil, err
+			}
 
 			// Decrement the value of an object, by name, if the Decrement
 			// interface is implemented by it.
@@ -604,7 +608,12 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			// Mutate & store
 			helper.Decrease()
 			vm.environment.Set(name, val)
-			vm.stack.Pop()
+
+			// OpDec follows OpLookup, so we can drop the value we were given
+			_, err := vm.stack.Pop()
+			if err != nil {
+				return nil, err
+			}
 
 			// Unknown opcode
 		default:
