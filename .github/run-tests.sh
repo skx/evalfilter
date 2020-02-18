@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Remove our WASM test.
+if [ -d "wasm/"]; then
+    rm -rf wasm/
+fi
 
 # Install tools to test our code-quality.
 go get -u golang.org/x/lint/golint

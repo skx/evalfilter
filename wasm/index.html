@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>evalfilter experiment</title>
+  </head>
+
+  <body>
+    <script src="wasm_exec.js"></script>
+
+    <script>
+      if (!WebAssembly.instantiateStreaming) {
+        // polyfill
+        WebAssembly.instantiateStreaming = async (resp, importObject) => {
+          const source = await (await resp).arrayBuffer();
+          return await WebAssembly.instantiate(source, importObject);
+        };
+      }
+
+      const go = new Go();
+      let mod, inst;
+      WebAssembly.instantiateStreaming(fetch("lib.wasm"), go.importObject).then(
+        async result => {
+          mod = result.module;
+          inst = result.instance;
+          await go.run(inst);
+        }
+      );
+    </script>
+
+    <h2>evalfilter</h2>
+    <p>This is a simple demo which allows you to play with <a href="https://github.com/skx/evalfilter/">evalfilter</a> syntax :)</p>
+    <p>Everything you expect <i>should</i> work, the only outstanding issue I'm aware of is that the builtin `<tt>printf</tt>` doesn't have its output redirected to the output box (as <tt>print</tt> does), instead it is visible in your browsers debug-console.</p>
+
+    <table width="100%" border="1">
+      <tr valign="top"><td align="right" width="80%">
+        <textarea style="width:100%;"  rows="20" cols="50" id="input">
+
+print( "I'm running code\n" );
+
+// String + Array for experimenting with
+Author = "Alice";
+names  =  [ "Alice", "Bob", "Homer" ];
+
+// Show some output
+foreach value in 0..5 {
+   print( "Number ", value, "\n");
+}
+
+// If the string is in the array ..
+if ( Author in names ) {
+   return "I found myself";
+}
+
+// If the length is good ..
+if ( len( Author ) == 3 ) {
+   return true;
+}
+
+// If we have lower-case
+if ( Author == lower(Author) ) {
+   return "Case doesn't exist; class doesn't exist.";
+}
+
+return "bored now";
+        </textarea>
+      </td><td align="left" width="20%">
+        <button onClick="run('input', 'result');" id="run">Run</button>
+      </td></tr>
+      <tr><td colspan="2">
+        <textarea style="width:100%;" rows="15" cols="80" id="result"></textarea>
+        </td></tr></table>
+  </body>
+</html>
