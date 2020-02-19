@@ -1134,6 +1134,12 @@ func (vm *VM) evalStringInfixExpression(op code.Opcode, left object.Object, righ
 		}
 	case code.OpAdd:
 		vm.stack.Push(&object.String{Value: l.Value + r.Value})
+	case code.OpArrayIn:
+		if strings.Contains(r.Value, l.Value) {
+			vm.stack.Push(True)
+		} else {
+			vm.stack.Push(False)
+		}
 	default:
 		return (fmt.Errorf("unknown operator: %s %s %s", left.Type(), code.String(op), right.Type()))
 	}
