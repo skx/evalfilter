@@ -24,7 +24,7 @@ func (f *Float) Type() Type {
 //
 // Used when this object is the conditional in a comparison, etc.
 func (f *Float) True() bool {
-	return (f.Value != 0)
+	return (f.Value > 0)
 }
 
 // ToInterface converts this object to a go-interface, which will allow
