@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"time"
 
 	"github.com/google/subcommands"
 	"github.com/skx/evalfilter/v2"
@@ -25,6 +26,9 @@ type runCmd struct {
 
 	// The user may specify a JSON file.
 	jsonFile string
+
+	// Maximum execution duration for the script.
+	timeout time.Duration
 }
 
 //
@@ -33,8 +37,11 @@ type runCmd struct {
 func (*runCmd) Name() string     { return "run" }
 func (*runCmd) Synopsis() string { return "Run a script file, against a JSON object." }
 func (*runCmd) Usage() string {
-	return `run -json=x.json script1 script2 .. [scriptN]:
-  Run the given file(s), using the object in the JSON-file as input.
+	return `run [flags] script1 script2 .. [scriptN]:
+  Run the given file(s).
+
+  Optional flags allow passing timeout period, a JSON object, and similar:
+
 `
 }
 
@@ -42,9 +49,10 @@ func (*runCmd) Usage() string {
 // Flag setup
 //
 func (p *runCmd) SetFlags(f *flag.FlagSet) {
-	f.StringVar(&p.jsonFile, "json", "", "The JSON file, containing the object to test the script with.")
-	f.BoolVar(&p.raw, "no-optimizer", false, "Disable the bytecode optimizer")
-	f.BoolVar(&p.debug, "debug", false, "Show instructions and the stack at ever step")
+	f.StringVar(&p.jsonFile, "json", "", "Run the script with the object contained within the specified JSON file as input.")
+	f.BoolVar(&p.raw, "no-optimizer", false, "Disable the bytecode optimizer.")
+	f.BoolVar(&p.debug, "debug", false, "Show instructions and the stack at ever step.")
+	f.DurationVar(&p.timeout, "timeout", 0, "Specify the maximum execution time to allow for the script(s).")
 }
 
 //
@@ -52,7 +60,11 @@ func (p *runCmd) SetFlags(f *flag.FlagSet) {
 //
 func (p *runCmd) Run(file string) {
 
+	//
+	// The thing the script will run against.
+	//
 	obj := make(map[string]interface{})
+
 	//
 	// If we have a JSON file then populate our object.
 	//
@@ -78,7 +90,7 @@ func (p *runCmd) Run(file string) {
 	}
 
 	//
-	// Read the file contents.
+	// Read the script contents.
 	//
 	dat, err := ioutil.ReadFile(file)
 	if err != nil {
@@ -90,6 +102,15 @@ func (p *runCmd) Run(file string) {
 	// Create the evaluator.
 	//
 	eval := evalfilter.New(string(dat))
+
+	//
+	// If we've been given a timeout period then set it here.
+	//
+	if p.timeout != 0 {
+		ctx, cancel := context.WithTimeout(context.Background(), p.timeout)
+		defer cancel()
+		eval.SetContext(ctx)
+	}
 
 	//
 	// Flags to pass to the preparation function.
