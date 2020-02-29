@@ -8,6 +8,7 @@
 package evalfilter
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -41,6 +42,9 @@ type Eval struct {
 
 	// the machine we drive
 	machine *vm.VM
+
+	// context for handling timeout
+	context context.Context
 }
 
 // New creates a new instance of the evaluator.
@@ -52,12 +56,21 @@ func New(script string) *Eval {
 	e := &Eval{
 		environment: environment.New(),
 		Script:      script,
+		context:     context.Background(),
 	}
 
 	//
 	// Return it.
 	//
 	return e
+}
+
+// SetContext allows a context to be passed to the evaluator.
+//
+// The context is passed down to the virtual machine, which allows you to
+// setup a timeout/deadline for the execution of user-supplied scripts.
+func (e *Eval) SetContext(ctx context.Context) {
+	e.context = ctx
 }
 
 // Prepare is the second function the caller must invoke, it compiles
@@ -138,6 +151,11 @@ func (e *Eval) Prepare(flags ...[]byte) error {
 	// before Execute/Run are invoked - and we only take the speed hit
 	// once.
 	e.machine = vm.New(e.constants, e.instructions, e.environment)
+
+	//
+	// Setup our context
+	//
+	e.machine.SetContext(e.context)
 
 	//
 	// All done; no errors.

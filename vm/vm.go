@@ -9,6 +9,7 @@
 package vm
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
 	"math"
@@ -75,6 +76,10 @@ type VM struct {
 
 	// debug can be enabled to dump our execution-log as we run.
 	debug bool
+
+	// context is passed to us from our evalfilter, and can be
+	// used by callers to implement timeouts.
+	context context.Context
 }
 
 // New constructs a new virtual machine.
@@ -111,6 +116,14 @@ func New(constants []object.Object, bytecode code.Instructions, env *environment
 	}
 
 	return vm
+}
+
+// SetContext allows a context to be used as our virtual machine is
+// running. This is most useful to allow our caller to setup a
+// timeout/deadline which will avoid denial-of-service problems if
+// user-supplied script(s) contain infinite loops.
+func (vm *VM) SetContext(ctx context.Context) {
+	vm.context = ctx
 }
 
 // Run launches our virtual machine, intepreting the bytecode-program we were
@@ -165,15 +178,23 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 	//
 	// NOTE: Our instruction-set supports control-flow, so it
 	// is possible this function will run forever, and never terminate.
-	//
-	// NOTE: We should port this to use our WalkBytecode function,
-	// however we've not done so because that won't cope with changing
-	// the instruction-pointer, which we need to implement the jumping
-	// primitives.
-	//
-	// This is an area that needs some thought.
+	// This is why we allow `SetContext` to setup a timeout-period.
 	//
 	for ip < ln {
+
+		//
+		// We've been given a context, which we'll test at every
+		// iteration of our main-loop.
+		//
+		// This is a little slow and inefficient, but we need
+		// to allow our execution to be time-limited.
+		//
+		select {
+		case <-vm.context.Done():
+			return &object.Null{}, fmt.Errorf("timeout during executiong, cancelled")
+		default:
+			// nop
+		}
 
 		//
 		// Get the next opcode
