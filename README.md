@@ -6,6 +6,7 @@
   * [Implementation](#implementation)
   * [Scripting Facilities](#scripting-facilities)
   * [Use Cases](#use-cases)
+  * [Security](#security)
 * [Sample Usage](#sample-usage)
   * [Additional Examples](#additional-examples)
   * [Built-In Functions](#built-in-functions)
@@ -200,6 +201,55 @@ You'll notice that we test fields such as `Sent` and `Message` here which come f
 (All `time.Time` values are converted to seconds-past the Unix Epoch, but you can retrieve all the appropriate fields via `hour()`, `minute()`, `day()`, `year()`, `weekday()`, etc, as you would expect.  Using them literally will return the Epoch value.)
 
 
+## Security
+
+The user-supplied script is parsed and turned into a set of bytecode-instructions which are then executed.  The bytecode instruction set is pretty minimal, and specifically has **zero** access to:
+
+* Your filesystem.
+  * i.e. Reading files is not possible, neither is writing them.
+* Your host-environment.
+  * i.e. Reading environmental variables is not possible.
+* The network.
+  * i.e. Making outgoing network requests is not possible.
+
+Of course you can add your own functions to the environment, to allow such things.  If you do that then the onus is definitely upon you to make sure that reading files, making connections, is either audited or restricted appropriately.
+
+However __is__ possible for this library to be given a faulty program, for example something which has invalid syntax, or which invokes functions that don't expst.  These failures will be detected at parse/run time, as appropriate.
+
+In short running user-supplied scripts _should_ be safe, but there is one obvious caveat: The following program is valid:
+
+```
+print( "Hello, I'm wasting your time\n") ;
+
+while( 1 ) {
+  // Do nothing ..
+}
+
+print( "I'm never reached!\n" );
+```
+
+This program will never terminate!  If you're handling untrusted user-scripts, which is perhaps unwise, you'll need to ensure that you explicitly setup a timeout period.
+
+The following will do what you expect:
+
+```
+// Create the evaluator on the (malicious) script
+eval := evalfilter.New(`while( 1 ) { } `)
+
+// Setup a timeout period of five seconds
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+defer cancel()
+eval.SetContext(ctx)
+
+// Now prepare as usual
+err = eval.Prepare()
+if ( err != nil ) { // handle error }
+
+// Now execute as usual
+ret, err = eval.Execute( object )
+if ( err != nil ) { // handle error }
+```
+
 # Sample Usage
 
 To give you a quick feel for how things look you could consult these two simple examples:
@@ -207,7 +257,7 @@ To give you a quick feel for how things look you could consult these two simple 
 * [example_test.go](example_test.go).
   * This filters a list of people by their age.
 * [example_function_test.go](example_function_test.go).
-  * This exports a function from the golang-host application to the script.
+  * This exports a function from the golang-host application to the scripting environment.
   * The new function is then used to filter a list of people.
 
 
