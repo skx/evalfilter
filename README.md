@@ -212,11 +212,11 @@ The user-supplied script is parsed and turned into a set of bytecode-instruction
 * The network.
   * i.e. Making outgoing network requests is not possible.
 
-Of course you can add your own functions to the environment, to allow such things.  If you do that then the onus is definitely upon you to make sure that reading files, making connections, is either audited or restricted appropriately.
+Of course you can export functions from your host-application to the scripting environment, to allow such things.  If you do add primitives that have the possibility to cause security problems then the onus is definitely on you to make sure such accesses are either heavily audited or restricted appropriately.
 
-However __is__ possible for this library to be given a faulty program, for example something which has invalid syntax, or which invokes functions that don't expst.  These failures will be detected at parse/run time, as appropriate.
+When it comes to security problems the most obvious issue we might suffer from is denial-of-service attacks; it is certainly possible for this library to be given faulty programs, for example invalid syntax, or references to undefined functions.   Failures such as those would be detected at parse/run time, as appropriate.
 
-In short running user-supplied scripts _should_ be safe, but there is one obvious caveat: The following program is valid:
+In short running user-supplied scripts should be safe, but there is one obvious caveat: The following program is valid:
 
 ```
 print( "Hello, I'm wasting your time\n") ;
@@ -228,7 +228,7 @@ while( 1 ) {
 print( "I'm never reached!\n" );
 ```
 
-This program will never terminate!  If you're handling untrusted user-scripts, which is perhaps unwise, you'll need to ensure that you explicitly setup a timeout period.
+This program will __never__ terminate!  If you're handling untrusted user-scripts, you'll want to ensure that you explicitly setup a timeout period.
 
 The following will do what you expect:
 
@@ -249,6 +249,10 @@ if ( err != nil ) { // handle error }
 ret, err = eval.Execute( object )
 if ( err != nil ) { // handle error }
 ```
+
+The program will be terminated with an error after five seconds, which means that your host application will continue to run rather than being blocked forever!
+
+
 
 # Sample Usage
 
