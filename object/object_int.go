@@ -24,7 +24,7 @@ func (i *Integer) Type() Type {
 //
 // Used when this object is the conditional in a comparison, etc.
 func (i *Integer) True() bool {
-	return (i.Value != 0)
+	return (i.Value > 0)
 }
 
 // ToInterface converts this object to a go-interface, which will allow

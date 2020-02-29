@@ -867,7 +867,8 @@ if ( "Steve" in names ) {
 return( "Steve" in [ "Steve", "Blah", "Kemp" ] );
 `,
 			Result: true},
-		{Input: `return( "Steve" in "Steve" );`, Error: true},
+		{Input: `return( "Steve" in "Steve" );`, Result: true},
+		{Input: `return( "Steve" in "Steven" );`, Result: true},
 	}
 
 	for _, tst := range tests {
@@ -1056,6 +1057,46 @@ func TestStringIndex(t *testing.T) {
 
 		if ret != tst.Result {
 			t.Fatalf("Found unexpected result running script")
+		}
+	}
+}
+
+// TestNumberTruth ensures that we're only expecting "true" results
+// from positive values.  Negative/Zero values are not true
+//
+//  i.e.
+//    if ( 1 ) { .. executes .. }
+//    if ( -1 ) { .. never executes ... }
+func TestNumberTruth(t *testing.T) {
+
+	// Each test-case is expected to return `true` to pass.
+	inputs := []string{
+		`if ( 1 ) { return true; } return false;`,
+		`if ( 1.0 ) { return true; } return false;`,
+		`if ( -1 ) { return false ; } return true;`,
+		`if ( -1.1 ) { return false ; } return true;`,
+		`return 0 ? false : true ;`,
+		`return 1 ? true : false ;`,
+		`return -1 ? false : true ;`,
+		`return -1.0 ? false : true ;`,
+	}
+
+	for _, tst := range inputs {
+
+		obj := New(tst)
+
+		p := obj.Prepare()
+		if p != nil {
+			t.Fatalf("Failed to compile: %s", tst)
+		}
+
+		ret, err := obj.Run(nil)
+		if err != nil {
+			t.Fatalf("Found unexpected error running test '%s' - %s\n", tst, err.Error())
+		}
+
+		if ret != true {
+			t.Fatalf("Found unexpected result running script: %s - %v", tst, ret)
 		}
 	}
 }

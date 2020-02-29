@@ -219,6 +219,7 @@ There are also sample scripts contained beneath [_examples/scripts](_examples/sc
 
 The standalone driver located beneath [cmd/evalfilter](cmd/evalfilter) allows you to examine bytecode, tokens, and run the example scripts, as documented [later](#standalone-use) in this README file.
 
+Finally if you want to compile this library to webassembly, and use it in a web-page that is also possible!  See [wasm/](_examples/wasm) for details.
 
 
 ## Built-In Functions
