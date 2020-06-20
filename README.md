@@ -15,6 +15,7 @@
 * [Benchmarking](#benchmarking)
 * [Fuzz Testing](#fuzz-testing)
 * [API Stability](#api-stability)
+* [See Also](#see-also)
 * [Github Setup](#github-setup)
 
 
@@ -396,6 +397,18 @@ The API will remain as-is for given major release number, so far we've had we've
   * The updated design which parses the given script into an AST, then generates bytecode to execute when the script is actually run.
 
 The second release was implemented to perform a significant speedup for the case where the same script might be reused multiple times.
+
+
+# See Also
+
+This repository was put together after [experimenting with a scripting language](https://github.com/skx/monkey/), and writing a [BASIC interpreter](https://github.com/skx/gobasic).
+
+I've also played around with a couple of compilers which might be interesting to refer to:
+
+* Brainfuck compiler:
+  * [https://github.com/skx/bfcc/](https://github.com/skx/bfcc/)
+* A math-compiler:
+  * [https://github.com/skx/math-compiler](https://github.com/skx/math-compiler)
 
 
 
