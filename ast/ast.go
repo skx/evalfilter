@@ -12,7 +12,7 @@ import (
 	"github.com/skx/evalfilter/v2/token"
 )
 
-// Node reresents a node.
+// Node represents a node.
 type Node interface {
 	// TokenLiteral returns the literal of the token.
 	TokenLiteral() string

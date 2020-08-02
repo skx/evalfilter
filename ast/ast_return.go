@@ -11,7 +11,7 @@ type ReturnStatement struct {
 	// Token contains the literal token.
 	Token token.Token
 
-	// ReturnValue is the value whichis to be returned.
+	// ReturnValue is the value which is to be returned.
 	ReturnValue Expression
 }
 

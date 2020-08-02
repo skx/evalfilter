@@ -81,7 +81,7 @@ func fnInt(args []object.Object) object.Object {
 // an array is the number of elements which it contains.
 //
 // So `len(false)` is 5, len(3) is 1, and `len(0.123)` is 5, and arrays
-// work as expectd: len([]) is zero, and len(["steve", "kemp"]) is two.
+// work as expected: len([]) is zero, and len(["steve", "kemp"]) is two.
 //
 func fnLen(args []object.Object) object.Object {
 
@@ -319,7 +319,7 @@ func fnSort(args []object.Object) object.Object {
 		lower = args[1].(*object.Boolean).Value
 	}
 
-	// defer to our helper methd
+	// defer to our helper method
 	return (sortHelper(args, lower, false))
 }
 

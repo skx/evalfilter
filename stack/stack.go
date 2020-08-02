@@ -20,7 +20,7 @@ type Stack struct {
 	// We store them in a list which is less
 	// efficient than explicitly setting up a
 	// size - but the advantage is that we don't
-	// need to worry about exhausing our stack
+	// need to worry about exhausting our stack
 	// size at any point, except due to OOM errors!
 	entries []object.Object
 }

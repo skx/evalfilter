@@ -43,7 +43,7 @@ const (
 	INDEX       // array[index], map[key]
 )
 
-// precedence contains the prededence for each token-type, which
+// precedence contains the precedence for each token-type, which
 // is part of the magic of a Pratt-Parser.
 var precedences = map[token.Type]int{
 	token.QUESTION: TERNARY,

@@ -973,7 +973,7 @@ return true;
 	}
 }
 
-// TestTernary checks our simple tenary expression(s)
+// TestTernary checks our simple ternary expression(s)
 func TestTernary(t *testing.T) {
 
 	type Test struct {

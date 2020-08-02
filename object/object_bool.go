@@ -1,8 +1,6 @@
 package object
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // Boolean wraps bool and implements the Object interface.
 type Boolean struct {

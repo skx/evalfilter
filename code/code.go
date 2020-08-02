@@ -88,7 +88,7 @@ const (
 	OpDec
 
 	// Use  the top value from the stack as a the return value
-	// and cease exeution.
+	// and cease execution.
 	OpReturn
 
 	// Pop a value from the the stack, invert, push back.
@@ -138,7 +138,7 @@ const (
 	// otherwise push FALSE.
 	OpOr
 
-	// String / Array index operaton
+	// String / Array index operation.
 	OpIndex
 
 	// Pop two values from the the stack, if the first value is

@@ -233,9 +233,6 @@ func (vm *VM) optimizeMaths() (bool, error) {
 				}
 
 				if result%1 == 0 && result >= 0 && result <= 65534 {
-					// TODO - FIX ME!
-					// e.changeOperand(a.offset, result)
-
 					// Make a buffer for the argument
 					data := make([]byte, 2)
 					binary.BigEndian.PutUint16(data, uint16(result))
@@ -542,8 +539,8 @@ func (vm *VM) removeNOPs() {
 
 				//
 				// Did we fail to find an updated/ location?  That's a bug.
-                //
-                // Since we can't do anything we'll just avoid rewriting further.
+				//
+				// Since we can't do anything we'll just avoid rewriting further.
 				//
 				return
 			}

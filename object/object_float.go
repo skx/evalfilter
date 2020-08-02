@@ -1,8 +1,6 @@
 package object
 
-import (
-	"strconv"
-)
+import "strconv"
 
 // Float wraps float64 and implements the Object interface.
 type Float struct {

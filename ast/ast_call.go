@@ -7,15 +7,15 @@ import (
 	"github.com/skx/evalfilter/v2/token"
 )
 
-// CallExpression holds the invokation of a method-call.
+// CallExpression holds the invocation of a method-call.
 type CallExpression struct {
-	// Token stores the literal token
+	// Token stores the literal token.
 	Token token.Token
 
 	// Function is the function to be invoked.
 	Function Expression
 
-	// Arguments are the arguments to be applied
+	// Arguments are the arguments to be applied.
 	Arguments []Expression
 }
 

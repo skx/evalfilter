@@ -1,8 +1,6 @@
 package object
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // Integer wraps int64 and implements the Object interface.
 type Integer struct {
