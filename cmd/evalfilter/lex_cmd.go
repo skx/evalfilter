@@ -1,39 +1,36 @@
 package main
 
 import (
-	"context"
-	"flag"
 	"fmt"
 	"io/ioutil"
 
-	"github.com/google/subcommands"
 	"github.com/skx/evalfilter/v2/lexer"
+	"github.com/skx/subcommands"
 )
 
-//
-// The options set by our command-line flags: None
-//
+// Structure for our options and state.
 type lexCmd struct {
+
+	// We embed the NoFlags option, because we accept no command-line flags.
+	subcommands.NoFlags
 }
 
-//
-// Glue
-//
-func (*lexCmd) Name() string     { return "lex" }
-func (*lexCmd) Synopsis() string { return "Show our lexer output." }
-func (*lexCmd) Usage() string {
-	return `lexer file1 file2 .. [fileN]:
-  Show the output from our lexer
+// Info returns the name of this subcommand.
+func (l *lexCmd) Info() (string, string) {
+	return "lex", `Show the lexer output for a given script.
+
+This sub-command allows you to see how a given input-script is
+split into tokens by our lexer.
+
+Example:
+
+  $ evalfilter run script.in
 `
 }
 
-//
-// Flag setup
-//
-func (p *lexCmd) SetFlags(f *flag.FlagSet) {
-}
-
-func (p *lexCmd) Lex(file string) {
+// Lex actually lexes the specified file, and shows the tokens that
+// were produced.
+func (l *lexCmd) Lex(file string) {
 	//
 
 	// Read the file contents.
@@ -47,13 +44,13 @@ func (p *lexCmd) Lex(file string) {
 	//
 	// Create a lexer object with those contents.
 	//
-	l := lexer.New(string(dat))
+	lex := lexer.New(string(dat))
 
 	//
 	// Dump the tokens.
 	//
 	for {
-		tok := l.NextToken()
+		tok := lex.NextToken()
 		fmt.Printf("%v\n", tok)
 		if tok.Type == "EOF" || tok.Type == "ILLEGAL" {
 			break
@@ -61,18 +58,17 @@ func (p *lexCmd) Lex(file string) {
 	}
 }
 
-//
-// Entry-point.
-//
-func (p *lexCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
+// Execute is invoked if the user specifies `lex` as the subcommand.
+func (l *lexCmd) Execute(args []string) int {
 
 	//
 	// For each file we've been passed.
 	//
-	for _, file := range f.Args() {
-		p.Lex(file)
+	for _, file := range args {
+
+		l.Lex(file)
 	}
 
-	return subcommands.ExitSuccess
+	return 0
 
 }
