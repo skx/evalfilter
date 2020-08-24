@@ -32,9 +32,9 @@ func (ie *IfExpression) TokenLiteral() string { return ie.Token.Literal }
 // String returns this object as a string.
 func (ie *IfExpression) String() string {
 	var out bytes.Buffer
-	out.WriteString("if")
+	out.WriteString("\nif (")
 	out.WriteString(ie.Condition.String())
-	out.WriteString(" ")
+	out.WriteString(") ")
 	out.WriteString(ie.Consequence.String())
 	if ie.Alternative != nil {
 		out.WriteString("else")
