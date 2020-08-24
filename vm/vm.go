@@ -458,18 +458,67 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
 			// Get the function we're to invoke.
 			fn, ok := vm.environment.GetFunction(name)
-			if !ok {
+			if ok {
+
+				// Cast the function & call it
+				out := fn.(func(args []object.Object) object.Object)
+				ret := out(fnArgs)
+
+				// store the result back on the stack - unless
+				// it's a weird one.
+				if ret.Type() != object.VOID {
+					vm.stack.Push(ret)
+				}
+				break
+			}
+
+			// Function isn't a built-in, so now we need to see
+			// if it is a user-defined function.
+			val, ok2 := vm.functions[name]
+			if !ok2 {
 				return nil, fmt.Errorf("the function %s does not exist", name)
 			}
 
-			// Cast the function & call it
-			out := fn.(func(args []object.Object) object.Object)
-			ret := out(fnArgs)
+			// Save IP + bytecode
+			old_ip := ip
+			old_bytecode := vm.bytecode
 
-			// store the result back on the stack - unless
-			// it's a weird one.
-			if ret.Type() != object.VOID {
-				vm.stack.Push(ret)
+			vm.environment.AddScope()
+
+			// switch so that we're interpreting the bytecode
+			// of the compiled function-body.
+			ip = 0
+			vm.bytecode = val.Bytecode
+
+			// Sanity-check we have enough arguments
+			if len(val.Arguments) != len(fnArgs) {
+				return nil, fmt.Errorf("mismatch in argument-counts for %s, expected %d but got %d", name, len(val.Arguments), len(fnArgs))
+			}
+			// Now for each arg we set the value
+			for i, name := range val.Arguments {
+				vm.environment.SetLocal(name, fnArgs[i])
+			}
+			// Run ourselves against that new bytecode.
+			//
+			// This is a bit horrid.
+			out, err := vm.Run(obj)
+
+			// Drop the scope
+			vm.environment.RemoveScope()
+
+			// Did we get an error?  If so unwind and return
+			if err != nil {
+				return nil, err
+			}
+
+			// Otherwise we're going to keep running from
+			// where we were.
+			ip = old_ip
+			vm.bytecode = old_bytecode
+
+			// Put the return-value on the stack
+			if out.Type() != object.VOID {
+				vm.stack.Push(out)
 			}
 
 			// reset the state of an object which is to be iterated upon
