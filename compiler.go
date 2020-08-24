@@ -10,6 +10,7 @@ import (
 
 	"github.com/skx/evalfilter/v2/ast"
 	"github.com/skx/evalfilter/v2/code"
+	"github.com/skx/evalfilter/v2/environment"
 	"github.com/skx/evalfilter/v2/object"
 )
 
@@ -244,6 +245,40 @@ func (e *Eval) compile(node ast.Node) error {
 		e.changeOperand(end, len(e.instructions))
 
 		return nil
+
+	case *ast.FunctionDefinition:
+
+		// Hack: Reset the instructions
+		before := e.instructions
+		e.instructions = code.Instructions{}
+
+		// Compile the body
+		err := e.compile(node.Body)
+		if err != nil {
+			e.instructions = before
+			return err
+		}
+
+		// Ensure that every function will return "something".
+		//
+		// In this case we return nothing by default.
+		e.emit(code.OpVoid)
+		e.emit(code.OpReturn)
+
+		// Arguments to the function
+		var args []string
+		for _, nm := range node.Parameters {
+			args = append(args, nm.Value)
+		}
+
+		// Save the function away
+		x := environment.UserFunction{Arguments: args,
+			Bytecode: e.instructions}
+		e.functions[node.Token.Literal] = x
+
+		// And restore state
+		e.instructions = before
+
 	case *ast.IfExpression:
 
 		// Compile the expression.
