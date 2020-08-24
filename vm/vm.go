@@ -481,9 +481,9 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			}
 
 			// Save IP + bytecode
-			old_ip := ip
-			old_bytecode := vm.bytecode
-			old_stack := vm.stack
+			oldIp := ip
+			oldBytecode := vm.bytecode
+			oldStack := vm.stack
 
 			vm.stack = stack.New()
 			vm.environment.AddScope()
@@ -514,9 +514,9 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
 			// Otherwise we're going to keep running from
 			// where we were.
-			ip = old_ip
-			vm.bytecode = old_bytecode
-			vm.stack = old_stack
+			ip = oldIp
+			vm.bytecode = oldBytecode
+			vm.stack = oldStack
 
 			// Put the return-value on the stack
 			if out.Type() != object.VOID {
