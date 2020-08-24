@@ -39,7 +39,7 @@ var True = &object.Boolean{Value: true}
 // False is our global "false" object.
 var False = &object.Boolean{Value: false}
 
-// Null is our global "false" object.
+// Null is our global "null" object.
 var Null = &object.Null{}
 
 // VM is the structure which holds our state.
@@ -84,9 +84,9 @@ type VM struct {
 
 // New constructs a new virtual machine.
 //
-// If the value `OPTIMIZE` exists inside the environment we're passed we'll also run a
-// series of simple optimizer steps.  These are naive, but do speedup carefully constructed
-// test cases.
+// If the value `OPTIMIZE` exists inside the environment we're passed
+// we'll also run a series of simple optimizer steps.  These are naive,
+// but do speedup carefully constructed test cases.
 func New(constants []object.Object, bytecode code.Instructions, env *environment.Environment) *VM {
 
 	// If we have a `DEBUG` environment then we enable debugging.
@@ -108,6 +108,10 @@ func New(constants []object.Object, bytecode code.Instructions, env *environment
 
 	// Optimize the bytecode, if we should.
 	if optimize {
+
+		// Run the optimization, which will return the
+		// number of bytecode instructions "saved" or
+		// reduced/removed.
 		saved := vm.optimizeBytecode()
 
 		if debug && optimize {
@@ -119,7 +123,7 @@ func New(constants []object.Object, bytecode code.Instructions, env *environment
 }
 
 // SetContext allows a context to be used as our virtual machine is
-// running. This is most useful to allow our caller to setup a
+// running. This is most used to allow our caller to setup a
 // timeout/deadline which will avoid denial-of-service problems if
 // user-supplied script(s) contain infinite loops.
 func (vm *VM) SetContext(ctx context.Context) {
@@ -133,8 +137,9 @@ func (vm *VM) SetContext(ctx context.Context) {
 // the supplied bytecode.  As programs can contain flow-control operation
 // it is certainly possible they will never return.
 //
-// (Although our compiler does not implement for/while/do/until loops
-// a hand-created program could build such a things via the instruction-set.)
+// (Our compiler only implements the 'while' loop for control-flow, but it
+// is possible  a hand-created program could build such a things via the
+// instruction-set.)
 func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
 	//
@@ -168,7 +173,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 	vm.stack = stack.New()
 
 	//
-	// Instruction pointer and length.
+	// Instruction pointer and length of bytecode.
 	//
 	ip := 0
 	ln := len(vm.bytecode)
@@ -191,7 +196,8 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 		//
 		select {
 		case <-vm.context.Done():
-			return &object.Null{}, fmt.Errorf("timeout during executiong, cancelled")
+			return &object.Null{},
+				fmt.Errorf("timeout during execution")
 		default:
 			// nop
 		}
@@ -306,7 +312,14 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			// Store an array
 		case code.OpArray:
 
+			// The argument contains the number of
+			// array elements we're going to expect
+			// to be present upon the stack.
+
+			// Make the array of the appropriate size
 			elements := make([]object.Object, opArg)
+
+			// Add on each entry.
 			for opArg > 0 {
 				var err error
 				elements[opArg-1], err = vm.stack.Pop()
@@ -315,6 +328,8 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 				}
 				opArg--
 			}
+
+			// Construct the actual array and add to the stack
 			arr := &object.Array{Elements: elements}
 			vm.stack.Push(arr)
 
