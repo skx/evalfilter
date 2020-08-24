@@ -5,13 +5,11 @@
 package main
 
 import (
-	"context"
-	"flag"
 	"fmt"
 	"os"
 	"runtime/debug"
 
-	"github.com/google/subcommands"
+	"github.com/skx/subcommands"
 )
 
 //
@@ -24,15 +22,10 @@ func main() {
 		}
 	}()
 
-	subcommands.Register(subcommands.HelpCommand(), "")
-	subcommands.Register(subcommands.FlagsCommand(), "")
-	subcommands.Register(subcommands.CommandsCommand(), "")
-	subcommands.Register(&lexCmd{}, "")
-	subcommands.Register(&bytecodeCmd{}, "")
-	subcommands.Register(&parseCmd{}, "")
-	subcommands.Register(&runCmd{}, "")
+	subcommands.Register(&lexCmd{})
+	subcommands.Register(&bytecodeCmd{})
+	subcommands.Register(&parseCmd{})
+	subcommands.Register(&runCmd{})
 
-	flag.Parse()
-	ctx := context.Background()
-	os.Exit(int(subcommands.Execute(ctx)))
+	os.Exit(subcommands.Execute())
 }

@@ -8,14 +8,11 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/google/subcommands"
 	"github.com/skx/evalfilter/v2"
 	"github.com/skx/evalfilter/v2/object"
 )
 
-//
-// The options set by our command-line flags.  A json file
-//
+// Structure for our options and state.
 type runCmd struct {
 
 	// Show execution as it happens
@@ -31,34 +28,31 @@ type runCmd struct {
 	timeout time.Duration
 }
 
-//
-// Glue
-//
-func (*runCmd) Name() string     { return "run" }
-func (*runCmd) Synopsis() string { return "Run a script file, against a JSON object." }
-func (*runCmd) Usage() string {
-	return `run [flags] script1 script2 .. [scriptN]:
-  Run the given file(s).
+// Info returns the name of this subcommand.
+func (r *runCmd) Info() (string, string) {
+	return "run", `Run a script file, against a JSON object.
 
-  Optional flags allow passing timeout period, a JSON object, and similar:
+This sub-command allows executing the specified evalfilter-script,
+optionally you may specify a JSON object to run the script against.
+
+Example:
+
+  $ evalfilter run script.in
+  $ evalfilter run -json /path/to/obj.json script.in
 
 `
 }
 
-//
-// Flag setup
-//
-func (p *runCmd) SetFlags(f *flag.FlagSet) {
-	f.StringVar(&p.jsonFile, "json", "", "Run the script with the object contained within the specified JSON file as input.")
-	f.BoolVar(&p.raw, "no-optimizer", false, "Disable the bytecode optimizer.")
-	f.BoolVar(&p.debug, "debug", false, "Show instructions and the stack at ever step.")
-	f.DurationVar(&p.timeout, "timeout", 0, "Specify the maximum execution time to allow for the script(s).")
+// Arguments adds per-command args to the object.
+func (r *runCmd) Arguments(f *flag.FlagSet) {
+	f.StringVar(&r.jsonFile, "json", "", "Run the script with the object contained within the specified JSON file as input.")
+	f.BoolVar(&r.raw, "no-optimizer", false, "Disable the bytecode optimizer.")
+	f.BoolVar(&r.debug, "debug", false, "Show instructions and the stack at ever step.")
+	f.DurationVar(&r.timeout, "timeout", 0, "Specify the maximum execution time to allow for the script(s).")
 }
 
-//
 // Run the given script.
-//
-func (p *runCmd) Run(file string) {
+func (r *runCmd) Run(file string) {
 
 	//
 	// The thing the script will run against.
@@ -68,14 +62,14 @@ func (p *runCmd) Run(file string) {
 	//
 	// If we have a JSON file then populate our object.
 	//
-	if p.jsonFile != "" {
+	if r.jsonFile != "" {
 
 		//
 		// Read the file contents.
 		//
-		dat, err := ioutil.ReadFile(p.jsonFile)
+		dat, err := ioutil.ReadFile(r.jsonFile)
 		if err != nil {
-			fmt.Printf("Error reading file %s - %s\n", p.jsonFile, err.Error())
+			fmt.Printf("Error reading file %s - %s\n", r.jsonFile, err.Error())
 			return
 		}
 
@@ -106,8 +100,8 @@ func (p *runCmd) Run(file string) {
 	//
 	// If we've been given a timeout period then set it here.
 	//
-	if p.timeout != 0 {
-		ctx, cancel := context.WithTimeout(context.Background(), p.timeout)
+	if r.timeout != 0 {
+		ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 		defer cancel()
 		eval.SetContext(ctx)
 	}
@@ -116,7 +110,7 @@ func (p *runCmd) Run(file string) {
 	// Flags to pass to the preparation function.
 	//
 	var flags []byte
-	if p.raw {
+	if r.raw {
 		flags = append(flags, evalfilter.NoOptimize)
 	}
 
@@ -125,7 +119,7 @@ func (p *runCmd) Run(file string) {
 	//
 	// NOTE: This must be done before `prepare` is invoked.
 	//
-	if p.debug {
+	if r.debug {
 		eval.SetVariable("DEBUG", &object.Boolean{Value: true})
 	}
 
@@ -156,18 +150,16 @@ func (p *runCmd) Run(file string) {
 
 }
 
-//
-// Entry-point.
-//
-func (p *runCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
+// Execute is invoked if the user specifies `run` as the subcommand.
+func (r *runCmd) Execute(args []string) int {
 
 	//
 	// For each file we've been passed; run it.
 	//
-	for _, file := range f.Args() {
-		p.Run(file)
+	for _, file := range args {
+		r.Run(file)
 	}
 
-	return subcommands.ExitSuccess
+	return 0
 
 }

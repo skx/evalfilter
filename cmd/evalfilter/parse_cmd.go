@@ -1,42 +1,36 @@
 package main
 
 import (
-	"context"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"strings"
 
-	"github.com/google/subcommands"
 	"github.com/skx/evalfilter/v2/lexer"
 	"github.com/skx/evalfilter/v2/parser"
+	"github.com/skx/subcommands"
 )
 
-//
-// The options set by our command-line flags: None
-//
+// Structure for our options and state.
 type parseCmd struct {
+
+	// We embed the NoFlags option, because we accept no command-line flags.
+	subcommands.NoFlags
 }
 
-//
-// Glue
-//
-func (*parseCmd) Name() string     { return "parse" }
-func (*parseCmd) Synopsis() string { return "Show our parser output." }
-func (*parseCmd) Usage() string {
-	return `parse file1 file2 .. [fileN]:
-  Show the output from our parser
+// Info returns the name of this subcommand.
+func (p *parseCmd) Info() (string, string) {
+	return "parse", `Show the parser output for a given script.
+
+This sub-command allows you to see how a given input-script is
+parsed, which can be useful if you're receiving syntax-errors.
+
+Example:
+
+  $ evalfilter parse script.in
 `
 }
 
-//
-// Flag setup
-//
-func (p *parseCmd) SetFlags(f *flag.FlagSet) {
-}
-
-// Parse parses the given file, and dumps the AST which
-// resulted from it.
+// Parse parses the given file, and dumps the AST which resulted from it.
 func (p *parseCmd) Parse(file string) {
 
 	//
@@ -75,18 +69,16 @@ func (p *parseCmd) Parse(file string) {
 	fmt.Printf("%s\n", program.String())
 }
 
-//
-// Entry-point.
-//
-func (p *parseCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
+// Execute is invoked if the user specifies `lex` as the subcommand.
+func (p *parseCmd) Execute(args []string) int {
 
 	//
 	// For each file we've been passed.
 	//
-	for _, file := range f.Args() {
+	for _, file := range args {
 		p.Parse(file)
 	}
 
-	return subcommands.ExitSuccess
+	return 0
 
 }
