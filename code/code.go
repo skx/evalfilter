@@ -63,6 +63,9 @@ const (
 	// Push a FALSE value onto the stack.
 	OpFalse
 
+	// Push a VOID value onto the stack.
+	OpVoid
+
 	// Pop two values from the stack, add them, and push the result.
 	OpAdd
 
@@ -220,6 +223,7 @@ var OpCodeNames = [...]string{
 	OpSquareRoot:     "OpSquareRoot",
 	OpSub:            "OpSub",
 	OpTrue:           "OpTrue",
+	OpVoid:           "OpVoid",
 }
 
 // Length returns the length of the given opcode, including any optional
