@@ -77,6 +77,9 @@ type VM struct {
 	// debug can be enabled to dump our execution-log as we run.
 	debug bool
 
+	// functions that are defined in our scripting language
+	functions map[string]environment.UserFunction
+
 	// context is passed to us from our evalfilter, and can be
 	// used by callers to implement timeouts.
 	context context.Context
@@ -87,7 +90,7 @@ type VM struct {
 // If the value `OPTIMIZE` exists inside the environment we're passed
 // we'll also run a series of simple optimizer steps.  These are naive,
 // but do speedup carefully constructed test cases.
-func New(constants []object.Object, bytecode code.Instructions, env *environment.Environment) *VM {
+func New(constants []object.Object, bytecode code.Instructions, functions map[string]environment.UserFunction, env *environment.Environment) *VM {
 
 	// If we have a `DEBUG` environment then we enable debugging.
 	_, debug := env.Get("DEBUG")
@@ -100,10 +103,11 @@ func New(constants []object.Object, bytecode code.Instructions, env *environment
 
 	// Create the machine
 	vm := &VM{
-		constants:   constants,
-		environment: env,
 		bytecode:    bytecode,
+		constants:   constants,
 		debug:       debug,
+		environment: env,
+		functions:   functions,
 	}
 
 	// Optimize the bytecode, if we should.

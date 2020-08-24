@@ -154,7 +154,7 @@ func (e *Eval) Prepare(flags ...[]byte) error {
 	// The optimization will happen at this step, so that it is complete
 	// before Execute/Run are invoked - and we only take the speed hit
 	// once.
-	e.machine = vm.New(e.constants, e.instructions, e.environment)
+	e.machine = vm.New(e.constants, e.instructions, e.functions, e.environment)
 
 	//
 	// Setup our context
