@@ -125,6 +125,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.EOF, p.parseEOF)
 	p.registerPrefix(token.FALSE, p.parseBooleanLiteral)
 	p.registerPrefix(token.FLOAT, p.parseFloatLiteral)
+	p.registerPrefix(token.FOR, p.parseWhileStatement)
 	p.registerPrefix(token.FOREACH, p.parseForEach)
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
 	p.registerPrefix(token.IF, p.parseIfExpression)

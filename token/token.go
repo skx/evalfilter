@@ -33,6 +33,7 @@ const (
 	EQ         = "=="
 	FALSE      = "FALSE"
 	FLOAT      = "FLOAT"
+	FOR        = "FOR"
 	FOREACH    = "FOREACH"
 	GT         = ">"
 	GTEQUALS   = ">="
@@ -74,6 +75,7 @@ const (
 var keywords = map[string]Type{
 	"else":    ELSE,
 	"false":   FALSE,
+	"for":     FOR,
 	"foreach": FOREACH,
 	"if":      IF,
 	"in":      IN,
