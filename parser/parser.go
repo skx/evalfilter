@@ -127,6 +127,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.FLOAT, p.parseFloatLiteral)
 	p.registerPrefix(token.FOR, p.parseWhileStatement)
 	p.registerPrefix(token.FOREACH, p.parseForEach)
+	p.registerPrefix(token.FUNCTION, p.parseFunctionDefinition)
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
 	p.registerPrefix(token.IF, p.parseIfExpression)
 	p.registerPrefix(token.ILLEGAL, p.parseIllegal)
@@ -547,6 +548,71 @@ func (p *Parser) parseForEach() ast.Expression {
 	expression.Body = p.parseBlockStatement()
 
 	return expression
+}
+
+// parseFunctionDefinition parses the definition of a function.
+func (p *Parser) parseFunctionDefinition() ast.Expression {
+
+	// skip the `function` keyword
+	p.nextToken()
+
+	// Define a function with the identifier
+	lit := &ast.FunctionDefinition{Token: p.curToken}
+
+	// Expect "("
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	// Swallow all arguments until the closing ")"
+	lit.Parameters = p.parseFunctionParameters()
+
+	// Now we want "{"
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+
+	// And consume the function-body including the
+	// closing "}".
+	lit.Body = p.parseBlockStatement()
+	return lit
+}
+
+// parseFunctionParameters parses the parameters used for a function.
+//
+// Function parameters are untyped, so we're looking for "foo, bar, baz)".
+func (p *Parser) parseFunctionParameters() []*ast.Identifier {
+
+	// The argument-definitions.
+	identifiers := make([]*ast.Identifier, 0)
+
+	// Is the next parameter ")" ?  If so we're done. No args.
+	if p.peekTokenIs(token.RPAREN) {
+		p.nextToken()
+		return identifiers
+	}
+	p.nextToken()
+
+	// Keep going until we find a ")"
+	for !p.curTokenIs(token.RPAREN) {
+
+		if p.curTokenIs(token.EOF) {
+			p.errors = append(p.errors, "unterminated function parameters")
+			return nil
+		}
+
+		// Get the identifier.
+		ident := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+		identifiers = append(identifiers, ident)
+		p.nextToken()
+
+		// Skip any comma.
+		if p.curTokenIs(token.COMMA) {
+			p.nextToken()
+		}
+	}
+
+	return identifiers
 }
 
 // parseWhileStatement parses a while-statement.
