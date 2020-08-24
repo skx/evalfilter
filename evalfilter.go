@@ -45,6 +45,9 @@ type Eval struct {
 
 	// context for handling timeout
 	context context.Context
+
+	// user-defined functions
+	functions map[string]environment.UserFunction
 }
 
 // New creates a new instance of the evaluator.
@@ -57,6 +60,7 @@ func New(script string) *Eval {
 		environment: environment.New(),
 		Script:      script,
 		context:     context.Background(),
+		functions:   make(map[string]environment.UserFunction),
 	}
 
 	//
