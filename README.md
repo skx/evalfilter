@@ -94,15 +94,15 @@ Again as you'd expect the facilities are pretty normal/expected:
 * There are series of built-in primitives which can be used by your scripts, and you can export your own host-specified functions easily.
   * For example the `print` function to generate output from your script is just a simple function implemented in Golang and exported to the environment.
 
-Our script implements a golang-style for-loop:
+Our script implements a golang-style loop, using either `for` or `while`:
 
     count = 0;
-    for ( count < 10 ) {
+    while ( count < 10 ) {
          print( "Count: ", count, "\n" );
          count++;
     }
 
-You could use the for-loop to iterate over an array contents, but that would be a little inefficient:
+You could use either statement to iterate over an array contents, but that would be a little inefficient:
 
     items = [ "Some", "Content", "Here" ];
     i = 0;
@@ -111,13 +111,13 @@ You could use the for-loop to iterate over an array contents, but that would be 
        i++
     }
 
-To avoid that we allow looping over arrays and the characters inside a string, via `foreach`.  You can receive both the index and the item at each step of the iteration like :
+A more efficient and readable approach is to iterate over arrays, and the characters inside a string, via `foreach`.  You can receive both the index and the item at each step of the iteration like so:
 
     foreach index, item in [ "My", "name", "is", "Steve" ] {
         printf( "%d: %s\n", index, item );
     }
 
-If you don't supply an index you receive just the item being iterated over instead, as you would expect (i.e. we don't default to returning the index, but the value in this case):
+If you don't supply an index you'll receive just the item being iterated over instead, as you would expect (i.e. we don't default to returning the index, but the value in this case):
 
     len = 0;
     foreach char in "狐犬" {
