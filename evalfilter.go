@@ -226,7 +226,7 @@ func (e *Eval) Dump() error {
 	count := 0
 	for name, obj := range e.functions {
 		// Show brief information
-		fmt.Printf(" function %s(%s) - %d instructions\n", name, strings.Join(obj.Arguments, ","), len(obj.Bytecode))
+		fmt.Printf(" function %s(%s)\n", name, strings.Join(obj.Arguments, ","))
 
 		// Then dump the body.
 		e.machine.WalkFunctionBytecode(name, e.dumper)

@@ -314,8 +314,11 @@ func (e *Eval) compile(node ast.Node) error {
 		// value, and no clean termination.  Instead we'd walk
 		// off the end of our bytecode array.
 		//
-		e.emit(code.OpVoid)
-		e.emit(code.OpReturn)
+		if len(e.instructions) == 0 ||
+			code.Opcode(e.instructions[len(e.instructions)-1]) != code.OpReturn {
+			e.emit(code.OpVoid)
+			e.emit(code.OpReturn)
+		}
 
 		// Save the bytecode away, remember we generated
 		// in our "internal" instruction space, which we

@@ -452,7 +452,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			for opArg > 0 {
 				fnArgs[opArg-1], err = vm.stack.Pop()
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("attempting to call function %s failed - %s", name, err.Error())
 				}
 				opArg--
 			}
@@ -483,7 +483,9 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			// Save IP + bytecode
 			old_ip := ip
 			old_bytecode := vm.bytecode
+			old_stack := vm.stack
 
+			vm.stack = stack.New()
 			vm.environment.AddScope()
 
 			// switch so that we're interpreting the bytecode
@@ -497,15 +499,13 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			}
 			// Now for each arg we set the value
 			for i, name := range val.Arguments {
-				vm.environment.SetLocal(name, fnArgs[i])
+				vm.environment.Set(name, fnArgs[i])
 			}
 			// Run ourselves against that new bytecode.
 			//
 			// This is a bit horrid.
-			out, err := vm.Run(obj)
 
-			// Drop the scope
-			vm.environment.RemoveScope()
+			out, err := vm.Run(obj)
 
 			// Did we get an error?  If so unwind and return
 			if err != nil {
@@ -516,18 +516,20 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			// where we were.
 			ip = old_ip
 			vm.bytecode = old_bytecode
+			vm.stack = old_stack
 
 			// Put the return-value on the stack
 			if out.Type() != object.VOID {
 				vm.stack.Push(out)
 			}
 
+			// Drop the scope
+			vm.environment.RemoveScope()
 			// reset the state of an object which is to be iterated upon
 		case code.OpIterationReset:
 
 			// Create a scoped environment
 			vm.environment.AddScope()
-
 			// get object we're iterating over..
 			out, err := vm.stack.Pop()
 			if err != nil {
