@@ -42,6 +42,9 @@ var False = &object.Boolean{Value: false}
 // Null is our global "null" object.
 var Null = &object.Null{}
 
+// Void is our global "void" object.
+var Void = &object.Void{}
+
 // VM is the structure which holds our state.
 type VM struct {
 
@@ -382,6 +385,10 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			// Boolean literal
 		case code.OpFalse:
 			vm.stack.Push(False)
+
+			// Push a void result
+		case code.OpVoid:
+			vm.stack.Push(Void)
 
 			// return from script
 		case code.OpReturn:
