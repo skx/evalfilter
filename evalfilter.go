@@ -167,6 +167,38 @@ func (e *Eval) Prepare(flags ...[]byte) error {
 	return nil
 }
 
+// dumper is the callback function which is invoked for dumping bytecode
+func (e *Eval) dumper(offset int, opCode code.Opcode, opArg interface{}) (bool, error) {
+
+	// Show the offset + instruction.
+	fmt.Printf("  %04d\t%14s", offset, code.String(opCode))
+
+	// Show the optional argument, if present.
+	if opArg != nil {
+		fmt.Printf("\t% 4d", opArg.(int))
+	}
+
+	// Some opcodes benefit from inline comments
+	if code.Opcode(opCode) == code.OpConstant {
+		v := e.constants[opArg.(int)]
+		s := strings.ReplaceAll(v.Inspect(), "\n", "\\n")
+		fmt.Printf("\t// push constant onto stack: \"%s\"", s)
+	}
+	if code.Opcode(opCode) == code.OpLookup {
+		fmt.Printf("\t// lookup field/variable: %v", e.constants[opArg.(int)])
+	}
+	if code.Opcode(opCode) == code.OpCall {
+		fmt.Printf("\t// call function with %d arg(s)", opArg.(int))
+	}
+	if code.Opcode(opCode) == code.OpPush {
+		fmt.Printf("\t// Push %d to stack", opArg.(int))
+	}
+	fmt.Printf("\n")
+
+	// Keep walking, no error.
+	return true, nil
+}
+
 // Dump causes our bytecode to be dumped, along with the contents
 // of the constant-pool
 func (e *Eval) Dump() error {
@@ -174,44 +206,36 @@ func (e *Eval) Dump() error {
 	fmt.Printf("Bytecode:\n")
 
 	// Use the walker to dump the bytecode.
-	e.machine.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (bool, error) {
-
-		// Show the offset + instruction.
-		fmt.Printf("%04d\t%14s", offset, code.String(opCode))
-
-		// Show the optional argument, if present.
-		if opArg != nil {
-			fmt.Printf("\t% 4d", opArg.(int))
-		}
-
-		// Some opcodes benefit from inline comments
-		if code.Opcode(opCode) == code.OpConstant {
-			v := e.constants[opArg.(int)]
-			s := strings.ReplaceAll(v.Inspect(), "\n", "\\n")
-			fmt.Printf("\t// push constant onto stack: \"%s\"", s)
-		}
-		if code.Opcode(opCode) == code.OpLookup {
-			fmt.Printf("\t// lookup field/variable: %v", e.constants[opArg.(int)])
-		}
-		if code.Opcode(opCode) == code.OpCall {
-			fmt.Printf("\t// call function with %d arg(s)", opArg.(int))
-		}
-		if code.Opcode(opCode) == code.OpPush {
-			fmt.Printf("\t// Push %d to stack", opArg.(int))
-		}
-		fmt.Printf("\n")
-
-		// Keep walking, no error.
-		return true, nil
-	})
+	e.machine.WalkBytecode(e.dumper)
 
 	// Show constants, if any are present.
 	if len(e.constants) > 0 {
 		fmt.Printf("\n\nConstant Pool:\n")
 		for i, n := range e.constants {
 			s := strings.ReplaceAll(n.Inspect(), "\n", "\\n")
-			fmt.Printf("%04d Type:%s Value:\"%s\"\n", i, n.Type(), s)
+			fmt.Printf("  %04d Type:%s Value:\"%s\"\n", i, n.Type(), s)
 		}
+	}
+
+	// Do we have user-defined functions?
+	if len(e.functions) > 0 {
+		fmt.Printf("\nUser-defined functions:\n")
+	}
+
+	// For each function
+	count := 0
+	for name, obj := range e.functions {
+		// Show brief information
+		fmt.Printf(" function %s(%s) - %d instructions\n", name, strings.Join(obj.Arguments, ","), len(obj.Bytecode))
+
+		// Then dump the body.
+		e.machine.WalkFunctionBytecode(name, e.dumper)
+
+		// Put a newline between functions.
+		if count < len(e.functions)-1 {
+			fmt.Printf("\n")
+		}
+		count++
 	}
 
 	return nil
