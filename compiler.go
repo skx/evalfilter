@@ -199,6 +199,12 @@ func (e *Eval) compile(node ast.Node) error {
 			return fmt.Errorf("unknown postfix operator %s", node.Operator)
 		}
 
+	case *ast.LocalVariable:
+
+		// get the name and declare it as local.
+		e.emit(code.OpConstant, e.addConstant(&object.String{Value: node.Token.Literal}))
+		e.emit(code.OpLocal)
+
 	case *ast.ForeachStatement:
 
 		// Put the array on the stack
