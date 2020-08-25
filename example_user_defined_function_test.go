@@ -4,14 +4,19 @@ import (
 	"fmt"
 )
 
-// ExampleUserDefinedFunction demonstrates that defining functions
-// inside our scripting language works roughly as you would expect.
+// ExampleUserFunction demonstrates that defining functions inside
+// our scripting language works roughly as you would expect.
 //
 // There are issues with recursion, but basic/naive operation works
 // correctly.
-func ExampleUserDefinedFunction() {
+func ExampleUserFunction() {
+
 	//
-	// We'll run this script against each entry in the list
+	// We'll run this script, which defines a function and uses
+	// it.
+	//
+	// Recursion is not 100% supported, so this is a non-recursive
+	// implementation of the fibonacci algorithm.
 	//
 	script := `
 //
@@ -35,7 +40,7 @@ function fibonacci(n) {
  return fibo;
 }
 
-// Show the first 19 numbers
+// Invoke the function with a bunch of numbers.
 foreach i in 1..20 {
    printf("N:%d F:%d\n", i, fibonacci(i));
 }
@@ -58,7 +63,9 @@ return true;
 	}
 
 	//
-	// Call the filter
+	// Call the filter - since we're testing
+	// the user-defined function we don't
+	// care about passing a real-object to it.
 	//
 	res, err := eval.Run(nil)
 
@@ -70,7 +77,7 @@ return true;
 	}
 
 	//
-	// Show the output
+	// Show the output of the call.
 	//
 	if res {
 		fmt.Printf("%v\n", res)
