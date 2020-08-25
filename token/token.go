@@ -44,6 +44,7 @@ const (
 	IN         = "IN"
 	INT        = "INT"
 	LBRACE     = "{"
+	LOCAL      = "LOCAL"
 	LPAREN     = "("
 	LSQUARE    = "["
 	LT         = "<"
@@ -81,6 +82,7 @@ var keywords = map[string]Type{
 	"function": FUNCTION,
 	"if":       IF,
 	"in":       IN,
+	"local":    LOCAL,
 	"return":   RETURN,
 	"true":     TRUE,
 	"while":    WHILE,
