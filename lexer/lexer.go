@@ -286,6 +286,7 @@ func (l *Lexer) NextToken() token.Token {
 		}
 		tok.Type = token.ILLEGAL
 		tok.Literal = fmt.Sprintf("invalid character for indentifier '%c'", l.ch)
+		l.readChar()
 		return tok
 
 	}
