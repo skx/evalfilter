@@ -499,7 +499,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			}
 			// Now for each arg we set the value
 			for i, name := range val.Arguments {
-				vm.environment.Set(name, fnArgs[i])
+				vm.environment.SetLocal(name, fnArgs[i])
 			}
 			// Run ourselves against that new bytecode.
 			//
