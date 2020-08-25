@@ -217,8 +217,30 @@ func (e *Environment) SetLocal(name string, val object.Object) object.Object {
 
 	// If we're not in a wrapped environment that's a bug .. (!)
 	if len(e.local) > 0 {
+
+		//
+		// We walk upwards to set the variable
+		// the scope in which it occurs.
+		//
+		ln := len(e.local)
+		for ln > 0 {
+			cur := e.local[ln-1]
+			_, ok := cur[name]
+			if ok {
+
+				// Found it.
+				// Update the value, and return.
+				e.local[ln-1][name] = val
+				return val
+			}
+			ln--
+		}
+
+		// The variable wasn't found in any parent-scope.
+		// Add it on this (bottom) layer.
 		cur := e.local[len(e.local)-1]
 		cur[name] = val
+
 	}
 	return val
 }
