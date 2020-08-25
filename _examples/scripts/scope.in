@@ -1,0 +1,102 @@
+//
+// All variables are global - with the single exception that you will
+// will get a LOCAL scope solely for function-arguments.
+//
+// We'll compare three variables here:
+//
+//    x is a global, which becomes scoped inside the function body
+//    y which is also global.
+//    z which is created inside a function, and accessible outside it.
+//
+// The key observations with this script are:
+//
+//   1. When `x` is changed it will be used as-is, but when the
+//      function-call is over the value will be lost
+//
+//   2. The variable `z` is NIL until it is defined inside the
+//      function-body, after which it can be used freely.
+//
+// You can run this via the `evalfilter` command like so:
+//
+//    $ evalfilter run scope.script
+//
+// Once you do so you'll see the output, and the return-code displayed:
+//
+//    $ evalfilter run scope.script
+//    Start: x = 1, y = 2
+//       At function end: x = 10, y = 100
+//    End  : x = 1, y = 100
+//    Script gave result type:INTEGER value:1 - which is 'true'.
+//
+
+
+//
+// We setup the default values for x & y.
+//
+x = 1;
+y = 2;
+
+//
+// Confirm they work as expected.
+//
+printf("Start: x => %d, y => %d, z is not defined (%v)\n", x, y, z );
+
+//
+// Call the function.
+//
+tmp(x);
+
+//
+// Now one value is updated, and another is created.
+//
+printf("End: x => %d, y => %d, z is defined (%d)\n", x, y, z );
+
+//
+// Confirm the `local` variable didn't leak outside the function-body
+//
+if ( test ) {
+  printf("FATAL-ERROR: The local variable shouldn't have leaked\n");
+}
+else {
+  printf("The local variable did not leak, and is null as expected: %v\n", test);
+}
+
+
+//
+// Scripting time is over now.
+//
+return 1;
+
+
+
+
+
+//
+// function tmp() shows how scoping works
+//
+function tmp(x) {
+
+   // change the local-variable
+   x = 10;
+
+   // change the global variable
+   y = 100;
+
+   // Created a variable inside the function?
+   // That'll be visible afterward.
+   z = 1000;
+
+   // This is local-only variable and will not leak outside
+   // The scope of this function.
+   local test;
+   test = 33;
+
+   // Confirm that works
+   printf(" Inside the function we have a local-variable: test=>%d\n", test);
+   test = test * 2;
+   printf(" Inside the function the local-variable can be updated: test=>%d\n", test);
+
+
+   // Show the result
+   printf(" At function end: x => %d, y => %d, z => %d, test => %d\n", x, y, z, test );
+}

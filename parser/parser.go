@@ -109,6 +109,9 @@ type Parser struct {
 	// Nested ternary expressions are illegal so we
 	// need to keep track of this.
 	tern bool
+
+	// Are we inside a function?
+	function bool
 }
 
 // New returns a new parser.
@@ -127,10 +130,12 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.FLOAT, p.parseFloatLiteral)
 	p.registerPrefix(token.FOR, p.parseWhileStatement)
 	p.registerPrefix(token.FOREACH, p.parseForEach)
+	p.registerPrefix(token.FUNCTION, p.parseFunctionDefinition)
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
 	p.registerPrefix(token.IF, p.parseIfExpression)
 	p.registerPrefix(token.ILLEGAL, p.parseIllegal)
 	p.registerPrefix(token.INT, p.parseIntegerLiteral)
+	p.registerPrefix(token.LOCAL, p.parseLocalVariable)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.LSQUARE, p.parseArrayLiteral)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
@@ -322,6 +327,29 @@ func (p *Parser) parseEOF() ast.Expression {
 // parseIdentifier parses an identifier.
 func (p *Parser) parseIdentifier() ast.Expression {
 	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+}
+
+// parseLocal parses something like "local x;"
+func (p *Parser) parseLocalVariable() ast.Expression {
+
+	if !p.function {
+		msg := fmt.Sprintf("'local' may only be used inside a function, around line %d", p.l.GetLine())
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
+	// Skip over the `local`
+	p.nextToken()
+
+	// Ensure we got an ident.
+	if !p.curTokenIs(token.IDENT) {
+		msg := fmt.Sprintf("'local' may only be used with an IDENT, around line %d", p.l.GetLine())
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
+	return &ast.LocalVariable{Token: p.curToken}
+
 }
 
 // parseIntegerLiteral parses an integer literal.
@@ -547,6 +575,78 @@ func (p *Parser) parseForEach() ast.Expression {
 	expression.Body = p.parseBlockStatement()
 
 	return expression
+}
+
+// parseFunctionDefinition parses the definition of a function.
+func (p *Parser) parseFunctionDefinition() ast.Expression {
+
+	// We're inside a function
+	p.function = true
+
+	// skip the `function` keyword
+	p.nextToken()
+
+	// Define a function with the identifier
+	lit := &ast.FunctionDefinition{Token: p.curToken}
+
+	// Expect "("
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	// Swallow all arguments until the closing ")"
+	lit.Parameters = p.parseFunctionParameters()
+
+	// Now we want "{"
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+
+	// And consume the function-body including the
+	// closing "}".
+	lit.Body = p.parseBlockStatement()
+
+	// We're no longer inside a function
+	p.function = false
+
+	return lit
+}
+
+// parseFunctionParameters parses the parameters used for a function.
+//
+// Function parameters are untyped, so we're looking for "foo, bar, baz)".
+func (p *Parser) parseFunctionParameters() []*ast.Identifier {
+
+	// The argument-definitions.
+	identifiers := make([]*ast.Identifier, 0)
+
+	// Is the next parameter ")" ?  If so we're done. No args.
+	if p.peekTokenIs(token.RPAREN) {
+		p.nextToken()
+		return identifiers
+	}
+	p.nextToken()
+
+	// Keep going until we find a ")"
+	for !p.curTokenIs(token.RPAREN) {
+
+		if p.curTokenIs(token.EOF) {
+			p.errors = append(p.errors, "unterminated function parameters found end of file")
+			return nil
+		}
+
+		// Get the identifier.
+		ident := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+		identifiers = append(identifiers, ident)
+		p.nextToken()
+
+		// Skip any comma.
+		if p.curTokenIs(token.COMMA) {
+			p.nextToken()
+		}
+	}
+
+	return identifiers
 }
 
 // parseWhileStatement parses a while-statement.

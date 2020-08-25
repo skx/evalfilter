@@ -180,8 +180,8 @@ func (bs *BlockStatement) String() string {
 
 	out.WriteString("\n{\n")
 	for _, s := range bs.Statements {
-		out.WriteString(s.String())
+		out.WriteString(" " + s.String() + "\n")
 	}
-	out.WriteString("\n}\n")
+	out.WriteString("}\n")
 	return out.String()
 }

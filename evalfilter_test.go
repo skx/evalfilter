@@ -516,6 +516,66 @@ func TestOperations(t *testing.T) {
 	}
 }
 
+// TestRevFunction is a trivial test of a simple user-defined funciton
+func TestRevFunction(t *testing.T) {
+
+	// Test structure
+	type Tests struct {
+		Name   string
+		Result bool
+	}
+
+	// Some tests of pallendromes
+	var tests = []Tests{
+		{Name: "Steve", Result: false},
+		{Name: "StetS", Result: true},
+		{Name: "EE", Result: true},
+		{Name: "EVE", Result: true},
+		{Name: "LOL", Result: true},
+	}
+
+	for _, test := range tests {
+
+		type Input struct {
+			Name string
+		}
+
+		// Test-script
+		src := `function rev(str) {
+   tmp = "";
+
+   foreach char in str {
+      tmp = char + tmp;
+   }
+
+   return tmp;
+}
+
+return ( rev(Name) == Name );
+`
+		obj := New(src)
+
+		p := obj.Prepare()
+		if p != nil {
+			t.Fatalf("Failed to compile")
+		}
+
+		var i Input
+		i.Name = test.Name
+
+		// Run
+		ret, err := obj.Run(i)
+		if err != nil {
+			t.Fatalf("Found unexpected error running test - %s\n", err.Error())
+		}
+
+		if test.Result != ret {
+			t.Fatalf("Found unexpected result running reverse against %s.", test.Name)
+		}
+	}
+
+}
+
 // TestAndOr ensure that `and` + `or` work in the real world
 // https://github.com/skx/evalfilter/issues/31
 func TestAndOr(t *testing.T) {

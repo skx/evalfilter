@@ -2,6 +2,8 @@ _examples/embedded/passwd/passwd
 _examples/embedded/variable/variable
 _examples/embedded/state/state
 _examples/embedded/time/time
+_examples/wasm/lib.wasm
+_examples/wasm/wasm_exec.js
 cmd/evalfilter/evalfilter
 go.sum
 workdir/

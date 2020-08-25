@@ -42,8 +42,14 @@ var False = &object.Boolean{Value: false}
 // Null is our global "null" object.
 var Null = &object.Null{}
 
+// Void is our global "void" object.
+var Void = &object.Void{}
+
 // VM is the structure which holds our state.
 type VM struct {
+
+	// bytecode contains the actual series of instructions we'll execute.
+	bytecode code.Instructions
 
 	// constants is an array holding constants which were found in
 	// the script-source.  These constants include string-literals,
@@ -53,14 +59,12 @@ type VM struct {
 	// constants are treated as atoms, so they are unique.
 	constants []object.Object
 
-	// bytecode contains the actual series of instructions we'll execute.
-	bytecode code.Instructions
+	// context is passed to us from our evalfilter, and can be
+	// used by callers to implement timeouts.
+	context context.Context
 
-	// stack holds a pointer to our stack-object.
-	//
-	// We're a stack-based virtual machine so this is used for
-	// much of our internal implementation.
-	stack *stack.Stack
+	// debug can be enabled to dump our execution-log as we run.
+	debug bool
 
 	// environment holds the environment, which will allow variables
 	// and functions to be get/set.
@@ -74,12 +78,14 @@ type VM struct {
 	// the need to reparse the same object multiple times.
 	fields map[string]object.Object
 
-	// debug can be enabled to dump our execution-log as we run.
-	debug bool
+	// functions that are defined in our scripting language
+	functions map[string]environment.UserFunction
 
-	// context is passed to us from our evalfilter, and can be
-	// used by callers to implement timeouts.
-	context context.Context
+	// stack holds a pointer to our stack-object.
+	//
+	// We're a stack-based virtual machine so this is used for
+	// much of our internal implementation.
+	stack *stack.Stack
 }
 
 // New constructs a new virtual machine.
@@ -87,7 +93,7 @@ type VM struct {
 // If the value `OPTIMIZE` exists inside the environment we're passed
 // we'll also run a series of simple optimizer steps.  These are naive,
 // but do speedup carefully constructed test cases.
-func New(constants []object.Object, bytecode code.Instructions, env *environment.Environment) *VM {
+func New(constants []object.Object, bytecode code.Instructions, functions map[string]environment.UserFunction, env *environment.Environment) *VM {
 
 	// If we have a `DEBUG` environment then we enable debugging.
 	_, debug := env.Get("DEBUG")
@@ -100,10 +106,11 @@ func New(constants []object.Object, bytecode code.Instructions, env *environment
 
 	// Create the machine
 	vm := &VM{
-		constants:   constants,
-		environment: env,
 		bytecode:    bytecode,
+		constants:   constants,
 		debug:       debug,
+		environment: env,
+		functions:   functions,
 	}
 
 	// Optimize the bytecode, if we should.
@@ -266,6 +273,16 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			val := vm.lookup(obj, name)
 			vm.stack.Push(val)
 
+			// Setup a local variable, by name
+		case code.OpLocal:
+			name, err := vm.stack.Pop()
+			if err != nil {
+				return nil, err
+			}
+
+			// now set the value
+			vm.environment.SetLocal(name.Inspect(), Null)
+
 			// Set a variable by name
 		case code.OpSet:
 
@@ -375,6 +392,9 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 		case code.OpTrue:
 			vm.stack.Push(True)
 
+		case code.OpVoid:
+			vm.stack.Push(Void)
+
 			// Boolean literal
 		case code.OpFalse:
 			vm.stack.Push(False)
@@ -413,6 +433,8 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			}
 
 			// function-call: This is messy.
+			//
+			// Handles builtins and user-defined functions.
 		case code.OpCall:
 
 			// The OpCall instruction is followed by an
@@ -440,33 +462,88 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			for opArg > 0 {
 				fnArgs[opArg-1], err = vm.stack.Pop()
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("attempting to call function %s failed - %s", name, err.Error())
 				}
 				opArg--
 			}
 
 			// Get the function we're to invoke.
 			fn, ok := vm.environment.GetFunction(name)
-			if !ok {
+			if ok {
+
+				// Cast the function & call it
+				out := fn.(func(args []object.Object) object.Object)
+				ret := out(fnArgs)
+
+				// store the result back on the stack - unless
+				// it's a weird one.
+				if ret.Type() != object.VOID {
+					vm.stack.Push(ret)
+				}
+				break
+			}
+
+			// Function isn't a built-in, so now we need to see
+			// if it is a user-defined function.
+			val, ok2 := vm.functions[name]
+			if !ok2 {
 				return nil, fmt.Errorf("the function %s does not exist", name)
 			}
 
-			// Cast the function & call it
-			out := fn.(func(args []object.Object) object.Object)
-			ret := out(fnArgs)
+			// Save IP + bytecode
+			oldIP := ip
+			oldBytecode := vm.bytecode
+			oldStack := vm.stack
 
-			// store the result back on the stack - unless
-			// it's a weird one.
-			if ret.Type() != object.VOID {
-				vm.stack.Push(ret)
+			vm.stack = stack.New()
+			vm.environment.AddScope()
+
+			// switch so that we're interpreting the bytecode
+			// of the compiled function-body.
+			ip = 0
+			vm.bytecode = val.Bytecode
+
+			// Sanity-check we have enough arguments
+			if len(val.Arguments) != len(fnArgs) {
+				return nil, fmt.Errorf("mismatch in argument-counts for %s, expected %d but got %d", name, len(val.Arguments), len(fnArgs))
 			}
+
+			// Now for each arg we set the value
+			for i, name := range val.Arguments {
+				vm.environment.SetLocal(name, fnArgs[i])
+			}
+
+			// Run ourselves against that new bytecode.
+			//
+			// This is a bit horrid.
+			out, err := vm.Run(obj)
+
+			// Did we get an error?  If so return it
+			if err != nil {
+				return nil, err
+			}
+
+			// Otherwise we're going to keep running from
+			// where we left off - resetting the state of
+			// our stack, instruction-pointer, and bytecode.
+			ip = oldIP
+			vm.bytecode = oldBytecode
+			vm.stack = oldStack
+
+			// Put the return-value on the stack
+			if out.Type() != object.VOID {
+				vm.stack.Push(out)
+			}
+
+			// Drop the scope which means function-arguments
+			// are dropped.
+			vm.environment.RemoveScope()
 
 			// reset the state of an object which is to be iterated upon
 		case code.OpIterationReset:
 
 			// Create a scoped environment
 			vm.environment.AddScope()
-
 			// get object we're iterating over..
 			out, err := vm.stack.Pop()
 			if err != nil {
@@ -1356,19 +1433,17 @@ func (vm *VM) executeIndexExpression(left, index object.Object) error {
 	return nil
 }
 
-// WalkBytecode invokes the specified callbackup function upon every
-// instruction in our bytecode program.
+// walkBytecode iterates over a block of bytecode, invoking the callback
+// on every instruction.
 //
-// This is primarily used for our optimizer, but it is also used
-// for the implementation of the Dump command in our evalfilter
-// package.
-func (vm *VM) WalkBytecode(callback BytecodeVisitor) error {
+// This is a helper used by WalkBytecode and WalkFunctionBytecode.
+func (vm *VM) walkBytecodeHelper(bytecode code.Instructions, callback BytecodeVisitor) error {
 
 	//
 	// We're going to walk over the bytecode from start to finish.
 	//
 	ip := 0
-	ln := len(vm.bytecode)
+	ln := len(bytecode)
 
 	//
 	// Walk the bytecode.
@@ -1378,7 +1453,7 @@ func (vm *VM) WalkBytecode(callback BytecodeVisitor) error {
 		//
 		// Get the next opcode
 		//
-		op := code.Opcode(vm.bytecode[ip])
+		op := code.Opcode(bytecode[ip])
 
 		//
 		// Find out how long it is.
@@ -1396,7 +1471,7 @@ func (vm *VM) WalkBytecode(callback BytecodeVisitor) error {
 			// with opcodes with more than a single argument,
 			// and they might be different sizes.
 			//
-			opArg = int(binary.BigEndian.Uint16(vm.bytecode[ip+1 : ip+3]))
+			opArg = int(binary.BigEndian.Uint16(bytecode[ip+1 : ip+3]))
 		}
 
 		var err error
@@ -1424,4 +1499,34 @@ func (vm *VM) WalkBytecode(callback BytecodeVisitor) error {
 
 	// No error, walk is complete.
 	return nil
+}
+
+// WalkBytecode invokes the specified callbackup function upon every
+// instruction in our bytecode program.
+//
+// This is primarily used for our optimizer, but it is also used
+// for the implementation of the Dump command in our evalfilter
+// package.
+func (vm *VM) WalkBytecode(callback BytecodeVisitor) error {
+	return (vm.walkBytecodeHelper(vm.bytecode, callback))
+}
+
+// WalkFunctionBytecode invokes the specified callbackup function upon every
+// instruction in the bytecode corresponding to the named function.
+//
+// This is primarily used for the implementation of the Dump command in our
+// evalfilter package.
+func (vm *VM) WalkFunctionBytecode(name string, callback BytecodeVisitor) error {
+	//
+	// Get the function and test it exists
+	//
+	fun, ok := vm.functions[name]
+	if !ok {
+		return fmt.Errorf("function not found %s", name)
+	}
+
+	//
+	// OK we found a function, walk the compiled bytecode.
+	//
+	return (vm.walkBytecodeHelper(fun.Bytecode, callback))
 }
