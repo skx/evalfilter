@@ -49,3 +49,12 @@ func TestOpcodes(t *testing.T) {
 		i++
 	}
 }
+
+// TestInvalidCode ensures that an unknown code is identified as such.
+func TestInvalidCode(t *testing.T) {
+
+	name := String(Opcode(244))
+	if name != "OpUnknown" {
+		t.Fatalf("unknown opcodes returned something unexpected:%s", name)
+	}
+}
