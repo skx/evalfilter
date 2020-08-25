@@ -57,6 +57,9 @@ const (
 	// Set a variable by name
 	OpSet
 
+	// Setup a local variable, by name
+	OpLocal
+
 	// Push a TRUE value onto the stack.
 	OpTrue
 
@@ -206,6 +209,7 @@ var OpCodeNames = [...]string{
 	OpJumpIfFalse:    "OpJumpIfFalse",
 	OpLess:           "OpLess",
 	OpLessEqual:      "OpLessEqual",
+	OpLocal:          "OpLocal",
 	OpLookup:         "OpLookup",
 	OpMatches:        "OpMatches",
 	OpMinus:          "OpMinus",
