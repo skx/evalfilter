@@ -481,7 +481,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			}
 
 			// Save IP + bytecode
-			oldIp := ip
+			oldIP := ip
 			oldBytecode := vm.bytecode
 			oldStack := vm.stack
 
@@ -514,7 +514,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
 			// Otherwise we're going to keep running from
 			// where we were.
-			ip = oldIp
+			ip = oldIP
 			vm.bytecode = oldBytecode
 			vm.stack = oldStack
 
