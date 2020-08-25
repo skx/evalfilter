@@ -109,6 +109,9 @@ type Parser struct {
 	// Nested ternary expressions are illegal so we
 	// need to keep track of this.
 	tern bool
+
+	// Are we inside a function?
+	function bool
 }
 
 // New returns a new parser.
@@ -132,6 +135,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.IF, p.parseIfExpression)
 	p.registerPrefix(token.ILLEGAL, p.parseIllegal)
 	p.registerPrefix(token.INT, p.parseIntegerLiteral)
+	p.registerPrefix(token.LOCAL, p.parseLocalVariable)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.LSQUARE, p.parseArrayLiteral)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
@@ -323,6 +327,29 @@ func (p *Parser) parseEOF() ast.Expression {
 // parseIdentifier parses an identifier.
 func (p *Parser) parseIdentifier() ast.Expression {
 	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+}
+
+// parseLocal parses something like "local x;"
+func (p *Parser) parseLocalVariable() ast.Expression {
+
+	if !p.function {
+		msg := fmt.Sprintf("'local' may only be used inside a function, around line %d", p.l.GetLine())
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
+	// Skip over the `local`
+	p.nextToken()
+
+	// Ensure we got an ident.
+	if !p.curTokenIs(token.IDENT) {
+		msg := fmt.Sprintf("'local' may only be used with an IDENT, around line %d", p.l.GetLine())
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
+	return &ast.LocalVariable{Token: p.curToken}
+
 }
 
 // parseIntegerLiteral parses an integer literal.
@@ -553,6 +580,9 @@ func (p *Parser) parseForEach() ast.Expression {
 // parseFunctionDefinition parses the definition of a function.
 func (p *Parser) parseFunctionDefinition() ast.Expression {
 
+	// We're inside a function
+	p.function = true
+
 	// skip the `function` keyword
 	p.nextToken()
 
@@ -575,6 +605,10 @@ func (p *Parser) parseFunctionDefinition() ast.Expression {
 	// And consume the function-body including the
 	// closing "}".
 	lit.Body = p.parseBlockStatement()
+
+	// We're no longer inside a function
+	p.function = false
+
 	return lit
 }
 
@@ -597,7 +631,7 @@ func (p *Parser) parseFunctionParameters() []*ast.Identifier {
 	for !p.curTokenIs(token.RPAREN) {
 
 		if p.curTokenIs(token.EOF) {
-			p.errors = append(p.errors, "unterminated function parameters")
+			p.errors = append(p.errors, "unterminated function parameters found end of file")
 			return nil
 		}
 
