@@ -264,6 +264,8 @@ To give you a quick feel for how things look you could consult these two simple 
 * [example_function_test.go](example_function_test.go).
   * This exports a function from the golang-host application to the scripting environment.
   * The new function is then used to filter a list of people.
+* [example_user_defined_function_test.go](example_user_defined_function_test.go)
+  * Writing a function without the scripting-environment, and then calling it.
 
 
 ## Additional Examples
