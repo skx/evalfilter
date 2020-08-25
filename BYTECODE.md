@@ -243,11 +243,16 @@ There are some miscellaneous instructions:
   * Pushes a `true` value to the stack.
 * `OpFalse`
   * Pushes a `false` value to the stack.
+* `OpVoid`
+  * Pushes a `void` value to the stack.
 * `OpReturn`
   * Pops a value off the stack and terminates processing.
     * The value taken from the stack is the return-code.
 * `OpLookup`
   * Much like loading a constant by reference this loads the value from the structure field with the given name.
+* `OpLocal`
+  * Declare that the associated variable-name is "local" in scope, rather than global.
+  * This is used to handle variables marked with `local`.
 * `OpCall`
   * Pops the name of a function to call from the stack.
   * Called with an argument noting how many arguments to pass to the function, and pops that many arguments from the stack to use in the function-call.
@@ -262,6 +267,8 @@ The prototype of all functions is:
      func foo( args []object.Object ) object.Object { .. }
 
 i.e. All functions take an array of objects, and return a single object.  The objects allow recieving or returning arrays, strings, numbers, booleans, and errors.
+
+**NOTE**:  In addition to these functions, implemented in golang, a user can define their own functions within the language itself.  On the calling-side there is no difference between a built-in function, and a user-defined function.  However built-in functions always take precedence, if the user were to define a function named `printf` it would never be invoked, the built-in function with that name would be invoked instead.
 
 We've already seen how constants can be loaded from the constant area onto the stack, and that along with the `OpCall` instruction is all we need to support calling functions.
 
@@ -294,6 +301,7 @@ The end result of that is that the function call happens:
     * This will be the string `This is weird\n`.
 * Now that the arguments are handled the function is invoked.
 * The return result from that call is then pushed onto the stack.
+  * Unless the function returns `Void` in which case the result is empty and ignored.
 
 
 # Program Walkthrough
