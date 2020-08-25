@@ -273,6 +273,16 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			val := vm.lookup(obj, name)
 			vm.stack.Push(val)
 
+			// Setup a local variable, by name
+		case code.OpLocal:
+			name, err := vm.stack.Pop()
+			if err != nil {
+				return nil, err
+			}
+
+			// now set the value
+			vm.environment.SetLocal(name.Inspect(), Null)
+
 			// Set a variable by name
 		case code.OpSet:
 
@@ -497,23 +507,25 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			if len(val.Arguments) != len(fnArgs) {
 				return nil, fmt.Errorf("mismatch in argument-counts for %s, expected %d but got %d", name, len(val.Arguments), len(fnArgs))
 			}
+
 			// Now for each arg we set the value
 			for i, name := range val.Arguments {
 				vm.environment.SetLocal(name, fnArgs[i])
 			}
+
 			// Run ourselves against that new bytecode.
 			//
 			// This is a bit horrid.
-
 			out, err := vm.Run(obj)
 
-			// Did we get an error?  If so unwind and return
+			// Did we get an error?  If so return it
 			if err != nil {
 				return nil, err
 			}
 
 			// Otherwise we're going to keep running from
-			// where we were.
+			// where we left off - resetting the state of
+			// our stack, instruction-pointer, and bytecode.
 			ip = oldIP
 			vm.bytecode = oldBytecode
 			vm.stack = oldStack
@@ -523,8 +535,10 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 				vm.stack.Push(out)
 			}
 
-			// Drop the scope
+			// Drop the scope which means function-arguments
+			// are dropped.
 			vm.environment.RemoveScope()
+
 			// reset the state of an object which is to be iterated upon
 		case code.OpIterationReset:
 
