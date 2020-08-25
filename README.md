@@ -93,8 +93,10 @@ Again as you'd expect the facilities are pretty normal/expected:
   * Your host-application can also set variables which are accessible to the user-script.
 * There are series of built-in primitives which can be used by your scripts, and you can export your own host-specified functions easily.
   * For example the `print` function to generate output from your script is just a simple function implemented in Golang and exported to the environment.
+* You can define functions inside your scripts, to provide abstraction and remove redundency.
+  * See [_examples/scripts/scope.in](_examples/scripts/scope.in) for a brief example.
 
-Our script implements a golang-style loop, using either `for` or `while`:
+Our script implements a golang-style loop, using either `for` or `while` as the keyword:
 
     count = 0;
     while ( count < 10 ) {
@@ -257,15 +259,16 @@ The program will be terminated with an error after five seconds, which means tha
 
 # Sample Usage
 
-To give you a quick feel for how things look you could consult these two simple examples:
+To give you a quick feel for how things look you could consult the following simple examples:
 
 * [example_test.go](example_test.go).
   * This filters a list of people by their age.
 * [example_function_test.go](example_function_test.go).
   * This exports a function from the golang-host application to the scripting environment.
+    * This is a demonstration of how you'd provide extra functionality when embedding the engine in your own application.
   * The new function is then used to filter a list of people.
 * [example_user_defined_function_test.go](example_user_defined_function_test.go)
-  * Writing a function without the scripting-environment, and then calling it.
+  * Writing a function within the scripting-environment, and then calling it.
 
 
 ## Additional Examples
@@ -348,13 +351,18 @@ go get github.com/skx/evalfilter/v2/cmd/evalfilter
 
 This driver, contained within the repository at [cmd/evalfilter](cmd/evalfilter) has a number of sub-commands to allow you to experiment with the scripting environment:
 
-* Output a dissassembly of the [bytecode instructions](BYTECODE.md) the compilare generated when preparing your script.
+* Output a dissassembly of the [bytecode instructions](BYTECODE.md) the compiler generated when preparing your script.
 * Run a script.
   * Optionally with a JSON object as input.
 * View the various states of the lexer, parser, and compilation process.
 
 Help is available by running `evalfilter help`, and the sub-commands [are documented thoroughly](cmd/evalfilter/README.md), along with sample output.
 
+TAB-completion is supported if you're running `bash`, execute the following to enable it:
+
+```
+$ source <(evalfilter bash-completion)
+```
 
 # Benchmarking
 
