@@ -39,7 +39,7 @@ y = 2;
 //
 // Confirm they work as expected.
 //
-printf("Start: x = %d, y = %d, z is not defined (%v)\n", x, y, z );
+printf("Start: x => %d, y => %d, z is not defined (%v)\n", x, y, z );
 
 //
 // Call the function.
@@ -49,12 +49,26 @@ tmp(x);
 //
 // Now one value is updated, and another is created.
 //
-printf("End: x = %d, y = %d, z is defined (%d)\n", x, y, z );
+printf("End: x => %d, y => %d, z is defined (%d)\n", x, y, z );
+
+//
+// Confirm the `local` variable didn't leak outside the function-body
+//
+if ( test ) {
+  printf("FATAL-ERROR: The local variable shouldn't have leaked\n");
+}
+else {
+  printf("The local variable did not leak, and is null as expected: %v\n", test);
+}
+
 
 //
 // Scripting time is over now.
 //
 return 1;
+
+
+
 
 
 //
@@ -72,6 +86,17 @@ function tmp(x) {
    // That'll be visible afterward.
    z = 1000;
 
+   // This is local-only variable and will not leak outside
+   // The scope of this function.
+   local test;
+   test = 33;
+
+   // Confirm that works
+   printf(" Inside the function we have a local-variable: test=>%d\n", test);
+   test = test * 2;
+   printf(" Inside the function the local-variable can be updated: test=>%d\n", test);
+
+
    // Show the result
-   printf(" At function end: x = %d, y = %d, z = %d\n", x, y, z );
+   printf(" At function end: x => %d, y => %d, z => %d, test => %d\n", x, y, z, test );
 }

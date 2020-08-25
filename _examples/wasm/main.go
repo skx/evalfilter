@@ -25,6 +25,39 @@ func append(i js.Value, val string) {
 	js.Global().Get("document").Call("getElementById", i.String()).Set("value", cur)
 }
 
+// fnSprintf is the implementation of our `sprintf` function.
+func fnSprintf(args []object.Object) object.Object {
+
+	// We expect 1+ arguments
+	if len(args) < 1 {
+		return &object.Null{}
+	}
+
+	// Type-check
+	if args[0].Type() != object.STRING {
+		return &object.Null{}
+	}
+
+	// Get the format-string.
+	fs := args[0].(*object.String).Value
+
+	// Convert the arguments to something go's sprintf
+	// code will understand.
+	argLen := len(args)
+	fmtArgs := make([]interface{}, argLen-1)
+
+	// Here we convert and assign.
+	for i, v := range args[1:] {
+		fmtArgs[i] = v.ToInterface()
+	}
+
+	// Call the helper
+	out := fmt.Sprintf(fs, fmtArgs...)
+
+	// And now return the value.
+	return &object.String{Value: out}
+}
+
 // run takes the script in 0 and outputs the result to 1
 func run(this js.Value, i []js.Value) interface{} {
 
@@ -52,7 +85,13 @@ func run(this js.Value, i []js.Value) interface{} {
 			}
 			return &object.Void{}
 		})
+	eval.AddFunction("printf",
+		func(args []object.Object) object.Object {
+			out := fnSprintf(args)
+			append(i[1], fmt.Sprintf("%s", out.Inspect()))
 
+			return &object.Void{}
+		})
 	// call the script
 	ret, err := eval.Execute(nil)
 	if err != nil {
