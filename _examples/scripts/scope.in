@@ -4,9 +4,10 @@
 //
 // We'll compare three variables here:
 //
-//    x is a global, which becomes scoped inside the function body
-//    y which is also global.
+//    x is a global, which becomes scoped inside the function body.
+//    y is also global.
 //    z which is created inside a function, and accessible outside it.
+//    test is created inside the function, locally.
 //
 // The key observations with this script are:
 //
@@ -23,9 +24,12 @@
 // Once you do so you'll see the output, and the return-code displayed:
 //
 //    $ evalfilter run scope.script
-//    Start: x = 1, y = 2
-//       At function end: x = 10, y = 100
-//    End  : x = 1, y = 100
+//    Start: x => 1, y => 2, z is not defined (<nil>)
+//     Inside the function we have a local-variable: test=>33
+//     Inside the function the local-variable can be updated: test=>66
+//     At function end: x => 10, y => 100, z => 1000, test => 66
+//    End: x => 1, y => 100, z is defined (1000)
+//    The local variable did not leak, and is null as expected: <nil>
 //    Script gave result type:INTEGER value:1 - which is 'true'.
 //
 
