@@ -59,20 +59,14 @@ func TestArray(t *testing.T) {
 	//
 	// No harm in repeating this test a few times
 	//
-	for _, c := range []int{0, 1, 2} {
-
-		// We're just using the range to repeat this
-		// section.  Meh.
-		if c != c {
-			t.Fatalf("Unused variable helper")
-		}
+	for range []int{0, 1, 2} {
 
 		// Reset the iteration and count of loops.
 		arr.Reset()
 		count := 0
 
 		// For each of the known array-values we expect
-		for i, _ := range vals {
+		for i := range vals {
 
 			// Get the next-value from the array, via the
 			// iterator.
@@ -300,13 +294,7 @@ func TestString(t *testing.T) {
 	//
 	// No harm in repeating this test a few times
 	//
-	for _, c := range []int{0, 1, 2} {
-
-		// We're just using the range to repeat this
-		// section.  Meh.
-		if c != c {
-			t.Fatalf("Unused variable helper")
-		}
+	for range []int{0, 1, 2} {
 
 		// Reset the iteration and count of loops.
 		tmp.Reset()
