@@ -506,7 +506,7 @@ return "steve";
 	incomplete := `return true`
 	l = lexer.New(incomplete)
 	p = New(l)
-	program = p.ParseProgram()
+	p.ParseProgram()
 
 	if len(p.errors) != 1 {
 		t.Fatalf("expected a parse error - got none")
