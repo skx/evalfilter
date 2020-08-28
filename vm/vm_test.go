@@ -228,6 +228,94 @@ func TestOpConstant(t *testing.T) {
 	}
 }
 
+func TestOpSet(t *testing.T) {
+	// One constant
+	constants := []object.Object{&object.String{Value: "Steve"},
+		&object.String{Value: "Kemp"},
+	}
+
+	// The program we run:
+	bytecode := code.Instructions{
+		byte(code.OpConstant), // 0x00
+		byte(0),               // 0x01
+		byte(1),               // 0x02 -> Steve
+		byte(code.OpConstant), // 0x03
+		byte(0),               // 0x04
+		byte(0),               // 0x05 -> Kemp
+		byte(code.OpSet),      // 0x06
+		byte(code.OpTrue),     // 0x07
+		byte(code.OpReturn),   // 0x08
+	}
+
+	// No functions
+	functions := make(map[string]environment.UserFunction)
+
+	// Default environment
+	env := environment.New()
+
+	// Default context
+	ctx := context.Background()
+
+	// Create
+	vm := New(constants, bytecode, functions, env)
+	vm.SetContext(ctx)
+
+	// Run
+	out, err := vm.Run(nil)
+	if err != nil {
+		t.Fatalf("expected no error, got :%s\n", err.Error())
+	}
+
+	// Result should be our constant.
+	if out.Inspect() != "true" {
+		t.Errorf("program has wrong result: %v", out)
+	}
+
+	// The variable "Steve" should now exist
+	s, res := vm.environment.Get("Steve")
+	if !res {
+		t.Fatalf("Failed to lookup variable:%v", s)
+	}
+	if s.Inspect() != "Kemp" {
+		t.Fatalf("Expected variable has the wrong value")
+	}
+}
+
+func TestOpVoid(t *testing.T) {
+	// No constants
+	constants := []object.Object{&object.String{Value: "Steve"}}
+
+	// The program we run:
+	bytecode := code.Instructions{
+		byte(code.OpVoid),   // 0x00
+		byte(code.OpReturn), // 0x01
+	}
+
+	// No functions
+	functions := make(map[string]environment.UserFunction)
+
+	// Default environment
+	env := environment.New()
+
+	// Default context
+	ctx := context.Background()
+
+	// Create
+	vm := New(constants, bytecode, functions, env)
+	vm.SetContext(ctx)
+
+	// Run
+	out, err := vm.Run(nil)
+	if err != nil {
+		t.Fatalf("expected no error, got :%s\n", err.Error())
+	}
+
+	// Result should be void
+	if out.Inspect() != "void" {
+		t.Errorf("program has wrong result: %v", out)
+	}
+}
+
 // Test constant-comparisons are removed.
 func TestOptimizerConstants(t *testing.T) {
 	// No constants
