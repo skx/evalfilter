@@ -158,6 +158,8 @@ func TestOpBang(t *testing.T) {
 			byte(code.OpBang),   // 0x01
 			byte(code.OpReturn), // 0x03
 		}, result: "false"},
+
+		// TODO: Test empty stack
 	}
 
 	for _, test := range tests {
@@ -334,6 +336,7 @@ func TestOpSquareRoot(t *testing.T) {
 
 		// Default environment
 		env := environment.New()
+		env.Set("DEBUG", &object.Boolean{Value: true})
 
 		// Default context
 		ctx := context.Background()
