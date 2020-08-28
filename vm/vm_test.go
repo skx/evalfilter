@@ -112,6 +112,122 @@ func TestInit(t *testing.T) {
 
 }
 
+func TestOpBang(t *testing.T) {
+
+	type TestCase struct {
+		program code.Instructions
+		result  string
+	}
+
+	tests := []TestCase{
+
+		// !true -> false
+		{program: code.Instructions{
+			byte(code.OpTrue),   // 0x00
+			byte(code.OpBang),   // 0x01
+			byte(code.OpReturn), // 0x03
+		}, result: "false"},
+
+		// !false -> true
+		{program: code.Instructions{
+			byte(code.OpFalse),  // 0x00
+			byte(code.OpBang),   // 0x01
+			byte(code.OpReturn), // 0x03
+		}, result: "true"},
+
+		// !2 -> false
+		{program: code.Instructions{
+			byte(code.OpPush),   // 0x00
+			byte(0),             // 0x01
+			byte(2),             // 0x02
+			byte(code.OpBang),   // 0x03
+			byte(code.OpReturn), // 0x04
+		}, result: "false"},
+
+		// !(null) -> true
+		{program: code.Instructions{
+			byte(code.OpLookup), // 0x00
+			byte(0),             // 0x01
+			byte(0),             // 0x02
+			byte(code.OpBang),   // 0x03
+			byte(code.OpReturn), // 0x04
+		}, result: "true"},
+
+		{program: code.Instructions{
+			byte(code.OpTrue),   // 0x00
+			byte(code.OpBang),   // 0x01
+			byte(code.OpReturn), // 0x03
+		}, result: "false"},
+	}
+
+	for _, test := range tests {
+
+		// One constants
+		constants := []object.Object{&object.String{Value: "Steve"}}
+
+		// No functions
+		functions := make(map[string]environment.UserFunction)
+
+		// Default environment
+		env := environment.New()
+
+		// Default context
+		ctx := context.Background()
+
+		// Create
+		vm := New(constants, test.program, functions, env)
+		vm.SetContext(ctx)
+
+		// Run
+		out, err := vm.Run(nil)
+		if err != nil {
+			t.Fatalf("expected no error, got :%s\n", err.Error())
+		}
+
+		// Result
+		if out.Inspect() != test.result {
+			t.Errorf("program has wrong result: %v", out)
+		}
+	}
+}
+
+func TestOpConstant(t *testing.T) {
+	// One constant
+	constants := []object.Object{&object.String{Value: "Steve"}}
+
+	// The program we run:
+	bytecode := code.Instructions{
+		byte(code.OpConstant), // 0x00
+		byte(0),               // 0x01
+		byte(0),               // 0x02
+		byte(code.OpReturn),   // 0x03
+	}
+
+	// No functions
+	functions := make(map[string]environment.UserFunction)
+
+	// Default environment
+	env := environment.New()
+
+	// Default context
+	ctx := context.Background()
+
+	// Create
+	vm := New(constants, bytecode, functions, env)
+	vm.SetContext(ctx)
+
+	// Run
+	out, err := vm.Run(nil)
+	if err != nil {
+		t.Fatalf("expected no error, got :%s\n", err.Error())
+	}
+
+	// Result should be our constant.
+	if out.Inspect() != "Steve" {
+		t.Errorf("program has wrong result: %v", out)
+	}
+}
+
 // Test constant-comparisons are removed.
 func TestOptimizerConstants(t *testing.T) {
 	// No constants
@@ -219,7 +335,6 @@ func TestOptimizerConstants(t *testing.T) {
 				code.String(code.Opcode(vm.bytecode[i])), code.String(code.Opcode(op)))
 		}
 	}
-
 }
 
 func TestOptimizerEnabled(t *testing.T) {
