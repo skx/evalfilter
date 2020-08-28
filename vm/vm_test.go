@@ -318,13 +318,13 @@ func TestOpSquareRoot(t *testing.T) {
 			byte(code.OpFalse),
 			byte(code.OpSquareRoot),
 			byte(code.OpReturn),
-		}, result: "xx", error: true},
+		}, result: "unsupported type for square-root", error: true},
 
 		// root() -> error
 		{program: code.Instructions{
 			byte(code.OpSquareRoot),
 			byte(code.OpReturn),
-		}, result: "xx", error: true},
+		}, result: "Pop from an empty stack", error: true},
 	}
 
 	for _, test := range tests {
@@ -346,9 +346,12 @@ func TestOpSquareRoot(t *testing.T) {
 		out, err := vm.Run(nil)
 
 		if test.error {
-
 			if err == nil {
 				t.Fatalf("expected an error, got none")
+			}
+
+			if !strings.Contains(err.Error(), test.result) {
+				t.Fatalf("Error '%s' didn't contain '%s'", err.Error(), test.result)
 			}
 		} else {
 			if err != nil {
