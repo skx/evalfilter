@@ -229,7 +229,7 @@ func TestOpConstant(t *testing.T) {
 }
 
 func TestOpSet(t *testing.T) {
-	// One constant
+	// A pair of constants
 	constants := []object.Object{&object.String{Value: "Steve"},
 		&object.String{Value: "Kemp"},
 	}
@@ -278,6 +278,88 @@ func TestOpSet(t *testing.T) {
 	}
 	if s.Inspect() != "Kemp" {
 		t.Fatalf("Expected variable has the wrong value")
+	}
+}
+
+func TestOpSquareRoot(t *testing.T) {
+	// A pair of constants
+	constants := []object.Object{&object.Integer{Value: 9},
+		&object.Float{Value: 16.0},
+	}
+
+	type TestCase struct {
+		program code.Instructions
+		result  string
+		error   bool
+	}
+
+	tests := []TestCase{
+
+		// root(9) -> 3
+		{program: code.Instructions{
+			byte(code.OpConstant),
+			byte(0),
+			byte(0),
+			byte(code.OpSquareRoot),
+			byte(code.OpReturn),
+		}, result: "3", error: false},
+
+		// root(16.0) -> 4
+		{program: code.Instructions{
+			byte(code.OpConstant),
+			byte(0),
+			byte(1),
+			byte(code.OpSquareRoot),
+			byte(code.OpReturn),
+		}, result: "4", error: false},
+
+		// root(false) -> error
+		{program: code.Instructions{
+			byte(code.OpFalse),
+			byte(code.OpSquareRoot),
+			byte(code.OpReturn),
+		}, result: "xx", error: true},
+
+		// root() -> error
+		{program: code.Instructions{
+			byte(code.OpSquareRoot),
+			byte(code.OpReturn),
+		}, result: "xx", error: true},
+	}
+
+	for _, test := range tests {
+
+		// No functions
+		functions := make(map[string]environment.UserFunction)
+
+		// Default environment
+		env := environment.New()
+
+		// Default context
+		ctx := context.Background()
+
+		// Create
+		vm := New(constants, test.program, functions, env)
+		vm.SetContext(ctx)
+
+		// Run
+		out, err := vm.Run(nil)
+
+		if test.error {
+
+			if err == nil {
+				t.Fatalf("expected an error, got none")
+			}
+		} else {
+			if err != nil {
+				t.Fatalf("expected no error - found:%s\n", err.Error())
+			}
+
+			// Result should be our constant.
+			if out.Inspect() != test.result {
+				t.Errorf("program has wrong result: %v", out)
+			}
+		}
 	}
 }
 
