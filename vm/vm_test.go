@@ -1,3 +1,8 @@
+// Mostly table-driven tests for exercising the different OpCode handlers
+// individually.
+//
+// Similarly testing the optimizer.
+
 package vm
 
 import (
@@ -10,6 +15,41 @@ import (
 	"github.com/skx/evalfilter/v2/environment"
 	"github.com/skx/evalfilter/v2/object"
 )
+
+// TestCase is the structure for describing our test-cases.
+//
+// Most of the tests in this file run a series of bytecode programs, and
+// then validate that a particular return value was received.
+//
+// We've created `RunTestCases` to handle this common setup/execution
+// of the tests.  This is the structure that it uses.
+//
+// The return value is either:
+//
+//    a) the topmost stack-item returned, or
+//    b) an error-string returned in the case of an (expected) error.
+//
+// If the `optimized` field is filled out then the bytecode will be
+// compared with that, after execution.
+//
+type TestCase struct {
+
+	// The (bytecode) program we're going to run.
+	program code.Instructions
+
+	// When optimizations are enabled then this is the
+	// output we expect to receive, once the execution
+	// is complete.
+	optimized code.Instructions
+
+	// The expected result of the program.
+	result string
+
+	// Is there an error expected?  If so the result
+	// must be contained in the error-message, otherwise
+	// we'll compare the result with the output-value.
+	error bool
+}
 
 func TestBool(t *testing.T) {
 
@@ -26,8 +66,6 @@ func TestBool(t *testing.T) {
 }
 
 // Test that we can handle a timeout when running an endless program.
-//
-// [Special]
 func TestContextTimeout(t *testing.T) {
 
 	// No constants
@@ -111,297 +149,190 @@ func TestDivideByZero(t *testing.T) {
 
 func TestEmptyProgram(t *testing.T) {
 
-	// No constants
-	constants := []object.Object{}
-
-	// The program we run
-	bytecode := code.Instructions{}
-
-	// No functions
-	functions := make(map[string]environment.UserFunction)
-
-	// Default environment
-	env := environment.New()
-
-	// default context
-	ctx := context.Background()
-
-	// Create
-	vm := New(constants, bytecode, functions, env)
-	vm.SetContext(ctx)
-
-	// Run
-	_, err := vm.Run(nil)
-	if err == nil {
-		t.Fatalf("expected an error, got none")
+	tests := []TestCase{
+		{
+			program: code.Instructions{},
+			result:  "program is empty",
+			error:   true,
+		},
 	}
-	if !strings.Contains(err.Error(), "program is empty") {
-		t.Fatalf("got error, but not the expected one: %s", err.Error())
-	}
+
+	RunTestCases(tests, []object.Object{}, t)
 }
 
-// [Special]
 func TestInit(t *testing.T) {
 
-	// No constants
-	constants := []object.Object{}
-
-	// The program we run
-	bytecode := code.Instructions{
-		byte(code.OpTrue),
-		byte(code.OpReturn)}
-
-	// No functions
-	functions := make(map[string]environment.UserFunction)
-
-	// Default environment
-	env := environment.New()
-
-	ctx := context.Background()
-
-	vm := New(constants, bytecode, functions, env)
-	vm.SetContext(ctx)
-
-	_, err := vm.Run(nil)
-	if err != nil {
-		t.Fatalf("expected no error, got :%s\n", err.Error())
+	tests := []TestCase{
+		{
+			program: code.Instructions{
+				byte(code.OpTrue),
+				byte(code.OpReturn),
+			},
+			result: "true",
+			error:  false,
+		},
 	}
 
+	RunTestCases(tests, []object.Object{}, t)
 }
 
-// Special
 func TestMissingReturn(t *testing.T) {
 
-	// No constants
-	constants := []object.Object{}
-
-	// The program we run
-	bytecode := code.Instructions{
-		byte(code.OpTrue),
-		byte(code.OpFalse),
+	tests := []TestCase{
+		{
+			program: code.Instructions{
+				byte(code.OpTrue),
+				byte(code.OpFalse),
+			},
+			result: "missing return",
+			error:  true,
+		},
 	}
 
-	// No functions
-	functions := make(map[string]environment.UserFunction)
-
-	// Default environment
-	env := environment.New()
-
-	// default context
-	ctx := context.Background()
-
-	// Create
-	vm := New(constants, bytecode, functions, env)
-	vm.SetContext(ctx)
-
-	// Run
-	_, err := vm.Run(nil)
-	if err == nil {
-		t.Fatalf("expected an error, got none")
-	}
-	if !strings.Contains(err.Error(), "missing return") {
-		t.Fatalf("got error, but not the expected one: %s", err.Error())
-	}
+	RunTestCases(tests, []object.Object{}, t)
 }
 
 func TestOpArray(t *testing.T) {
 
-	type TestCase struct {
-		program code.Instructions
-		result  string
-		error   bool
-	}
-
 	tests := []TestCase{
-
 		// Build an array with zero args.
-		{program: code.Instructions{
-			byte(code.OpArray),  // 0x00
-			byte(0),             // 0x01
-			byte(0),             // 0x02
-			byte(code.OpReturn), // 0x03
-		}, result: "[]", error: false},
+		{
+			program: code.Instructions{
+				byte(code.OpArray),  // 0x00
+				byte(0),             // 0x01
+				byte(0),             // 0x02
+				byte(code.OpReturn), // 0x03
+			},
+			result: "[]",
+			error:  false,
+		},
 
 		// stack underflow
-		{program: code.Instructions{
-			byte(code.OpArray),  // 0x00
-			byte(0),             // 0x01
-			byte(1),             // 0x02
-			byte(code.OpReturn), // 0x03
-		}, result: "Pop from an empty stack", error: true},
+		{
+			program: code.Instructions{
+				byte(code.OpArray),  // 0x00
+				byte(0),             // 0x01
+				byte(1),             // 0x02
+				byte(code.OpReturn), // 0x03
+			},
+			result: "Pop from an empty stack",
+			error:  true,
+		},
 
 		// [true]
-		{program: code.Instructions{
-			byte(code.OpTrue),   // 0x00
-			byte(code.OpArray),  // 0x01
-			byte(0),             // 0x02
-			byte(1),             // 0x03
-			byte(code.OpReturn), // 0x04
-		}, result: "[true]", error: false},
+		{
+			program: code.Instructions{
+				byte(code.OpTrue),   // 0x00
+				byte(code.OpArray),  // 0x01
+				byte(0),             // 0x02
+				byte(1),             // 0x03
+				byte(code.OpReturn), // 0x04
+			},
+			result: "[true]",
+			error:  false,
+		},
 
 		// [true, true, true, true]
-		{program: code.Instructions{
-			byte(code.OpTrue),   // 0x00
-			byte(code.OpTrue),   // 0x01
-			byte(code.OpTrue),   // 0x02
-			byte(code.OpTrue),   // 0x03
-			byte(code.OpArray),  // 0x04
-			byte(0),             // 0x05
-			byte(4),             // 0x06
-			byte(code.OpReturn), // 0x07
-		}, result: "[true, true, true, true]", error: false},
+		{
+			program: code.Instructions{
+				byte(code.OpTrue),   // 0x00
+				byte(code.OpTrue),   // 0x01
+				byte(code.OpTrue),   // 0x02
+				byte(code.OpTrue),   // 0x03
+				byte(code.OpArray),  // 0x04
+				byte(0),             // 0x05
+				byte(4),             // 0x06
+				byte(code.OpReturn), // 0x07
+			},
+			result: "[true, true, true, true]",
+			error:  false,
+		},
 	}
 
-	for _, test := range tests {
-
-		// One constants
-		constants := []object.Object{&object.String{Value: "Steve"}}
-
-		// No functions
-		functions := make(map[string]environment.UserFunction)
-
-		// Default environment
-		env := environment.New()
-
-		// Default context
-		ctx := context.Background()
-
-		// Create
-		vm := New(constants, test.program, functions, env)
-		vm.SetContext(ctx)
-
-		// Run
-		out, err := vm.Run(nil)
-
-		if test.error {
-			if err == nil {
-				t.Fatalf("expected an error, got none")
-			}
-
-			if !strings.Contains(err.Error(), test.result) {
-				t.Fatalf("Error '%s' didn't contain '%s'", err.Error(), test.result)
-			}
-		} else {
-			if err != nil {
-				t.Fatalf("expected no error - found:%s\n", err.Error())
-			}
-
-			// Result should be our constant.
-			if out.Inspect() != test.result {
-				t.Errorf("program has wrong result, expected %s: %s", test.result, out)
-			}
-		}
-	}
+	RunTestCases(tests, []object.Object{}, t)
 }
 
 func TestOpBang(t *testing.T) {
 
-	type TestCase struct {
-		program code.Instructions
-		result  string
-		error   bool
-	}
-
 	tests := []TestCase{
 
 		// !true -> false
-		{program: code.Instructions{
-			byte(code.OpTrue),   // 0x00
-			byte(code.OpBang),   // 0x01
-			byte(code.OpReturn), // 0x03
-		}, result: "false", error: false},
+		{
+			program: code.Instructions{
+				byte(code.OpTrue),   // 0x00
+				byte(code.OpBang),   // 0x01
+				byte(code.OpReturn), // 0x03
+			},
+			result: "false",
+			error:  false},
 
 		// !false -> true
-		{program: code.Instructions{
-			byte(code.OpFalse),  // 0x00
-			byte(code.OpBang),   // 0x01
-			byte(code.OpReturn), // 0x03
-		}, result: "true", error: false},
+		{
+			program: code.Instructions{
+				byte(code.OpFalse),  // 0x00
+				byte(code.OpBang),   // 0x01
+				byte(code.OpReturn), // 0x03
+			},
+			result: "true",
+			error:  false,
+		},
 
 		// !2 -> false
-		{program: code.Instructions{
-			byte(code.OpPush),   // 0x00
-			byte(0),             // 0x01
-			byte(2),             // 0x02
-			byte(code.OpBang),   // 0x03
-			byte(code.OpReturn), // 0x04
-		}, result: "false", error: false},
+		{
+			program: code.Instructions{
+				byte(code.OpPush),   // 0x00
+				byte(0),             // 0x01
+				byte(2),             // 0x02
+				byte(code.OpBang),   // 0x03
+				byte(code.OpReturn), // 0x04
+			},
+			result: "false",
+			error:  false,
+		},
 
 		// !(null) -> true
-		{program: code.Instructions{
-			byte(code.OpLookup), // 0x00
-			byte(0),             // 0x01
-			byte(0),             // 0x02
-			byte(code.OpBang),   // 0x03
-			byte(code.OpReturn), // 0x04
-		}, result: "true", error: false},
+		{
+			program: code.Instructions{
+				byte(code.OpLookup), // 0x00
+				byte(0),             // 0x01
+				byte(0),             // 0x02
+				byte(code.OpBang),   // 0x03
+				byte(code.OpReturn), // 0x04
+			},
+			result: "true",
+			error:  false,
+		},
 
-		{program: code.Instructions{
-			byte(code.OpTrue),   // 0x00
-			byte(code.OpBang),   // 0x01
-			byte(code.OpReturn), // 0x03
-		}, result: "false", error: false},
+		// !true -> false
+		{
+			program: code.Instructions{
+				byte(code.OpTrue),   // 0x00
+				byte(code.OpBang),   // 0x01
+				byte(code.OpReturn), // 0x03
+			},
+			result: "false",
+			error:  false,
+		},
 
 		// Test empty stack
-		{program: code.Instructions{
-			byte(code.OpBang),
-		}, result: "Pop from an empty stack", error: true},
+		{
+			program: code.Instructions{
+				byte(code.OpBang),
+			},
+			result: "Pop from an empty stack",
+			error:  true,
+		},
 	}
 
-	for _, test := range tests {
-
-		// One constants
-		constants := []object.Object{&object.String{Value: "Steve"}}
-
-		// No functions
-		functions := make(map[string]environment.UserFunction)
-
-		// Default environment
-		env := environment.New()
-
-		// Default context
-		ctx := context.Background()
-
-		// Create
-		vm := New(constants, test.program, functions, env)
-		vm.SetContext(ctx)
-
-		// Run
-		out, err := vm.Run(nil)
-
-		if test.error {
-			if err == nil {
-				t.Fatalf("expected an error, got none")
-			}
-
-			if !strings.Contains(err.Error(), test.result) {
-				t.Fatalf("Error '%s' didn't contain '%s'", err.Error(), test.result)
-			}
-		} else {
-			if err != nil {
-				t.Fatalf("expected no error - found:%s\n", err.Error())
-			}
-
-			// Result should be our constant.
-			if out.Inspect() != test.result {
-				t.Errorf("program has wrong result, expected %s: %s", test.result, out)
-			}
-		}
+	constants := []object.Object{
+		&object.String{Value: "Steve"},
 	}
+
+	RunTestCases(tests, constants, t)
 }
 
 // TODO: User-Defined Function(s)
 func TestOpCall(t *testing.T) {
-
-	// Constants
-	constants := []object.Object{&object.String{Value: "Steve"},
-		&object.String{Value: "len"}}
-
-	type TestCase struct {
-		program code.Instructions
-		result  string
-		error   bool
-	}
 
 	tests := []TestCase{
 
@@ -438,631 +369,454 @@ func TestOpCall(t *testing.T) {
 		}, result: "5", error: false},
 	}
 
-	for _, test := range tests {
+	// Constants
+	constants := []object.Object{&object.String{Value: "Steve"},
+		&object.String{Value: "len"}}
 
-		// No functions
-		functions := make(map[string]environment.UserFunction)
-
-		// Default environment
-		env := environment.New()
-
-		// Default context
-		ctx := context.Background()
-
-		// Create
-		vm := New(constants, test.program, functions, env)
-		vm.SetContext(ctx)
-
-		// Run
-		out, err := vm.Run(nil)
-
-		if test.error {
-			if err == nil {
-				t.Fatalf("expected an error, got none")
-			}
-
-			if !strings.Contains(err.Error(), test.result) {
-				t.Fatalf("Error '%s' didn't contain '%s'", err.Error(), test.result)
-			}
-		} else {
-			if err != nil {
-				t.Fatalf("expected no error - found:%s\n", err.Error())
-			}
-
-			// Result should be our constant.
-			if out.Inspect() != test.result {
-				t.Errorf("program has wrong result, expected %s: %s", test.result, out)
-			}
-		}
-	}
-
+	RunTestCases(tests, constants, t)
 }
 
-// [Special]
 func TestOpConstant(t *testing.T) {
-	// One constant
+
+	tests := []TestCase{
+		{
+			program: code.Instructions{
+				byte(code.OpConstant), // 0x00
+				byte(0),               // 0x01
+				byte(0),               // 0x02 -> val
+				byte(code.OpReturn),
+			},
+			result: "Steve",
+			error:  false,
+		},
+	}
+
+	// Constants
 	constants := []object.Object{&object.String{Value: "Steve"}}
 
-	// The program we run:
-	bytecode := code.Instructions{
-		byte(code.OpConstant), // 0x00
-		byte(0),               // 0x01
-		byte(0),               // 0x02
-		byte(code.OpReturn),   // 0x03
-	}
-
-	// No functions
-	functions := make(map[string]environment.UserFunction)
-
-	// Default environment
-	env := environment.New()
-
-	// Default context
-	ctx := context.Background()
-
-	// Create
-	vm := New(constants, bytecode, functions, env)
-	vm.SetContext(ctx)
-
-	// Run
-	out, err := vm.Run(nil)
-	if err != nil {
-		t.Fatalf("expected no error, got :%s\n", err.Error())
-	}
-
-	// Result should be our constant.
-	if out.Inspect() != "Steve" {
-		t.Errorf("program has wrong result: %v", out)
-	}
+	RunTestCases(tests, constants, t)
 }
 
 func TestOpDec(t *testing.T) {
 
+	tests := []TestCase{
+
+		// dec on a string
+		{
+			program: code.Instructions{
+				byte(code.OpConstant), // 0x00
+				byte(0),               // 0x01
+				byte(1),               // 0x02 -> val
+				byte(code.OpConstant), // 0x03
+				byte(0),               // 0x04
+				byte(0),               // 0x05 -> key
+				byte(code.OpSet),      // 0x06
+
+				// now "key = steve"
+				byte(code.OpDec),
+				byte(0),
+				byte(0),
+				byte(code.OpReturn),
+			},
+			result: "doesn't implement the Decrement() interface",
+			error:  true,
+		},
+
+		// dec on a number
+		{
+			program: code.Instructions{
+				byte(code.OpPush),     // 0x00
+				byte(0),               // 0x01
+				byte(9),               // 0x02 -> 9
+				byte(code.OpConstant), // 0x03
+				byte(0),               // 0x04
+				byte(0),               // 0x05 -> key
+				byte(code.OpSet),      // 0x06
+
+				// now "key = 9", decrease  it
+
+				// BUG?  Here we MUST set OpLookup otherwise
+				// we get a stack-mismatch.
+				byte(code.OpLookup),
+				byte(0),
+				byte(0),
+
+				byte(code.OpDec),
+				byte(0),
+				byte(0),
+
+				// Get the value
+				byte(code.OpLookup),
+				byte(0),
+				byte(0),
+				byte(code.OpReturn),
+			},
+			result: "8",
+			error:  false,
+		},
+
+		// dec on a number - but no OpLookup
+		{
+			program: code.Instructions{
+				byte(code.OpPush),     // 0x00
+				byte(0),               // 0x01
+				byte(9),               // 0x02 -> 9
+				byte(code.OpConstant), // 0x03
+				byte(0),               // 0x04
+				byte(0),               // 0x05 -> key
+				byte(code.OpSet),      // 0x06
+
+				// now "key = 9", decrease it
+				byte(code.OpDec),
+				byte(0),
+				byte(0),
+				byte(code.OpReturn),
+
+				// That OpLookup causes this.
+			},
+			result: "Pop from an empty stack",
+			error:  true,
+		},
+	}
+
 	// Constants
 	constants := []object.Object{&object.String{Value: "key"},
 		&object.String{Value: "val"}}
 
-	type TestCase struct {
-		program code.Instructions
-		result  string
-		error   bool
-	}
-
-	tests := []TestCase{
-
-		// dec on a string
-		{program: code.Instructions{
-			byte(code.OpConstant), // 0x00
-			byte(0),               // 0x01
-			byte(1),               // 0x02 -> val
-			byte(code.OpConstant), // 0x03
-			byte(0),               // 0x04
-			byte(0),               // 0x05 -> key
-			byte(code.OpSet),      // 0x06
-
-			// now "key = steve"
-			byte(code.OpDec),
-			byte(0),
-			byte(0),
-			byte(code.OpReturn),
-		}, result: "doesn't implement the Decrement() interface", error: true},
-
-		// dec on a number
-		{program: code.Instructions{
-			byte(code.OpPush),     // 0x00
-			byte(0),               // 0x01
-			byte(9),               // 0x02 -> 9
-			byte(code.OpConstant), // 0x03
-			byte(0),               // 0x04
-			byte(0),               // 0x05 -> key
-			byte(code.OpSet),      // 0x06
-
-			// now "key = 9", decrease  it
-
-			// BUG?  Here we MUST set OpLookup otherwise
-			// we get a stack-mismatch.
-			byte(code.OpLookup),
-			byte(0),
-			byte(0),
-
-			byte(code.OpDec),
-			byte(0),
-			byte(0),
-
-			// Get the value
-			byte(code.OpLookup),
-			byte(0),
-			byte(0),
-			byte(code.OpReturn),
-		}, result: "8", error: false},
-
-		// dec on a number - but no OpLookup
-		{program: code.Instructions{
-			byte(code.OpPush),     // 0x00
-			byte(0),               // 0x01
-			byte(9),               // 0x02 -> 9
-			byte(code.OpConstant), // 0x03
-			byte(0),               // 0x04
-			byte(0),               // 0x05 -> key
-			byte(code.OpSet),      // 0x06
-
-			// now "key = 9", decrease it
-
-			// BUG?  Here we MUST set OpLookup otherwise
-			// we get a stack-mismatch.
-			byte(code.OpDec),
-			byte(0),
-			byte(0),
-			byte(code.OpReturn),
-		}, result: "Pop from an empty stack", error: true},
-	}
-
-	for _, test := range tests {
-
-		// No functions
-		functions := make(map[string]environment.UserFunction)
-
-		// Default environment
-		env := environment.New()
-
-		// Default context
-		ctx := context.Background()
-
-		// Create
-		vm := New(constants, test.program, functions, env)
-		vm.SetContext(ctx)
-
-		// Run
-		out, err := vm.Run(nil)
-
-		if test.error {
-			if err == nil {
-				t.Fatalf("expected an error, got none")
-			}
-
-			if !strings.Contains(err.Error(), test.result) {
-				t.Fatalf("Error '%s' didn't contain '%s'", err.Error(), test.result)
-			}
-		} else {
-			if err != nil {
-				t.Fatalf("expected no error - found:%s\n", err.Error())
-			}
-
-			// Result should be our constant.
-			if out.Inspect() != test.result {
-				t.Errorf("program has wrong result, expected %s: %s", test.result, out)
-			}
-		}
-	}
-
+	RunTestCases(tests, constants, t)
 }
 
 func TestOpInc(t *testing.T) {
 
+	tests := []TestCase{
+
+		// inc on a string
+		{
+			program: code.Instructions{
+				byte(code.OpConstant), // 0x00
+				byte(0),               // 0x01
+				byte(1),               // 0x02 -> val
+				byte(code.OpConstant), // 0x03
+				byte(0),               // 0x04
+				byte(0),               // 0x05 -> key
+				byte(code.OpSet),      // 0x06
+
+				// now "key = steve"
+				byte(code.OpInc),
+				byte(0),
+				byte(0),
+				byte(code.OpReturn),
+			},
+			result: "doesn't implement the Increment() interface",
+			error:  true,
+		},
+
+		// inc on a number
+		{
+			program: code.Instructions{
+				byte(code.OpPush),     // 0x00
+				byte(0),               // 0x01
+				byte(9),               // 0x02 -> 9
+				byte(code.OpConstant), // 0x03
+				byte(0),               // 0x04
+				byte(0),               // 0x05 -> key
+				byte(code.OpSet),      // 0x06
+
+				// now "key = 9", increase it
+
+				// BUG?  Here we MUST set OpLookup otherwise
+				// we get a stack-mismatch.
+				byte(code.OpLookup),
+				byte(0),
+				byte(0),
+
+				byte(code.OpInc),
+				byte(0),
+				byte(0),
+
+				// Get the value
+				byte(code.OpLookup),
+				byte(0),
+				byte(0),
+				byte(code.OpReturn),
+			},
+			result: "10",
+			error:  false,
+		},
+
+		// inc on a number - with no OpLookup
+		{
+			program: code.Instructions{
+				byte(code.OpPush),     // 0x00
+				byte(0),               // 0x01
+				byte(9),               // 0x02 -> 9
+				byte(code.OpConstant), // 0x03
+				byte(0),               // 0x04
+				byte(0),               // 0x05 -> key
+				byte(code.OpSet),      // 0x06
+
+				// now "key = 9", increase it
+				byte(code.OpInc),
+				byte(0),
+				byte(0),
+
+				// Get the value
+				byte(code.OpLookup),
+				byte(0),
+				byte(0),
+				byte(code.OpReturn),
+			},
+			result: "Pop from an empty stack",
+			error:  true,
+		},
+	}
+
 	// Constants
 	constants := []object.Object{&object.String{Value: "key"},
 		&object.String{Value: "val"}}
 
-	type TestCase struct {
-		program code.Instructions
-		result  string
-		error   bool
-	}
-
-	tests := []TestCase{
-
-		// inc on a string
-		{program: code.Instructions{
-			byte(code.OpConstant), // 0x00
-			byte(0),               // 0x01
-			byte(1),               // 0x02 -> val
-			byte(code.OpConstant), // 0x03
-			byte(0),               // 0x04
-			byte(0),               // 0x05 -> key
-			byte(code.OpSet),      // 0x06
-
-			// now "key = steve"
-			byte(code.OpInc),
-			byte(0),
-			byte(0),
-			byte(code.OpReturn),
-		}, result: "doesn't implement the Increment() interface", error: true},
-
-		// inc on a number
-		{program: code.Instructions{
-			byte(code.OpPush),     // 0x00
-			byte(0),               // 0x01
-			byte(9),               // 0x02 -> 9
-			byte(code.OpConstant), // 0x03
-			byte(0),               // 0x04
-			byte(0),               // 0x05 -> key
-			byte(code.OpSet),      // 0x06
-
-			// now "key = 9", increase it
-
-			// BUG?  Here we MUST set OpLookup otherwise
-			// we get a stack-mismatch.
-			byte(code.OpLookup),
-			byte(0),
-			byte(0),
-
-			byte(code.OpInc),
-			byte(0),
-			byte(0),
-
-			// Get the value
-			byte(code.OpLookup),
-			byte(0),
-			byte(0),
-			byte(code.OpReturn),
-		}, result: "10", error: false},
-
-		// inc on a number - with no OpLookup
-		{program: code.Instructions{
-			byte(code.OpPush),     // 0x00
-			byte(0),               // 0x01
-			byte(9),               // 0x02 -> 9
-			byte(code.OpConstant), // 0x03
-			byte(0),               // 0x04
-			byte(0),               // 0x05 -> key
-			byte(code.OpSet),      // 0x06
-
-			// now "key = 9", increase it
-			byte(code.OpInc),
-			byte(0),
-			byte(0),
-
-			// Get the value
-			byte(code.OpLookup),
-			byte(0),
-			byte(0),
-			byte(code.OpReturn),
-		}, result: "Pop from an empty stack", error: true},
-	}
-
-	for _, test := range tests {
-
-		// No functions
-		functions := make(map[string]environment.UserFunction)
-
-		// Default environment
-		env := environment.New()
-
-		// Default context
-		ctx := context.Background()
-
-		// Create
-		vm := New(constants, test.program, functions, env)
-		vm.SetContext(ctx)
-
-		// Run
-		out, err := vm.Run(nil)
-
-		if test.error {
-			if err == nil {
-				t.Fatalf("expected an error, got none")
-			}
-
-			if !strings.Contains(err.Error(), test.result) {
-				t.Fatalf("Error '%s' didn't contain '%s'", err.Error(), test.result)
-			}
-		} else {
-			if err != nil {
-				t.Fatalf("expected no error - found:%s\n", err.Error())
-			}
-
-			// Result should be our constant.
-			if out.Inspect() != test.result {
-				t.Errorf("program has wrong result, expected %s: %s", test.result, out)
-			}
-		}
-	}
-
+	RunTestCases(tests, constants, t)
 }
 
 func TestOpIndex(t *testing.T) {
+
+	tests := []TestCase{
+
+		// empty stack
+		{
+			program: code.Instructions{
+				byte(code.OpIndex),
+			},
+			result: "Pop from an empty stack",
+			error:  true,
+		},
+
+		// stack is too small.
+		{
+			program: code.Instructions{
+				byte(code.OpFalse),
+				byte(code.OpIndex),
+			},
+			result: "Pop from an empty stack",
+			error:  true,
+		},
+
+		// 1[1] -> "type error"
+		{
+			program: code.Instructions{
+				byte(code.OpPush), // 0x00
+				byte(0),           // 0x01
+				byte(0),           // 0x02
+				byte(code.OpPush), // 0x03
+				byte(0),
+				byte(0),
+				byte(code.OpIndex),
+				byte(code.OpReturn),
+			},
+			result: "the index operator can only be applied to string",
+			error:  true,
+		},
+
+		// "steve"["steve"] -> "type error"
+		{
+			program: code.Instructions{
+				byte(code.OpConstant), // 0x00
+				byte(0),               // 0x01
+				byte(0),               // 0x02
+				byte(code.OpConstant), // 0x03
+				byte(0),
+				byte(0),
+				byte(code.OpIndex),
+				byte(code.OpReturn),
+			},
+			result: "must be given an integer",
+			error:  true,
+		},
+
+		// "steve"[1] -> "t"
+		{
+			program: code.Instructions{
+				byte(code.OpConstant), // 0x00
+				byte(0),               // 0x01
+				byte(0),               // 0x02
+				byte(code.OpPush),     // 0x03
+				byte(0),
+				byte(1),
+				byte(code.OpIndex),
+				byte(code.OpReturn),
+			},
+			result: "t",
+			error:  false,
+		},
+
+		// "steve"[2570] -> "NULL"
+		{
+			program: code.Instructions{
+				byte(code.OpConstant), // 0x00
+				byte(0),               // 0x01
+				byte(0),               // 0x02
+				byte(code.OpPush),     // 0x03
+				byte(10),
+				byte(10),
+				byte(code.OpIndex),
+				byte(code.OpReturn),
+			},
+			result: "null",
+			error:  false,
+		},
+
+		// create array: index[1]
+		{
+			program: code.Instructions{
+				// create [1,2,3,...8,9,10]
+				byte(code.OpPush),
+				byte(0),
+				byte(1),
+				byte(code.OpPush),
+				byte(0),
+				byte(10),
+				byte(code.OpRange),
+
+				// index
+				byte(code.OpPush),
+				byte(0),
+				byte(1),
+				byte(code.OpIndex),
+				byte(code.OpReturn),
+			},
+			result: "2",
+			error:  false,
+		},
+
+		// create array: array[255]
+		{
+			program: code.Instructions{
+				// create [1,2,3,...8,9,10]
+				byte(code.OpPush),
+				byte(0),
+				byte(1),
+				byte(code.OpPush),
+				byte(0),
+				byte(10),
+				byte(code.OpRange),
+
+				// index
+				byte(code.OpPush),
+				byte(0),
+				byte(255),
+				byte(code.OpIndex),
+				byte(code.OpReturn),
+			},
+			result: "null",
+			error:  false,
+		},
+	}
+
 	// Constants
 	constants := []object.Object{&object.String{Value: "Steve"}}
 
-	type TestCase struct {
-		program code.Instructions
-		result  string
-		error   bool
-	}
-
-	tests := []TestCase{
-
-		// empty stack
-		{program: code.Instructions{
-			byte(code.OpIndex),
-		}, result: "Pop from an empty stack", error: true},
-
-		// stack is too small.
-		{program: code.Instructions{
-			byte(code.OpFalse),
-			byte(code.OpIndex),
-		}, result: "Pop from an empty stack", error: true},
-
-		// 1[1] -> "type error"
-		{program: code.Instructions{
-			byte(code.OpPush), // 0x00
-			byte(0),           // 0x01
-			byte(0),           // 0x02
-			byte(code.OpPush), // 0x03
-			byte(0),
-			byte(0),
-			byte(code.OpIndex),
-			byte(code.OpReturn),
-		}, result: "the index operator can only be applied to string", error: true},
-
-		// "steve"["steve"] -> "type error"
-		{program: code.Instructions{
-			byte(code.OpConstant), // 0x00
-			byte(0),               // 0x01
-			byte(0),               // 0x02
-			byte(code.OpConstant), // 0x03
-			byte(0),
-			byte(0),
-			byte(code.OpIndex),
-			byte(code.OpReturn),
-		}, result: "must be given an integer", error: true},
-
-		// "steve"[1] -> "t"
-		{program: code.Instructions{
-			byte(code.OpConstant), // 0x00
-			byte(0),               // 0x01
-			byte(0),               // 0x02
-			byte(code.OpPush),     // 0x03
-			byte(0),
-			byte(1),
-			byte(code.OpIndex),
-			byte(code.OpReturn),
-		}, result: "t", error: false},
-
-		// "steve"[2570] -> "NULL"
-		{program: code.Instructions{
-			byte(code.OpConstant), // 0x00
-			byte(0),               // 0x01
-			byte(0),               // 0x02
-			byte(code.OpPush),     // 0x03
-			byte(10),
-			byte(10),
-			byte(code.OpIndex),
-			byte(code.OpReturn),
-		}, result: "null", error: false},
-
-		// create array: index[1]
-		{program: code.Instructions{
-			// create [1,2,3,...8,9,10]
-			byte(code.OpPush),
-			byte(0),
-			byte(1),
-			byte(code.OpPush),
-			byte(0),
-			byte(10),
-			byte(code.OpRange),
-
-			// index
-			byte(code.OpPush),
-			byte(0),
-			byte(1),
-			byte(code.OpIndex),
-			byte(code.OpReturn),
-		}, result: "2", error: false},
-
-		// create array: array[255]
-		{program: code.Instructions{
-			// create [1,2,3,...8,9,10]
-			byte(code.OpPush),
-			byte(0),
-			byte(1),
-			byte(code.OpPush),
-			byte(0),
-			byte(10),
-			byte(code.OpRange),
-
-			// index
-			byte(code.OpPush),
-			byte(0),
-			byte(255),
-			byte(code.OpIndex),
-			byte(code.OpReturn),
-		}, result: "null", error: false},
-	}
-
-	for _, test := range tests {
-
-		// No functions
-		functions := make(map[string]environment.UserFunction)
-
-		// Default environment
-		env := environment.New()
-
-		// Default context
-		ctx := context.Background()
-
-		// Create
-		vm := New(constants, test.program, functions, env)
-		vm.SetContext(ctx)
-
-		// Run
-		out, err := vm.Run(nil)
-
-		if test.error {
-			if err == nil {
-				t.Fatalf("expected an error, got none")
-			}
-
-			if !strings.Contains(err.Error(), test.result) {
-				t.Fatalf("Error '%s' didn't contain '%s'", err.Error(), test.result)
-			}
-		} else {
-			if err != nil {
-				t.Fatalf("expected no error - found:%s\n", err.Error())
-			}
-
-			// Result should be our constant.
-			if out.Inspect() != test.result {
-				t.Errorf("program has wrong result, expected %s: %s", test.result, out)
-			}
-		}
-	}
+	RunTestCases(tests, constants, t)
 }
 
 func TestOpIterationNext(t *testing.T) {
+	// TODO - This is a hard one due to the magic the compiler emits.
 }
 
 func TestOpIterationReset(t *testing.T) {
-	constants := []object.Object{&object.String{Value: "Steve"}}
-
-	type TestCase struct {
-		program code.Instructions
-		result  string
-		error   bool
-	}
 
 	tests := []TestCase{
 
 		// empty stack
-		{program: code.Instructions{
-			byte(code.OpIterationReset),
-		}, result: "Pop from an empty stack", error: true},
+		{
+			program: code.Instructions{
+				byte(code.OpIterationReset),
+			},
+			result: "Pop from an empty stack",
+			error:  true,
+		},
 
 		// something that cannot be iterated over
-		{program: code.Instructions{
-			byte(code.OpTrue),
-			byte(code.OpIterationReset),
-		}, result: "object doesn't implement the Iterable interface", error: true},
+		{
+			program: code.Instructions{
+				byte(code.OpTrue),
+				byte(code.OpIterationReset),
+			},
+			result: "object doesn't implement the Iterable interface",
+			error:  true,
+		},
+
 		// something that can be iterated over
-		{program: code.Instructions{
-			byte(code.OpConstant),
-			byte(0),
-			byte(0),
-			byte(code.OpIterationReset),
-			byte(code.OpReturn),
-		}, result: "Steve", error: false},
+		{
+			program: code.Instructions{
+				byte(code.OpConstant),
+				byte(0),
+				byte(0),
+				byte(code.OpIterationReset),
+				byte(code.OpReturn),
+			},
+			result: "Steve",
+			error:  false,
+		},
 	}
 
-	for _, test := range tests {
+	constants := []object.Object{&object.String{Value: "Steve"}}
 
-		// No functions
-		functions := make(map[string]environment.UserFunction)
-
-		// Default environment
-		env := environment.New()
-
-		// Default context
-		ctx := context.Background()
-
-		// Create
-		vm := New(constants, test.program, functions, env)
-		vm.SetContext(ctx)
-
-		// Run
-		out, err := vm.Run(nil)
-
-		if test.error {
-			if err == nil {
-				t.Fatalf("expected an error, got none")
-			}
-
-			if !strings.Contains(err.Error(), test.result) {
-				t.Fatalf("Error '%s' didn't contain '%s'", err.Error(), test.result)
-			}
-		} else {
-			if err != nil {
-				t.Fatalf("expected no error - found:%s\n", err.Error())
-			}
-
-			// Result should be our constant.
-			if out.Inspect() != test.result {
-				t.Errorf("program has wrong result, expected %s: %s", test.result, out)
-			}
-		}
-	}
+	RunTestCases(tests, constants, t)
 }
 
 func TestOpJumpIfFalse(t *testing.T) {
-	constants := []object.Object{}
-
-	type TestCase struct {
-		program code.Instructions
-		result  string
-		error   bool
-	}
 
 	tests := []TestCase{
 
 		// empty stack
-		{program: code.Instructions{
-			byte(code.OpJumpIfFalse),
-			byte(0),
-			byte(0),
-		}, result: "Pop from an empty stack", error: true},
+		{
+			program: code.Instructions{
+				byte(code.OpJumpIfFalse),
+				byte(0),
+				byte(0),
+			},
+			result: "Pop from an empty stack",
+			error:  true},
 
 		// true
-		{program: code.Instructions{
-			byte(code.OpTrue),
-			byte(code.OpJumpIfFalse),
-			byte(0),
-			byte(0),
-			byte(code.OpTrue),
-			byte(code.OpReturn),
-		}, result: "true", error: false},
+		{
+			program: code.Instructions{
+				byte(code.OpTrue),
+				byte(code.OpJumpIfFalse),
+				byte(0),
+				byte(0),
+				byte(code.OpTrue),
+				byte(code.OpReturn),
+			},
+			result: "true",
+			error:  false,
+		},
 
 		// false
-		{program: code.Instructions{
-			byte(code.OpFalse),       // 0x00
-			byte(code.OpJumpIfFalse), // 0x01
-			byte(0),                  // 0x02
-			byte(6),                  // 0x03
-			byte(code.OpTrue),        // 0x04
-			byte(code.OpReturn),      // 0x05
-			byte(code.OpFalse),       // 0x06
-			byte(code.OpReturn),      // 0x07
-		}, result: "false", error: false},
+		{
+			program: code.Instructions{
+				byte(code.OpFalse),       // 0x00
+				byte(code.OpJumpIfFalse), // 0x01
+				byte(0),                  // 0x02
+				byte(6),                  // 0x03
+				byte(code.OpTrue),        // 0x04
+				byte(code.OpReturn),      // 0x05
+				byte(code.OpFalse),       // 0x06
+				byte(code.OpReturn),      // 0x07
+			},
+			result: "false",
+			error:  false,
+		},
 	}
 
-	for _, test := range tests {
+	constants := []object.Object{}
 
-		// No functions
-		functions := make(map[string]environment.UserFunction)
-
-		// Default environment
-		env := environment.New()
-
-		// Default context
-		ctx := context.Background()
-
-		// Create
-		vm := New(constants, test.program, functions, env)
-		vm.SetContext(ctx)
-
-		// Run
-		out, err := vm.Run(nil)
-
-		if test.error {
-			if err == nil {
-				t.Fatalf("expected an error, got none")
-			}
-
-			if !strings.Contains(err.Error(), test.result) {
-				t.Fatalf("Error '%s' didn't contain '%s'", err.Error(), test.result)
-			}
-		} else {
-			if err != nil {
-				t.Fatalf("expected no error - found:%s\n", err.Error())
-			}
-
-			// Result should be our constant.
-			if out.Inspect() != test.result {
-				t.Errorf("program has wrong result, expected %s: %s", test.result, out)
-			}
-		}
-	}
+	RunTestCases(tests, constants, t)
 }
 
 // This is mostly a test of our reflection.
+//
+// We use both "Object" and "Map" for more complete testing.
 //
 // [Special]
 func TestOpLookup(t *testing.T) {
@@ -1152,6 +906,24 @@ func TestOpLookup(t *testing.T) {
 		Int:   17,
 		Float: 3.2}
 
+	m := make(map[string]interface{})
+	m["Name"] = "Steve Kemp"
+	m["Array"] = []string{"Bart", "Lisa", "Maggie"}
+	m["Time"] = time.Unix(1598613755, 0)
+	m["True"] = true
+	m["Int"] = 17
+	m["Float"] = 3.2
+
+	// These are here to give us coverage on the
+	// introspection/reflection - they are not actually used.
+	m["MiscInt"] = []int{2, 1, 2}
+	m["MiscInt32"] = []int32{2, 1, 2}
+	m["MiscInt64"] = []int64{2, 1, 2}
+	m["MiscFloat32"] = []float32{2.3, 1.1, 2.3}
+	m["MiscFloat64"] = []float64{2.3, 1.1, 2.3}
+	m["MiscBool"] = []bool{true, false}
+	m["MiscTime"] = []time.Time{time.Now()}
+
 	for _, test := range tests {
 
 		// No functions
@@ -1188,300 +960,247 @@ func TestOpLookup(t *testing.T) {
 				t.Errorf("program has wrong result, expected %s: %s", test.result, out)
 			}
 		}
+
+		// Run - with the map
+		out, err = vm.Run(m)
+
+		if test.error {
+			if err == nil {
+				t.Fatalf("expected an error, got none")
+			}
+
+			if !strings.Contains(err.Error(), test.result) {
+				t.Fatalf("Error '%s' didn't contain '%s'", err.Error(), test.result)
+			}
+		} else {
+			if err != nil {
+				t.Fatalf("expected no error - found:%s\n", err.Error())
+			}
+
+			// Result should be our constant.
+			if out.Inspect() != test.result {
+				t.Errorf("program has wrong result, expected %s: %s", test.result, out)
+			}
+		}
+
 	}
 }
 
 func TestOpMinus(t *testing.T) {
+
+	tests := []TestCase{
+
+		// minus -> empty stack
+		{
+			program: code.Instructions{
+				byte(code.OpMinus),
+			},
+			result: "Pop from an empty stack",
+			error:  true,
+		},
+
+		// minus 10 -> -10
+		{
+			program: code.Instructions{
+				byte(code.OpPush),
+				byte(0),
+				byte(10),
+				byte(code.OpMinus),
+				byte(code.OpReturn),
+			},
+			result: "-10",
+			error:  false,
+		},
+
+		// minus 3.1 -> -3.1
+		{
+			program: code.Instructions{
+				byte(code.OpConstant),
+				byte(0),
+				byte(0),
+				byte(code.OpMinus),
+				byte(code.OpReturn),
+			},
+			result: "-3.1",
+			error:  false,
+		},
+
+		// minus "string" -> type error
+		{
+			program: code.Instructions{
+				byte(code.OpConstant),
+				byte(0),
+				byte(1),
+				byte(code.OpMinus),
+				byte(code.OpReturn),
+			},
+			result: "unsupported type for negation",
+			error:  true,
+		},
+	}
+
 	// Constants
 	constants := []object.Object{&object.Float{Value: 3.1},
 		&object.String{Value: "not a number"},
 	}
 
-	type TestCase struct {
-		program code.Instructions
-		result  string
-		error   bool
-	}
-
-	tests := []TestCase{
-
-		// minus -> empty stack
-		{program: code.Instructions{
-			byte(code.OpMinus),
-		}, result: "Pop from an empty stack", error: true},
-
-		// minus 10 -> -10
-		{program: code.Instructions{
-			byte(code.OpPush),
-			byte(0),
-			byte(10),
-			byte(code.OpMinus),
-			byte(code.OpReturn),
-		}, result: "-10", error: false},
-
-		// minus 3.1 -> -3.1
-		{program: code.Instructions{
-			byte(code.OpConstant),
-			byte(0),
-			byte(0),
-			byte(code.OpMinus),
-			byte(code.OpReturn),
-		}, result: "-3.1", error: false},
-
-		// minus "string" -> type error
-		{program: code.Instructions{
-			byte(code.OpConstant),
-			byte(0),
-			byte(1),
-			byte(code.OpMinus),
-			byte(code.OpReturn),
-		}, result: "unsupported type for negation", error: true},
-	}
-
-	for _, test := range tests {
-
-		// No functions
-		functions := make(map[string]environment.UserFunction)
-
-		// Default environment
-		env := environment.New()
-
-		// Default context
-		ctx := context.Background()
-
-		// Create
-		vm := New(constants, test.program, functions, env)
-		vm.SetContext(ctx)
-
-		// Run
-		out, err := vm.Run(nil)
-
-		if test.error {
-			if err == nil {
-				t.Fatalf("expected an error, got none")
-			}
-
-			if !strings.Contains(err.Error(), test.result) {
-				t.Fatalf("Error '%s' didn't contain '%s'", err.Error(), test.result)
-			}
-		} else {
-			if err != nil {
-				t.Fatalf("expected no error - found:%s\n", err.Error())
-			}
-
-			// Result should be our constant.
-			if out.Inspect() != test.result {
-				t.Errorf("program has wrong result, expected %s: %s", test.result, out)
-			}
-		}
-	}
+	RunTestCases(tests, constants, t)
 }
 
 func TestOpRange(t *testing.T) {
-	// Empty constants
-	constants := []object.Object{&object.String{Value: "hello!"}}
-
-	type TestCase struct {
-		program code.Instructions
-		result  string
-		error   bool
-	}
 
 	tests := []TestCase{
 		// empty stack
-		{program: code.Instructions{
-			byte(code.OpRange),
+		{
+			program: code.Instructions{
+				byte(code.OpRange),
+			},
+			result: "Pop from an empty stack",
+			error:  true,
 		},
-			result: "Pop from an empty stack", error: true},
 
 		// too small stack
-		{program: code.Instructions{
-			byte(code.OpTrue),
-			byte(code.OpRange),
+		{
+			program: code.Instructions{
+				byte(code.OpTrue),
+				byte(code.OpRange),
+			},
+			result: "Pop from an empty stack",
+			error:  true,
 		},
-			result: "Pop from an empty stack", error: true},
 
 		// range( string, int )
-		{program: code.Instructions{
-			byte(code.OpConstant),
-			byte(0),
-			byte(0),
-			byte(code.OpPush),
-			byte(1),
-			byte(1),
-			byte(code.OpRange),
+		{
+			program: code.Instructions{
+				byte(code.OpConstant),
+				byte(0),
+				byte(0),
+				byte(code.OpPush),
+				byte(1),
+				byte(1),
+				byte(code.OpRange),
+			},
+			result: "the range must be an integer",
+			error:  true,
 		},
-			result: "the range must be an integer", error: true},
 
 		// range(int, string)
-		{program: code.Instructions{
-			byte(code.OpPush),
-			byte(1),
-			byte(1),
-			byte(code.OpConstant),
-			byte(0),
-			byte(0),
-			byte(code.OpRange),
+		{
+			program: code.Instructions{
+				byte(code.OpPush),
+				byte(1),
+				byte(1),
+				byte(code.OpConstant),
+				byte(0),
+				byte(0),
+				byte(code.OpRange),
+			},
+			result: "the range must be an integer",
+			error:  true,
 		},
-			result: "the range must be an integer", error: true},
 
 		// range(string, string)
-		{program: code.Instructions{
-			byte(code.OpConstant),
-			byte(0),
-			byte(0),
-			byte(code.OpConstant),
-			byte(0),
-			byte(0),
-			byte(code.OpRange),
+		{
+			program: code.Instructions{
+				byte(code.OpConstant),
+				byte(0),
+				byte(0),
+				byte(code.OpConstant),
+				byte(0),
+				byte(0),
+				byte(code.OpRange),
+			},
+			result: "the range must be an integer",
+			error:  true,
 		},
-			result: "the range must be an integer", error: true},
 
 		// range(1, 10)
-		{program: code.Instructions{
-			byte(code.OpPush),
-			byte(0),
-			byte(1),
-			byte(code.OpPush),
-			byte(0),
-			byte(10),
-			byte(code.OpRange),
-			byte(code.OpReturn),
+		{
+			program: code.Instructions{
+				byte(code.OpPush),
+				byte(0),
+				byte(1),
+				byte(code.OpPush),
+				byte(0),
+				byte(10),
+				byte(code.OpRange),
+				byte(code.OpReturn),
+			},
+			result: "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]",
+			error:  false,
 		},
-			result: "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]", error: false},
 
 		// range(10,1) -> error
-		{program: code.Instructions{
-			byte(code.OpPush),
-			byte(0),
-			byte(10),
-			byte(code.OpPush),
-			byte(0),
-			byte(1),
-			byte(code.OpRange),
-			byte(code.OpReturn),
+		{
+			program: code.Instructions{
+				byte(code.OpPush),
+				byte(0),
+				byte(10),
+				byte(code.OpPush),
+				byte(0),
+				byte(1),
+				byte(code.OpRange),
+				byte(code.OpReturn),
+			},
+			result: "the start of a range must be smaller than the end",
+			error:  true,
 		},
-			result: "the start of a range must be smaller than the end", error: true},
 	}
 
-	for _, test := range tests {
+	constants := []object.Object{&object.String{Value: "hello!"}}
 
-		// No functions
-		functions := make(map[string]environment.UserFunction)
-
-		// Default environment
-		env := environment.New()
-
-		// Default context
-		ctx := context.Background()
-
-		// Create
-		vm := New(constants, test.program, functions, env)
-		vm.SetContext(ctx)
-
-		// Run
-		out, err := vm.Run(nil)
-
-		if test.error {
-			if err == nil {
-				t.Fatalf("expected an error, got none")
-			}
-
-			if !strings.Contains(err.Error(), test.result) {
-				t.Fatalf("Error '%s' didn't contain '%s'", err.Error(), test.result)
-			}
-		} else {
-			if err != nil {
-				t.Fatalf("expected no error - found:%s\n", err.Error())
-			}
-
-			// Result should be our constant.
-			if out.Inspect() != test.result {
-				t.Errorf("program has wrong result, expected %s: %s", test.result, out.Inspect())
-			}
-		}
-	}
+	RunTestCases(tests, constants, t)
 }
 
 func TestOpSet(t *testing.T) {
+
+	tests := []TestCase{
+		// Set "Steve" -> "Kemp" then lookup the result
+		{
+			program: code.Instructions{
+				byte(code.OpConstant), // 0x00
+				byte(0),               // 0x01
+				byte(1),               // 0x02 -> Steve
+				byte(code.OpConstant), // 0x03
+				byte(0),               // 0x04
+				byte(0),               // 0x05 -> Kemp
+				byte(code.OpSet),      // 0x06
+				byte(code.OpLookup),
+				byte(0),
+				byte(0),
+				byte(code.OpReturn), // 0x08,
+			},
+			result: "Kemp",
+			error:  false,
+		},
+
+		// Empty stack
+		{
+			program: code.Instructions{
+				byte(code.OpSet),    // 0x00
+				byte(code.OpReturn), // 0x01,
+			}, result: "Pop from an empty stack",
+			error: true,
+		},
+
+		// Only one stack entry
+		{
+			program: code.Instructions{
+				byte(code.OpTrue),   // 0x00
+				byte(code.OpSet),    // 0x01
+				byte(code.OpReturn), // 0x02,
+			},
+			result: "Pop from an empty stack",
+			error:  true,
+		},
+	}
+
 	// A pair of constants
 	constants := []object.Object{&object.String{Value: "Steve"},
 		&object.String{Value: "Kemp"},
 	}
 
-	type TestCase struct {
-		program code.Instructions
-		result  string
-		error   bool
-	}
-
-	tests := []TestCase{
-		// Set "Steve" -> "Kemp" then lookup the result
-		{program: code.Instructions{
-			byte(code.OpConstant), // 0x00
-			byte(0),               // 0x01
-			byte(1),               // 0x02 -> Steve
-			byte(code.OpConstant), // 0x03
-			byte(0),               // 0x04
-			byte(0),               // 0x05 -> Kemp
-			byte(code.OpSet),      // 0x06
-			byte(code.OpLookup),
-			byte(0),
-			byte(0),
-			byte(code.OpReturn), // 0x08,
-		}, result: "Kemp", error: false},
-
-		// Empty stack
-		{program: code.Instructions{
-			byte(code.OpSet),    // 0x00
-			byte(code.OpReturn), // 0x01,
-		}, result: "Pop from an empty stack", error: true},
-
-		// Only one stack entry
-		{program: code.Instructions{
-			byte(code.OpTrue),   // 0x00
-			byte(code.OpSet),    // 0x01
-			byte(code.OpReturn), // 0x02,
-		}, result: "Pop from an empty stack", error: true},
-	}
-
-	for _, test := range tests {
-
-		// No functions
-		functions := make(map[string]environment.UserFunction)
-
-		// Default environment
-		env := environment.New()
-
-		// Default context
-		ctx := context.Background()
-
-		// Create
-		vm := New(constants, test.program, functions, env)
-		vm.SetContext(ctx)
-
-		// Run
-		out, err := vm.Run(nil)
-
-		if test.error {
-			if err == nil {
-				t.Fatalf("expected an error, got none")
-			}
-
-			if !strings.Contains(err.Error(), test.result) {
-				t.Fatalf("Error '%s' didn't contain '%s'", err.Error(), test.result)
-			}
-		} else {
-			if err != nil {
-				t.Fatalf("expected no error - found:%s\n", err.Error())
-			}
-
-			// Result should be our constant.
-			if out.Inspect() != test.result {
-				t.Errorf("program has wrong result, expected %s: %s", test.result, out)
-			}
-		}
-	}
+	RunTestCases(tests, constants, t)
 }
 
 // [Special]
@@ -1574,468 +1293,237 @@ func TestOpSquareRoot(t *testing.T) {
 	}
 }
 
-// [Special]
 func TestOpVoid(t *testing.T) {
-	// No constants
-	constants := []object.Object{&object.String{Value: "Steve"}}
 
-	// The program we run:
-	bytecode := code.Instructions{
-		byte(code.OpVoid),   // 0x00
-		byte(code.OpReturn), // 0x01
+	tests := []TestCase{
+		{
+			program: code.Instructions{
+				byte(code.OpVoid),   // 0x00
+				byte(code.OpReturn), // 0x01
+			},
+			result: "void",
+			error:  false,
+		},
 	}
 
-	// No functions
-	functions := make(map[string]environment.UserFunction)
+	constants := []object.Object{}
 
-	// Default environment
-	env := environment.New()
-
-	// Default context
-	ctx := context.Background()
-
-	// Create
-	vm := New(constants, bytecode, functions, env)
-	vm.SetContext(ctx)
-
-	// Run
-	out, err := vm.Run(nil)
-	if err != nil {
-		t.Fatalf("expected no error, got :%s\n", err.Error())
-	}
-
-	// Result should be void
-	if out.Inspect() != "void" {
-		t.Errorf("program has wrong result: %v", out)
-	}
+	RunTestCases(tests, constants, t)
 }
 
 // Test constant-comparisons are removed.
-// [Optimize]
 func TestOptimizerConstants(t *testing.T) {
-	// No constants
+
+	tests := []TestCase{
+		{
+			program: code.Instructions{
+				// We add a jump here - to kill the deadcode
+				// eliminator
+				byte(code.OpJump), // 0x00
+				byte(0),           // 0x01
+				byte(3),           // 0x02
+
+				// if ( 0 == 0 ) ..
+				byte(code.OpPush), // 0x03
+				byte(0),
+				byte(0),
+				byte(code.OpPush),
+				byte(0),
+				byte(0),
+				byte(code.OpEqual),
+
+				// if ( 1 == 0 )
+				byte(code.OpPush),
+				byte(0),
+				byte(1),
+				byte(code.OpPush),
+				byte(0),
+				byte(0),
+				byte(code.OpEqual),
+
+				// if ( 1 != 0 ) ..
+				byte(code.OpPush),
+				byte(0),
+				byte(1),
+				byte(code.OpPush),
+				byte(0),
+				byte(0),
+				byte(code.OpNotEqual),
+
+				// if ( 0 != 0 ) ..
+				byte(code.OpPush),
+				byte(0),
+				byte(0),
+				byte(code.OpPush),
+				byte(0),
+				byte(0),
+				byte(code.OpNotEqual),
+
+				// done
+				byte(code.OpReturn),
+			},
+			result: "false",
+			error:  false,
+			optimized: code.Instructions{
+				byte(code.OpJump),
+				byte(0),
+				byte(3),
+				byte(code.OpTrue),  // 0 == 0
+				byte(code.OpFalse), // 1 == 0
+				byte(code.OpTrue),  // 1 != 0
+				byte(code.OpFalse), // 0 != 0
+				byte(code.OpReturn)},
+		},
+	}
+
 	constants := []object.Object{}
 
-	// The program we run:
-	bytecode := code.Instructions{
-		// We add a jump here - to kill the deadcode
-		// eliminator
-		byte(code.OpJump), // 0x00
-		byte(0),           // 0x01
-		byte(3),           // 0x02
-
-		// if ( 0 == 0 ) ..
-		byte(code.OpPush), // 0x03
-		byte(0),
-		byte(0),
-		byte(code.OpPush),
-		byte(0),
-		byte(0),
-		byte(code.OpEqual),
-
-		// if ( 1 == 0 )
-		byte(code.OpPush),
-		byte(0),
-		byte(1),
-		byte(code.OpPush),
-		byte(0),
-		byte(0),
-		byte(code.OpEqual),
-
-		// if ( 1 != 0 ) ..
-		byte(code.OpPush),
-		byte(0),
-		byte(1),
-		byte(code.OpPush),
-		byte(0),
-		byte(0),
-		byte(code.OpNotEqual),
-
-		// if ( 0 != 0 ) ..
-		byte(code.OpPush),
-		byte(0),
-		byte(0),
-		byte(code.OpPush),
-		byte(0),
-		byte(0),
-		byte(code.OpNotEqual),
-
-		// done
-		byte(code.OpReturn),
-	}
-
-	// No functions
-	functions := make(map[string]environment.UserFunction)
-
-	// Environment will enable the optimizer
-	env := environment.New()
-	env.Set("OPTIMIZE", &object.Boolean{Value: true})
-
-	// Default context
-	ctx := context.Background()
-
-	// Create
-	vm := New(constants, bytecode, functions, env)
-	vm.SetContext(ctx)
-
-	// Run
-	out, err := vm.Run(nil)
-	if err != nil {
-		t.Fatalf("expected no error, got :%s\n", err.Error())
-	}
-
-	// Result should be false - as the second comparison will
-	// be "0 != 0" which is false.
-	if out.Inspect() != "false" {
-		t.Errorf("optimized program has wrong result: %v", out)
-	}
-
-	// Check the bytecode was optimized
-	after := len(vm.bytecode)
-
-	if after == len(bytecode) {
-		t.Fatalf("optimizer made no change to our bytecode")
-	}
-	expectedSize := 8
-	if after != expectedSize {
-		t.Fatalf("bytecode size was %d not %d", after, expectedSize)
-	}
-
-	// check we have the right output
-	expected := code.Instructions{
-		byte(code.OpJump),
-		byte(0),
-		byte(3),
-		byte(code.OpTrue),  // 0 == 0
-		byte(code.OpFalse), // 1 == 0
-		byte(code.OpTrue),  // 1 != 0
-		byte(code.OpFalse), // 0 != 0
-		byte(code.OpReturn)}
-
-	for i, op := range expected {
-		if vm.bytecode[i] != op {
-			t.Fatalf("index %d opcode was %s not %s", i,
-				code.String(code.Opcode(vm.bytecode[i])), code.String(code.Opcode(op)))
-		}
-	}
+	RunTestCases(tests, constants, t)
 }
 
-// [Special]
-// [Optimize]
 func TestOptimizerEnabled(t *testing.T) {
 
-	// No constants
+	tests := []TestCase{
+		{
+			program: code.Instructions{
+				byte(code.OpTrue),
+				byte(code.OpReturn),
+				byte(code.OpTrue),
+				byte(code.OpReturn),
+			},
+			result: "true", error: false,
+			optimized: code.Instructions{
+				byte(code.OpTrue),
+				byte(code.OpReturn),
+			}}}
+
 	constants := []object.Object{}
 
-	// The program we run
-	bytecode := code.Instructions{
-		byte(code.OpTrue),
-		byte(code.OpReturn),
-		byte(code.OpTrue),
-		byte(code.OpReturn)}
-
-	// No functions
-	functions := make(map[string]environment.UserFunction)
-
-	// Environment will enable the optimizer
-	env := environment.New()
-	env.Set("OPTIMIZE", &object.Boolean{Value: true})
-
-	// Default context
-	ctx := context.Background()
-
-	// Create
-
-	vm := New(constants, bytecode, functions, env)
-	vm.SetContext(ctx)
-
-	// Run
-	_, err := vm.Run(nil)
-	if err != nil {
-		t.Fatalf("expected no error, got :%s\n", err.Error())
-	}
-
-	// Check the bytecode was optimized
-	after := len(vm.bytecode)
-
-	if after == len(bytecode) {
-		t.Fatalf("optimizer made no change to our bytecode")
-	}
-	expectedSize := 2
-	if after != expectedSize {
-		t.Fatalf("bytecode size was %d not %d", after, expectedSize)
-	}
-
-	// check we have the right output
-	expected := code.Instructions{
-		byte(code.OpTrue),
-		byte(code.OpReturn)}
-
-	for i, op := range expected {
-		if vm.bytecode[i] != op {
-			t.Fatalf("index %d opcode was %s not %s", i,
-				code.String(code.Opcode(vm.bytecode[i])), code.String(code.Opcode(op)))
-		}
-	}
+	RunTestCases(tests, constants, t)
 }
 
 // Test constant-jumps are removed.
 // [Special]
 // [Optimize]
 func TestOptimizerJumps(t *testing.T) {
-	// No constants
+
+	tests := []TestCase{
+		{
+			program: code.Instructions{
+				// should be removed:
+				byte(code.OpTrue),        // 0x00
+				byte(code.OpJumpIfFalse), // 0x01
+				byte(33),                 // 0x02
+				byte(44),                 // 0x03
+				// should be removed.
+				byte(code.OpFalse),       // 0x04
+				byte(code.OpJumpIfFalse), // 0x05
+				byte(0),                  // 0x06
+				byte(9),                  // 0x07
+				byte(code.OpFalse),       // 0x08
+				byte(code.OpTrue),        // 0x09 -> JumpTarget
+				byte(code.OpReturn),      // 0x0A
+				byte(code.OpReturn),      // 0x0B
+			},
+			result: "true", error: false,
+			optimized: code.Instructions{
+				byte(code.OpTrue),
+				byte(code.OpReturn),
+			}}}
+
 	constants := []object.Object{}
 
-	// The program we run:
-	bytecode := code.Instructions{
-		// should be removed:
-		byte(code.OpTrue),        // 0x00
-		byte(code.OpJumpIfFalse), // 0x01
-		byte(33),                 // 0x02
-		byte(44),                 // 0x03
-		// should be removed.
-		byte(code.OpFalse),       // 0x04
-		byte(code.OpJumpIfFalse), // 0x05
-		byte(0),                  // 0x06
-		byte(9),                  // 0x07
-		byte(code.OpFalse),       // 0x08
-		byte(code.OpTrue),        // 0x09 -> JumpTarget
-		byte(code.OpReturn),      // 0x0A
-		byte(code.OpReturn),      // 0x0B
-	}
-
-	// No functions
-	functions := make(map[string]environment.UserFunction)
-
-	// Environment will enable the optimizer
-	env := environment.New()
-	env.Set("OPTIMIZE", &object.Boolean{Value: true})
-
-	// Default context
-	ctx := context.Background()
-
-	// Create
-	vm := New(constants, bytecode, functions, env)
-	vm.SetContext(ctx)
-
-	// Run
-	out, err := vm.Run(nil)
-	if err != nil {
-		t.Fatalf("expected no error, got :%s\n", err.Error())
-	}
-
-	// Result should be true.
-	if out.Inspect() != "true" {
-		t.Errorf("optimized program has wrong result: %v", out)
-	}
-
-	// Check the bytecode was optimized
-	after := len(vm.bytecode)
-
-	if after == len(bytecode) {
-		t.Fatalf("optimizer made no change to our bytecode")
-	}
-	expectedSize := 2
-	if after != expectedSize {
-		t.Fatalf("bytecode size was %d not %d", after, expectedSize)
-	}
-
-	// check we have the right output
-	expected := code.Instructions{
-		byte(code.OpTrue),
-		byte(code.OpReturn)}
-
-	for i, op := range expected {
-		if vm.bytecode[i] != op {
-			t.Fatalf("index %d opcode was %s not %s", i,
-				code.String(code.Opcode(vm.bytecode[i])), code.String(code.Opcode(op)))
-		}
-	}
+	RunTestCases(tests, constants, t)
 }
 
 // Test constant-maths expressions are replaced with their results.
-//
-// [Special]
-// [Optimize]
 func TestOptimizerMaths(t *testing.T) {
-	// No constants
+
+	tests := []TestCase{
+		{
+			program: code.Instructions{
+				byte(code.OpPush),
+				byte(0),
+				byte(4),
+
+				byte(code.OpPush),
+				byte(0),
+				byte(2),
+
+				byte(code.OpPush),
+				byte(0),
+				byte(3),
+
+				byte(code.OpMul),
+
+				byte(code.OpPush),
+				byte(0),
+				byte(2),
+
+				byte(code.OpDiv),
+				byte(code.OpAdd),
+
+				// extra: - 0
+				byte(code.OpPush),
+				byte(0), byte(0),
+				byte(code.OpSub),
+
+				byte(code.OpReturn),
+				byte(code.OpPush),
+				byte(0),
+				byte(7),
+				byte(code.OpReturn)},
+			result: "7",
+			error:  false,
+			optimized: code.Instructions{
+				byte(code.OpPush),
+				byte(0),
+				byte(7),
+				byte(code.OpReturn),
+			}}}
+
 	constants := []object.Object{}
 
-	// The program we run:
-	//    return 4 + 2 * 3 / 2 ;
-	//  => 7
-	bytecode := code.Instructions{
-		byte(code.OpPush),
-		byte(0),
-		byte(4),
-
-		byte(code.OpPush),
-		byte(0),
-		byte(2),
-
-		byte(code.OpPush),
-		byte(0),
-		byte(3),
-
-		byte(code.OpMul),
-
-		byte(code.OpPush),
-		byte(0),
-		byte(2),
-
-		byte(code.OpDiv),
-		byte(code.OpAdd),
-
-		// extra: - 0
-		byte(code.OpPush),
-		byte(0), byte(0),
-		byte(code.OpSub),
-
-		byte(code.OpReturn),
-	}
-
-	// No functions
-	functions := make(map[string]environment.UserFunction)
-
-	// Environment will enable the optimizer
-	env := environment.New()
-	env.Set("OPTIMIZE", &object.Boolean{Value: true})
-
-	// Default context
-	ctx := context.Background()
-
-	// Create
-	vm := New(constants, bytecode, functions, env)
-	vm.SetContext(ctx)
-
-	// Run
-	out, err := vm.Run(nil)
-	if err != nil {
-		t.Fatalf("expected no error, got :%s\n", err.Error())
-	}
-
-	// Result should be 7.
-	if out.Inspect() != "7" {
-		t.Errorf("optimized program has wrong result: %v", out)
-	}
-
-	// Check the bytecode was optimized
-	after := len(vm.bytecode)
-
-	if after == len(bytecode) {
-		t.Fatalf("optimizer made no change to our bytecode")
-	}
-	expectedSize := 4
-	if after != expectedSize {
-		t.Fatalf("bytecode size was %d not %d", after, expectedSize)
-	}
-
-	// check we have the right output
-	expected := code.Instructions{
-		byte(code.OpPush),
-		byte(0),
-		byte(7),
-		byte(code.OpReturn)}
-
-	for i, op := range expected {
-		if vm.bytecode[i] != op {
-			t.Fatalf("index %d opcode was %s not %s", i,
-				code.String(code.Opcode(vm.bytecode[i])), code.String(code.Opcode(op)))
-		}
-	}
+	RunTestCases(tests, constants, t)
 }
 
 // Test OpNops are removed.
-// [Special]
-// [Optimize]
 func TestOptimizerNops(t *testing.T) {
 
-	// No constants
+	tests := []TestCase{
+		{
+			program: code.Instructions{
+				byte(code.OpNop),
+				byte(code.OpFalse),
+				byte(code.OpNop),
+				byte(code.OpReturn)},
+			result: "false",
+			error:  false,
+			optimized: code.Instructions{
+				byte(code.OpFalse),
+				byte(code.OpReturn),
+			}}}
+
 	constants := []object.Object{}
 
-	// The program we run
-	bytecode := code.Instructions{
-		byte(code.OpNop),
-		byte(code.OpFalse),
-		byte(code.OpNop),
-		byte(code.OpReturn)}
-
-	// No functions
-	functions := make(map[string]environment.UserFunction)
-
-	// Environment will enable the optimizer
-	env := environment.New()
-	env.Set("OPTIMIZE", &object.Boolean{Value: true})
-
-	// default context
-	ctx := context.Background()
-
-	// Create
-	vm := New(constants, bytecode, functions, env)
-	vm.SetContext(ctx)
-
-	// Run
-	_, err := vm.Run(nil)
-	if err != nil {
-		t.Fatalf("expected no error, got: %s", err.Error())
-	}
-
-	// Check the bytecode was optimized
-	after := len(vm.bytecode)
-
-	if after == len(bytecode) {
-		t.Fatalf("optimizer made no change to our bytecode")
-	}
-	expectedSize := 2
-	if after != expectedSize {
-		t.Fatalf("bytecode size was %d not %d", after, expectedSize)
-	}
-
-	// check we have the right output
-	expected := code.Instructions{
-		byte(code.OpFalse),
-		byte(code.OpReturn)}
-
-	for i, op := range expected {
-		if vm.bytecode[i] != op {
-			t.Fatalf("index %d opcode was %s not %s", i,
-				code.String(code.Opcode(vm.bytecode[i])), code.String(code.Opcode(op)))
-		}
-	}
+	RunTestCases(tests, constants, t)
 }
 
 func TestUnknownOpcode(t *testing.T) {
 
-	// No constants
+	tests := []TestCase{
+		{
+			program: code.Instructions{
+				byte(200),
+			},
+			result: "unhandled opcode",
+			error:  true,
+		},
+	}
+
 	constants := []object.Object{}
 
-	// The program we run
-	bytecode := code.Instructions{
-		byte(200),
-		byte(code.OpReturn),
-	}
-
-	// No functions
-	functions := make(map[string]environment.UserFunction)
-
-	// Default environment
-	env := environment.New()
-
-	// default context
-	ctx := context.Background()
-
-	// Create
-	vm := New(constants, bytecode, functions, env)
-	vm.SetContext(ctx)
-
-	// Run
-	_, err := vm.Run(nil)
-	if err == nil {
-		t.Fatalf("expected an error, got none")
-	}
-	if !strings.Contains(err.Error(), "unhandled opcode") {
-		t.Fatalf("got error, but not the expected one: %s", err.Error())
-	}
+	RunTestCases(tests, constants, t)
 }
 
 // [Special]
@@ -2076,7 +1564,7 @@ func TestWalkFunctionBytecode(t *testing.T) {
 	// Now the function that does exist
 	count := 0
 	err = vm.WalkFunctionBytecode("steve", func(offset int, opCode code.Opcode, opArg interface{}) (bool, error) {
-		count++
+		count += 1
 		return false, nil
 	})
 	if err != nil {
@@ -2084,6 +1572,68 @@ func TestWalkFunctionBytecode(t *testing.T) {
 	}
 	if count != 1 {
 		t.Fatalf("callback didn't get invoked once")
+	}
+
+}
+
+// Given an array of test-cases run them.
+//
+// These run with zero optimizations.
+func RunTestCases(tests []TestCase, objects []object.Object, t *testing.T) {
+
+	for _, test := range tests {
+
+		// No functions
+		functions := make(map[string]environment.UserFunction)
+
+		// Default environment
+		env := environment.New()
+
+		// Default context
+		ctx := context.Background()
+
+		if len(test.optimized) > 0 {
+			env.Set("OPTIMIZE", &object.Boolean{Value: true})
+		}
+
+		// Create
+		vm := New(objects, test.program, functions, env)
+		vm.SetContext(ctx)
+
+		// Run
+		out, err := vm.Run(nil)
+
+		if test.error {
+			if err == nil {
+				t.Fatalf("expected an error, got none")
+			}
+
+			if !strings.Contains(err.Error(), test.result) {
+				t.Fatalf("Error '%s' didn't contain '%s'", err.Error(), test.result)
+			}
+		} else {
+			if err != nil {
+				t.Fatalf("expected no error - found:%s\n", err.Error())
+			}
+
+			// Result should be our constant.
+			if out.Inspect() != test.result {
+				t.Errorf("program has wrong result, expected %s: %s", test.result, out)
+			}
+		}
+
+		if len(test.optimized) > 0 {
+
+			if len(test.optimized) != len(vm.bytecode) {
+				t.Fatalf("optimized bytecode had wrong size: %d != %d", len(test.optimized), len(vm.bytecode))
+			}
+			for i, op := range test.optimized {
+				if vm.bytecode[i] != op {
+					t.Fatalf("index %d opcode was %s not %s", i,
+						code.String(code.Opcode(vm.bytecode[i])), code.String(code.Opcode(op)))
+				}
+			}
+		}
 	}
 
 }
