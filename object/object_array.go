@@ -47,8 +47,8 @@ func (ao *Array) ToInterface() interface{} {
 
 	res := make([]interface{}, len(ao.Elements))
 
-	for _, v := range ao.Elements {
-		res = append(res, v.ToInterface())
+	for i, v := range ao.Elements {
+		res[i] = v.ToInterface()
 	}
 
 	return res

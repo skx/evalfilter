@@ -50,8 +50,8 @@ type Object interface {
 	True() bool
 
 	// ToInterface converts the given object to a "native" golang value,
-    // which is required to ensure that we can use the object in our
-    // `sprintf` or `printf` primitives.
+	// which is required to ensure that we can use the object in our
+	// `sprintf` or `printf` primitives.
 	ToInterface() interface{}
 }
 
@@ -66,7 +66,7 @@ type Increment interface {
 	Increase()
 }
 
-// Decrement is an interface that some objects might support.
+// Decrement is an interface that some objects might wish to support.
 //
 // If this interface is implemented then it will be possible to use the
 // the postfix `--` operator upon objects of that type, without that
@@ -77,7 +77,7 @@ type Decrement interface {
 	Decrease()
 }
 
-// Iterable is an interface that some objects might support.
+// Iterable is an interface that some objects might wish to support.
 //
 // If this interface is implemented then it will be possible to
 // use the `foreach` function to iterate over the object.  If

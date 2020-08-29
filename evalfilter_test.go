@@ -26,6 +26,8 @@ func TestLess(t *testing.T) {
 
 	tests := []Test{
 		{Input: `if ( !true == false ) { return true; }`, Result: true},
+		{Input: `if ( "steve" ~= /steve/i ) { return true; }`, Result: true},
+		{Input: `if ( "steve" !~ /steve/i ) { return true; } return false;`, Result: false},
 		{Input: `if ( !false == true ) { return true; }`, Result: true},
 		{Input: `if ( -3 == -3 ) { return true; }`, Result: true},
 		{Input: `if ( 3.0 + 1.0 == 4 ) { return true; }`, Result: true},
@@ -47,6 +49,7 @@ func TestLess(t *testing.T) {
 		{Input: `if ( 3 <= 3 ) { return true; }`, Result: true},
 		{Input: `if ( 3.0 <= 3.0 ) { return true; }`, Result: true},
 		{Input: `if ( 1 <= 3 ) { return false; }`, Result: false},
+		{Input: `if ( 65538 > 1 ) { return false; }`, Result: false},
 		{Input: `if ( Count <= 3 ) { print( "", ""); return false; }`, Result: false},
 		{Input: `if ( len("steve") <= 3 ) { return false; } else { return true; }`, Result: true},
 		{Input: `if ( len("π") == 1) { return true; } else { return false; }`, Result: true},
@@ -223,10 +226,12 @@ func TestFunctionBool(t *testing.T) {
 	}
 
 	tests := []Test{
-		{Input: `if ( True() ) { return true; } return false;`, Result: true},
+		{Input: `if ( True() ) {  return true; } return false;`, Result: true},
 		{Input: `if ( True() == false ) { return true; } return false;`, Result: false},
 		{Input: `if ( True() != false ) { return true; } return false;`, Result: true},
 		{Input: `if ( ! True() ) { return true; } else { return false; }`, Result: false},
+		{Input: `function foo() { local x; x = true; return x; } ; if ( foo() ) { return true ; } return false;`, Result: true},
+		{Input: `function foo() { local a ; a = 3; } ; foo() ; if ( a ) { return true ; } return false;`, Result: false},
 	}
 
 	for _, tst := range tests {
@@ -542,6 +547,7 @@ func TestRevFunction(t *testing.T) {
 
 		// Test-script
 		src := `function rev(str) {
+   local tmp;
    tmp = "";
 
    foreach char in str {
@@ -981,8 +987,14 @@ return( sum == 10 );
 			Result: true},
 		{Input: `
 str = "狐犬"; len = 0;
-foreach char in str { len++ }
+foreach char in str { len++; }
 return len == 2 ;
+`,
+			Result: true},
+		{Input: `
+str = "狐犬"; len = 2;
+foreach char in str { len--; }
+return len == 0 ;
 `,
 			Result: true},
 		{Input: `
