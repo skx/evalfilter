@@ -42,6 +42,9 @@ type TestCase struct {
 	// is complete.
 	optimized code.Instructions
 
+	// User-defined functions which are made available.
+	functions map[string]environment.UserFunction
+
 	// The expected result of the program.
 	result string
 
@@ -108,43 +111,37 @@ func TestContextTimeout(t *testing.T) {
 // [Optimize]
 func TestDivideByZero(t *testing.T) {
 
-	// No constants
-	constants := []object.Object{}
+	tests := []TestCase{
+		{
+			program: code.Instructions{
+				byte(code.OpPush),
+				byte(0),
+				byte(0),
+				byte(code.OpPush),
+				byte(0),
+				byte(0),
+				byte(code.OpDiv),
+				byte(code.OpReturn),
+			},
+			result: "division by zero",
+			error:  true,
 
-	// The program we run
-	bytecode := code.Instructions{
-		byte(code.OpPush),
-		byte(0),
-		byte(0),
-		byte(code.OpPush),
-		byte(0),
-		byte(0),
-		byte(code.OpDiv),
-		byte(code.OpReturn),
+			// Optimizer makes no changes, because
+			// of the division-by-zero error
+			optimized: code.Instructions{
+				byte(code.OpPush),
+				byte(0),
+				byte(0),
+				byte(code.OpPush),
+				byte(0),
+				byte(0),
+				byte(code.OpDiv),
+				byte(code.OpReturn),
+			},
+		},
 	}
 
-	// No functions
-	functions := make(map[string]environment.UserFunction)
-
-	// Environment will enable the optimizer
-	env := environment.New()
-	env.Set("OPTIMIZE", &object.Boolean{Value: true})
-
-	// default context
-	ctx := context.Background()
-
-	// Create
-	vm := New(constants, bytecode, functions, env)
-	vm.SetContext(ctx)
-
-	// Run
-	_, err := vm.Run(nil)
-	if err == nil {
-		t.Fatalf("expected an error, got none")
-	}
-	if !strings.Contains(err.Error(), "division by zero") {
-		t.Fatalf("got error, but not the expected one: %s", err.Error())
-	}
+	RunTestCases(tests, []object.Object{}, t)
 }
 
 func TestEmptyProgram(t *testing.T) {
@@ -334,6 +331,28 @@ func TestOpBang(t *testing.T) {
 // TODO: User-Defined Function(s)
 func TestOpCall(t *testing.T) {
 
+	functions := make(map[string]environment.UserFunction)
+
+	// test returns true
+	functions["test"] = environment.UserFunction{
+		Bytecode: code.Instructions{
+			byte(code.OpTrue),   // 0x00
+			byte(code.OpReturn), // 0x01
+		},
+	}
+
+	// bang returns the inverse of the input value
+	functions["bang"] = environment.UserFunction{
+		Bytecode: code.Instructions{
+			byte(code.OpLookup),
+			byte(0),
+			byte(4), // "input"
+			byte(code.OpBang),
+			byte(code.OpReturn),
+		},
+		Arguments: []string{"input"},
+	}
+
 	tests := []TestCase{
 
 		// empty stack
@@ -367,11 +386,95 @@ func TestOpCall(t *testing.T) {
 			byte(1),
 			byte(code.OpReturn),
 		}, result: "5", error: false},
+
+		// call: user-defined function "Steve" - doesn't exist.
+		{
+			program: code.Instructions{
+				byte(code.OpConstant), // "Steve"
+				byte(0),
+				byte(0),
+				byte(code.OpCall),
+				byte(0),
+				byte(0),
+
+				byte(code.OpReturn),
+			},
+			functions: functions,
+			result:    "the function Steve does not exist",
+			error:     true,
+		},
+		// call: test()
+		{
+			program: code.Instructions{
+				byte(code.OpConstant), // "test"
+				byte(0),
+				byte(2),
+				byte(code.OpCall),
+				byte(0),
+				byte(0),
+
+				byte(code.OpReturn),
+			},
+			functions: functions,
+			result:    "true",
+			error:     false,
+		},
+		// call: bang()
+		{
+			program: code.Instructions{
+				byte(code.OpConstant), // "bang"
+				byte(0),
+				byte(3),
+				byte(code.OpCall),
+				byte(0),
+				byte(0),
+				byte(code.OpReturn),
+			},
+			functions: functions,
+			result:    "mismatch in argument-counts",
+			error:     true,
+		},
+		// call: bang(true)
+		{
+			program: code.Instructions{
+				byte(code.OpTrue),
+				byte(code.OpConstant), // "bang"
+				byte(0),
+				byte(3),
+				byte(code.OpCall),
+				byte(0),
+				byte(1),
+				byte(code.OpReturn),
+			},
+			functions: functions,
+			result:    "false",
+			error:     false,
+		},
+		// call: bang(false)
+		{
+			program: code.Instructions{
+				byte(code.OpFalse),
+				byte(code.OpConstant), // "bang"
+				byte(0),
+				byte(3),
+				byte(code.OpCall),
+				byte(0),
+				byte(1),
+				byte(code.OpReturn),
+			},
+			functions: functions,
+			result:    "true",
+			error:     false,
+		},
 	}
 
 	// Constants
 	constants := []object.Object{&object.String{Value: "Steve"},
-		&object.String{Value: "len"}}
+		&object.String{Value: "len"},   // global function
+		&object.String{Value: "test"},  // user defined fun
+		&object.String{Value: "bang"},  // user defined fun
+		&object.String{Value: "input"}, // input param to bang()
+	}
 
 	RunTestCases(tests, constants, t)
 }
@@ -1583,8 +1686,12 @@ func RunTestCases(tests []TestCase, objects []object.Object, t *testing.T) {
 
 	for _, test := range tests {
 
+		funs := test.functions
+
 		// No functions
-		functions := make(map[string]environment.UserFunction)
+		if 0 == len(funs) {
+			funs = make(map[string]environment.UserFunction)
+		}
 
 		// Default environment
 		env := environment.New()
@@ -1597,7 +1704,7 @@ func RunTestCases(tests []TestCase, objects []object.Object, t *testing.T) {
 		}
 
 		// Create
-		vm := New(objects, test.program, functions, env)
+		vm := New(objects, test.program, funs, env)
 		vm.SetContext(ctx)
 
 		// Run
