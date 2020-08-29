@@ -492,6 +492,16 @@ func TestOpConstant(t *testing.T) {
 			result: "Steve",
 			error:  false,
 		},
+		{
+			program: code.Instructions{
+				byte(code.OpConstant), // 0x00
+				byte(0),               // 0x01
+				byte(1),               // 0x02 -> val
+				byte(code.OpReturn),
+			},
+			result: "access to constant which doesn't exist",
+			error:  true,
+		},
 	}
 
 	// Constants
@@ -578,6 +588,16 @@ func TestOpDec(t *testing.T) {
 				// That OpLookup causes this.
 			},
 			result: "Pop from an empty stack",
+			error:  true,
+		},
+		{
+			program: code.Instructions{
+				byte(code.OpDec), // 0x00
+				byte(0),          // 0x01
+				byte(2),          // 0x02
+				byte(code.OpReturn),
+			},
+			result: "access to constant which doesn't exist",
 			error:  true,
 		},
 	}
@@ -670,6 +690,16 @@ func TestOpInc(t *testing.T) {
 				byte(code.OpReturn),
 			},
 			result: "Pop from an empty stack",
+			error:  true,
+		},
+		{
+			program: code.Instructions{
+				byte(code.OpInc), // 0x00
+				byte(0),          // 0x01
+				byte(2),          // 0x02
+				byte(code.OpReturn),
+			},
+			result: "access to constant which doesn't exist",
 			error:  true,
 		},
 	}
@@ -910,6 +940,33 @@ func TestOpJumpIfFalse(t *testing.T) {
 			result: "false",
 			error:  false,
 		},
+		// false: out of bounds
+		{
+			program: code.Instructions{
+				byte(code.OpTrue), // 0x00
+				byte(code.OpBang),
+				byte(code.OpJumpIfFalse), // 0x01
+				byte(0),                  // 0x02
+				byte(11),                 // 0x03
+				byte(code.OpTrue),        // 0x04
+				byte(code.OpReturn),      // 0x05
+				byte(code.OpFalse),       // 0x06
+				byte(code.OpReturn),      // 0x07
+			},
+			result: "Instruction pointer is out of bounds",
+			error:  true,
+		},
+		// OpJump
+		{
+			program: code.Instructions{
+				byte(code.OpJump),   // 0x01
+				byte(0),             // 0x02
+				byte(11),            // 0x03
+				byte(code.OpReturn), // 0x07
+			},
+			result: "Instruction pointer is out of bounds",
+			error:  true,
+		},
 	}
 
 	constants := []object.Object{}
@@ -989,6 +1046,14 @@ func TestOpLookup(t *testing.T) {
 			byte(5),
 			byte(code.OpReturn),
 		}, result: "3.2", error: false},
+
+		// lookup bogus
+		{program: code.Instructions{
+			byte(code.OpLookup),
+			byte(0),
+			byte(6),
+			byte(code.OpReturn),
+		}, result: "access to constant which doesn't exist", error: true},
 	}
 
 	// The object we pass to the engine
@@ -1696,16 +1761,12 @@ func RunTestCases(tests []TestCase, objects []object.Object, t *testing.T) {
 		// Default environment
 		env := environment.New()
 
-		// Default context
-		ctx := context.Background()
-
 		if len(test.optimized) > 0 {
 			env.Set("OPTIMIZE", &object.Boolean{Value: true})
 		}
 
 		// Create
 		vm := New(objects, test.program, funs, env)
-		vm.SetContext(ctx)
 
 		// Run
 		out, err := vm.Run(nil)
