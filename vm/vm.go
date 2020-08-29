@@ -126,7 +126,36 @@ func New(constants []object.Object, bytecode code.Instructions, functions map[st
 		saved := vm.optimizeBytecode()
 
 		if debug && optimize {
-			fmt.Printf("optimizer saved %d bytes\n", saved)
+			fmt.Printf("Bytecode optimizer saved %d bytes\n", saved)
+		}
+
+		//
+		// Now functions
+		//
+		for name, fun := range functions {
+
+			// Save the main bytecode away
+			safe := vm.bytecode
+
+			// Replace it with the bytecode from the function
+			vm.bytecode = fun.Bytecode
+
+			// Tweak it
+			saved := vm.optimizeBytecode()
+
+			if debug && optimize {
+				fmt.Printf("Bytecode optimizer saved %d bytes for function %s\n", saved, name)
+			}
+
+			// Now update the function's bytecode
+			//
+			// This will show the savings.
+			x := vm.functions[name]
+			x.Bytecode = vm.bytecode
+			vm.functions[name] = x
+
+			// And reset the saved vm-bytecode
+			vm.bytecode = safe
 		}
 	}
 
