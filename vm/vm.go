@@ -113,6 +113,10 @@ func New(constants []object.Object, bytecode code.Instructions, functions map[st
 		functions:   functions,
 	}
 
+	// Set a default context
+	ctx := context.Background()
+	vm.SetContext(ctx)
+
 	// Optimize the bytecode, if we should.
 	if optimize {
 
@@ -260,11 +264,19 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			// Lookup variable/field, by name
 		case code.OpConstant:
 
+			if opArg >= len(vm.constants) {
+				return nil, fmt.Errorf("access to constant which doesn't exist")
+			}
+
 			// move the contents of a constant onto the stack
 			vm.stack.Push(vm.constants[opArg])
 
 			// Lookup variable/field, by name
 		case code.OpLookup:
+
+			if opArg >= len(vm.constants) {
+				return nil, fmt.Errorf("access to constant which doesn't exist")
+			}
 
 			// Get the name.
 			name := vm.constants[opArg].Inspect()
@@ -413,6 +425,10 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
 			ip = opArg - opLen
 
+			if opArg >= len(vm.bytecode) {
+				return nil, fmt.Errorf("instruction pointer is out of bounds")
+			}
+
 			// flow-control: jump if stack contains non-true
 		case code.OpJumpIfFalse:
 
@@ -430,6 +446,10 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 				// it again..
 
 				ip = opArg - opLen
+
+				if opArg >= len(vm.bytecode) {
+					return nil, fmt.Errorf("instruction pointer is out of bounds")
+				}
 			}
 
 			// function-call: This is messy.
@@ -679,6 +699,11 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			// Increment the value of an object, by name, if the Increment
 			// interface is implemented by it.
 		case code.OpInc:
+
+			if opArg >= len(vm.constants) {
+				return nil, fmt.Errorf("access to constant which doesn't exist")
+			}
+
 			// Get the name of the variable whos' contents
 			// we should increment.
 			name := vm.constants[opArg].Inspect()
@@ -705,6 +730,11 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			// Decrement the value of an object, by name, if the Decrement
 			// interface is implemented by it.
 		case code.OpDec:
+
+			if opArg >= len(vm.constants) {
+				return nil, fmt.Errorf("access to constant which doesn't exist")
+			}
+
 			// Get the name of the variable whos' contents
 			// we should decrement.
 			name := vm.constants[opArg].Inspect()
