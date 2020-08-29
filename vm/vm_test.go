@@ -1667,7 +1667,7 @@ func TestWalkFunctionBytecode(t *testing.T) {
 	// Now the function that does exist
 	count := 0
 	err = vm.WalkFunctionBytecode("steve", func(offset int, opCode code.Opcode, opArg interface{}) (bool, error) {
-		count += 1
+		count++
 		return false, nil
 	})
 	if err != nil {
@@ -1689,7 +1689,7 @@ func RunTestCases(tests []TestCase, objects []object.Object, t *testing.T) {
 		funs := test.functions
 
 		// No functions
-		if 0 == len(funs) {
+		if len(funs) == 0 {
 			funs = make(map[string]environment.UserFunction)
 		}
 
