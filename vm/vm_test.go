@@ -953,7 +953,7 @@ func TestOpJumpIfFalse(t *testing.T) {
 				byte(code.OpFalse),       // 0x06
 				byte(code.OpReturn),      // 0x07
 			},
-			result: "Instruction pointer is out of bounds",
+			result: "instruction pointer is out of bounds",
 			error:  true,
 		},
 		// OpJump
@@ -964,7 +964,7 @@ func TestOpJumpIfFalse(t *testing.T) {
 				byte(11),            // 0x03
 				byte(code.OpReturn), // 0x07
 			},
-			result: "Instruction pointer is out of bounds",
+			result: "instruction pointer is out of bounds",
 			error:  true,
 		},
 	}

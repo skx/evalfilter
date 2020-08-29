@@ -426,7 +426,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			ip = opArg - opLen
 
 			if opArg >= len(vm.bytecode) {
-				return nil, fmt.Errorf("Instruction pointer is out of bounds")
+				return nil, fmt.Errorf("instruction pointer is out of bounds")
 			}
 
 			// flow-control: jump if stack contains non-true
@@ -448,7 +448,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 				ip = opArg - opLen
 
 				if opArg >= len(vm.bytecode) {
-					return nil, fmt.Errorf("Instruction pointer is out of bounds")
+					return nil, fmt.Errorf("instruction pointer is out of bounds")
 				}
 			}
 
