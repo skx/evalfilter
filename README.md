@@ -78,7 +78,9 @@ The types are supported both in the language itself, and in the reflection-layer
 
 ### Built-In Functions
 
-These are the built-in functions which are always available, though your users can write their own functions within the language (see [functions](#functions)), and you can export functions written in Golang from your host-application to the scripting environment too:
+These are the built-in functions which are always available, though your users can write their own functions within the language (see [functions](#functions)).
+
+You can also easily add new primitives to the engine, by defining a function in your golang application and exporting it to the scripting-environment.   For example the `print` function to generate output from your script is just a simple function implemented in Golang and exported to the environment.  (This is true of all the built-in functions, which are registered by default.)
 
 * `float(value)`
   * Tries to convert the value to a floating-point number, returns Null on failure.
@@ -144,16 +146,9 @@ As you'd expect the facilities are pretty normal/expected:
     * "`if ( Content !~ /some text we don't want/ )`"
   * Test if an array contains a value:
     * "`return ( Name in [ "Alice", "Bob", "Chris" ] );`"
-* Ternary expressions are supported - but nesting them is a syntax error :)
+* Ternary expressions are also supported - but nesting them is a syntax error!
     * "`a = Title ? Title : Subject;`"
     * "`return( result == 3 ? "Three" : "Four!" );`"
-* You can also easily add new primitives to the engine.
-  * By implementing them in your golang host application.
-  * Your host-application can also set variables which are accessible to the user-script.
-* There are series of built-in primitives which can be used by your scripts, and you can export your own host-specified functions easily.
-  * For example the `print` function to generate output from your script is just a simple function implemented in Golang and exported to the environment.
-* You can define functions inside your scripts, to provide abstraction and remove redundency.
-  * See [_examples/scripts/scope.in](_examples/scripts/scope.in) for a brief example.
 
 
 ### Loops
@@ -214,6 +209,7 @@ You can declare functions, for example:
     printf("Sum is %d\n", sum(1..10));
     return false;
 
+See [_examples/scripts/scope.in](_examples/scripts/scope.in) for another brief example, and discussion of scopes.
 
 
 ## Use Cases
