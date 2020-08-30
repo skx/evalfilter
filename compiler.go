@@ -121,6 +121,39 @@ func (e *Eval) compile(node ast.Node) error {
 
 		switch node.Operator {
 
+		// mutators
+		// special-handling here:
+		//    foo += 3;
+		//    -> foo
+		//    -> 3
+		//    OpAdd
+		//    OpSet foo
+		//
+		case "+=", "-=", "*=", "/=":
+
+			l, ok := node.Left.(*ast.Identifier)
+			if !ok {
+				return fmt.Errorf("left-most operand for %s must be identifier", node.Operator)
+			}
+			if node.Operator == "+=" {
+				e.emit(code.OpAdd)
+			}
+			if node.Operator == "-=" {
+				e.emit(code.OpSub)
+			}
+			if node.Operator == "*=" {
+				e.emit(code.OpMul)
+			}
+			if node.Operator == "/=" {
+				e.emit(code.OpDiv)
+			}
+			str := &object.String{Value: l.Token.Literal}
+
+			e.emit(code.OpConstant, e.addConstant(str))
+
+			// And make it work.
+			e.emit(code.OpSet)
+
 		// maths
 		case "+":
 			e.emit(code.OpAdd)
