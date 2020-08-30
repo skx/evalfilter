@@ -7,7 +7,7 @@ import (
 )
 
 func TestWhile(t *testing.T) {
-	input := `while ( true ) { }`
+	input := `while ( true ) { a += 1;}`
 
 	tests := []struct {
 		expectedType    token.Type
@@ -18,6 +18,10 @@ func TestWhile(t *testing.T) {
 		{token.TRUE, "true"},
 		{token.RPAREN, ")"},
 		{token.LBRACE, "{"},
+		{token.IDENT, "a"},
+		{token.PLUSEQUALS, "+="},
+		{token.INT, "1"},
+		{token.SEMICOLON, ";"},
 		{token.RBRACE, "}"},
 		{token.EOF, ""},
 	}
@@ -34,12 +38,14 @@ func TestWhile(t *testing.T) {
 }
 
 func TestNextToken1(t *testing.T) {
-	input := `..=+√%(){},;~= !~"`
+	input := `-=*=..=+√%(){},;~= !~"`
 
 	tests := []struct {
 		expectedType    token.Type
 		expectedLiteral string
 	}{
+		{token.MINUSEQUALS, "-="},
+		{token.ASTERISKEQUALS, "*="},
 		{token.DOTDOT, ".."},
 		{token.ASSIGN, "="},
 		{token.PLUS, "+"},
@@ -458,6 +464,7 @@ func TestIllegalRegexp(t *testing.T) {
 func TestDiv(t *testing.T) {
 	input := `a = b / c;
 a = 3/4;
+a /= 3;
 `
 
 	tests := []struct {
@@ -476,6 +483,11 @@ a = 3/4;
 		{token.SLASH, "/"},
 		{token.INT, "4"},
 		{token.SEMICOLON, ";"},
+		{token.IDENT, "a"},
+		{token.SLASHEQUALS, "/="},
+		{token.INT, "3"},
+		{token.SEMICOLON, ";"},
+
 		{token.EOF, ""},
 	}
 	l := New(input)
