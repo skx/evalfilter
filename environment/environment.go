@@ -65,6 +65,7 @@ func New() *Environment {
 
 	// Now register our default functions.
 	env.SetFunction("float", fnFloat)
+	env.SetFunction("getenv", fnGetenv)
 	env.SetFunction("int", fnInt)
 	env.SetFunction("len", fnLen)
 	env.SetFunction("lower", fnLower)

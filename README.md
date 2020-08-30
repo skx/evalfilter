@@ -84,6 +84,8 @@ You can also easily add new primitives to the engine, by defining a function in 
 * `float(value)`
   * Tries to convert the value to a floating-point number, returns Null on failure.
   * e.g. `float("3.13")`.
+* `getenv(value)`
+  * Return the value of the named environmental variable, or "" if not found.
 * `int(value)`
   * Tries to convert the value to an integer, returns Null on failure.
   * e.g. `int("3")`.

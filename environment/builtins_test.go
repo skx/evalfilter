@@ -55,6 +55,47 @@ func TestFloat(t *testing.T) {
 	}
 }
 
+func TestGetenv(t *testing.T) {
+
+	val := "FOO1234"
+
+	// Should be empty
+	x := fnGetenv([]object.Object{&object.String{Value: val}})
+	if x.Type() != "STRING" {
+		t.Errorf("Invalid type result for return")
+	}
+
+	// Cast to string
+	ret := x.(*object.String).Value
+	if ret != "" {
+		t.Errorf("Got an unexpected environmental variable")
+	}
+
+	// Now try again, after setting the value
+	os.Setenv(val, val)
+
+	x = fnGetenv([]object.Object{&object.String{Value: val}})
+	if x.Type() != "STRING" {
+		t.Errorf("Invalid type result for return")
+	}
+
+	// Cast to string
+	ret = x.(*object.String).Value
+	if ret != val {
+		t.Errorf("Got an unexpected environmental variable")
+	}
+
+	// Reset
+	os.Setenv(val, "")
+
+	// ensure that zero arguments are handled
+	var tmp []object.Object
+	out := fnGetenv(tmp)
+	if out.Type() != "NULL" {
+		t.Errorf("Invalid result for no args:%s", out.Type())
+	}
+}
+
 // Test integer-conversion.
 func TestInt(t *testing.T) {
 

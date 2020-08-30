@@ -48,6 +48,21 @@ func fnFloat(args []object.Object) object.Object {
 	return &object.Float{Value: i}
 }
 
+// fnGetenv is the implementation of the `getenv` function.
+func fnGetenv(args []object.Object) object.Object {
+
+	// We expect one argument
+	if len(args) != 1 {
+		return &object.Null{}
+	}
+
+	// Stringify
+	str := args[0].Inspect()
+
+	// Fetch & return
+	return &object.String{Value: os.Getenv(str)}
+}
+
 // fnInt is the implementation of the `int` function.
 //
 // It converts an object to an integer, if it can.
