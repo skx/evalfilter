@@ -187,9 +187,11 @@ The final helper is the ability to create arrays of integers via the `..` primit
 
     sum = 0;
     foreach item in 1..10 {
-        sum = sum + item;
+        sum += item;
     }
     print( "Sum is ", sum, "\n" );
+
+Here you note that `len++` and `sum += item;` work as you'd expect.  There is support for `+=`, `-=`, `*=`, and `/=`.  The `++` and `--` postfix operators are both available (for integers and floating-point numbers).
 
 
 ### Functions
