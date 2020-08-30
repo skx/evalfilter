@@ -15,7 +15,6 @@
     * [Denial of service](#denial-of-service)
 * [Sample Usage](#sample-usage)
   * [Additional Examples](#additional-examples)
-  * [Variables](#variables)
 * [Standalone Use](#standalone-use)
 * [Benchmarking](#benchmarking)
 * [Fuzz Testing](#fuzz-testing)
@@ -344,6 +343,8 @@ To give you a quick feel for how things look you could consult the following sim
   * The new function is then used to filter a list of people.
 * [example_user_defined_function_test.go](example_user_defined_function_test.go)
   * Writing a function within the scripting-environment, and then calling it.
+* [_examples/embedded/variable/](_examples/embedded/variable/)
+  * Shows how to pass a variable back and forth between your host application and the scripting environment
 
 
 ## Additional Examples
@@ -356,16 +357,6 @@ The standalone driver located beneath [cmd/evalfilter](cmd/evalfilter) allows yo
 
 Finally if you want to compile this library to webassembly, and use it in a web-page that is also possible!  See [wasm/](_examples/wasm) for details.
 
-
-
-
-## Variables
-
-Your host application can also register variables which are accessible to your scripting environment via the `SetVariable` method.  The variables can have their values updated at any time before the call to `Eval` is made.
-
-Similarly you can _retrieve_ values which have been set within scripts, via `GetVariable`.
-
-You can see an example of this in [_examples/embedded/variable/](_examples/embedded/variable/)
 
 
 
@@ -383,7 +374,7 @@ This driver, contained within the repository at [cmd/evalfilter](cmd/evalfilter)
 * Output a dissassembly of the [bytecode instructions](BYTECODE.md) the compiler generated when preparing your script.
 * Run a script.
   * Optionally with a JSON object as input.
-* View the various states of the lexer, parser, and compilation process.
+* View the lexer and parser outputs.
 
 Help is available by running `evalfilter help`, and the sub-commands [are documented thoroughly](cmd/evalfilter/README.md), along with sample output.
 

@@ -4,6 +4,7 @@ This directory contains a standalone utility which can be used to experiment wit
 
 If you have [this repository](https://github.com/skx/evalfilter/) cloned locally you can install it via:
 
+    cd cmd/evalfilter
     go install .
 
 Otherwise you can fetch the source and install it via the standard golang approach:
