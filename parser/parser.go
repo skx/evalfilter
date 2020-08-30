@@ -46,28 +46,32 @@ const (
 // precedence contains the precedence for each token-type, which
 // is part of the magic of a Pratt-Parser.
 var precedences = map[token.Type]int{
-	token.QUESTION: TERNARY,
-	token.ASSIGN:   ASSIGN,
-	token.DOTDOT:   ASSIGN,
-	token.EQ:       EQUALS,
-	token.NOTEQ:    EQUALS,
-	token.LT:       LESSGREATER,
-	token.LTEQUALS: LESSGREATER,
-	token.GT:       LESSGREATER,
-	token.GTEQUALS: LESSGREATER,
-	token.CONTAINS: LESSGREATER,
-	token.MISSING:  LESSGREATER,
-	token.IN:       LESSGREATER,
-	token.PLUS:     SUM,
-	token.MINUS:    SUM,
-	token.SLASH:    PRODUCT,
-	token.ASTERISK: PRODUCT,
-	token.POW:      POWER,
-	token.MOD:      MOD,
-	token.AND:      COND,
-	token.OR:       COND,
-	token.LPAREN:   CALL,
-	token.LSQUARE:  INDEX,
+	token.QUESTION:       TERNARY,
+	token.ASSIGN:         ASSIGN,
+	token.DOTDOT:         ASSIGN,
+	token.EQ:             EQUALS,
+	token.NOTEQ:          EQUALS,
+	token.LT:             LESSGREATER,
+	token.LTEQUALS:       LESSGREATER,
+	token.GT:             LESSGREATER,
+	token.GTEQUALS:       LESSGREATER,
+	token.CONTAINS:       LESSGREATER,
+	token.MISSING:        LESSGREATER,
+	token.IN:             LESSGREATER,
+	token.PLUSEQUALS:     SUM,
+	token.PLUS:           SUM,
+	token.MINUS:          SUM,
+	token.MINUSEQUALS:    SUM,
+	token.SLASH:          PRODUCT,
+	token.SLASHEQUALS:    PRODUCT,
+	token.ASTERISK:       PRODUCT,
+	token.ASTERISKEQUALS: PRODUCT,
+	token.POW:            POWER,
+	token.MOD:            MOD,
+	token.AND:            COND,
+	token.OR:             COND,
+	token.LPAREN:         CALL,
+	token.LSQUARE:        INDEX,
 }
 
 // Parser is the object which maintains our parser state.
@@ -149,6 +153,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.AND, p.parseInfixExpression)
 	p.registerInfix(token.ASSIGN, p.parseAssignExpression)
 	p.registerInfix(token.ASTERISK, p.parseInfixExpression)
+	p.registerInfix(token.ASTERISKEQUALS, p.parseInfixExpression)
 	p.registerInfix(token.CONTAINS, p.parseInfixExpression)
 	p.registerInfix(token.DOTDOT, p.parseInfixExpression)
 	p.registerInfix(token.EQ, p.parseInfixExpression)
@@ -160,14 +165,17 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.LT, p.parseInfixExpression)
 	p.registerInfix(token.LTEQUALS, p.parseInfixExpression)
 	p.registerInfix(token.MINUS, p.parseInfixExpression)
+	p.registerInfix(token.MINUSEQUALS, p.parseInfixExpression)
 	p.registerInfix(token.MISSING, p.parseInfixExpression)
 	p.registerInfix(token.MOD, p.parseInfixExpression)
 	p.registerInfix(token.NOTEQ, p.parseInfixExpression)
 	p.registerInfix(token.OR, p.parseInfixExpression)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
+	p.registerInfix(token.PLUSEQUALS, p.parseInfixExpression)
 	p.registerInfix(token.POW, p.parseInfixExpression)
 	p.registerInfix(token.QUESTION, p.parseTernaryExpression)
 	p.registerInfix(token.SLASH, p.parseInfixExpression)
+	p.registerInfix(token.SLASHEQUALS, p.parseInfixExpression)
 
 	p.postfixParseFns = make(map[token.Type]postfixParseFn)
 	p.registerPostfix(token.MINUSMINUS, p.parsePostfixExpression)
