@@ -131,6 +131,10 @@ func (l *Lexer) NextToken() token.Token {
 			ch := l.ch
 			l.readChar()
 			tok = token.Token{Type: token.PLUSPLUS, Literal: string(ch) + string(l.ch)}
+		} else if l.peekChar() == rune('=') {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.PLUSEQUALS, Literal: string(ch) + string(l.ch)}
 		} else {
 			tok = newToken(token.PLUS, l.ch)
 		}
@@ -158,6 +162,10 @@ func (l *Lexer) NextToken() token.Token {
 			ch := l.ch
 			l.readChar()
 			tok = token.Token{Type: token.MINUSMINUS, Literal: string(ch) + string(l.ch)}
+		} else if l.peekChar() == rune('=') {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.MINUSEQUALS, Literal: string(ch) + string(l.ch)}
 		} else {
 			tok = newToken(token.MINUS, l.ch)
 		}
@@ -179,7 +187,14 @@ func (l *Lexer) NextToken() token.Token {
 			l.prevToken.Type == token.RSQUARE ||
 			l.prevToken.Type == token.FLOAT ||
 			l.prevToken.Type == token.INT {
-			tok = newToken(token.SLASH, l.ch)
+
+			if l.peekChar() == rune('=') {
+				ch := l.ch
+				l.readChar()
+				tok = token.Token{Type: token.SLASHEQUALS, Literal: string(ch) + string(l.ch)}
+			} else {
+				tok = newToken(token.SLASH, l.ch)
+			}
 		} else {
 			str, err := l.readRegexp()
 			if err == nil {
@@ -196,6 +211,10 @@ func (l *Lexer) NextToken() token.Token {
 			ch := l.ch
 			l.readChar()
 			tok = token.Token{Type: token.POW, Literal: string(ch) + string(l.ch)}
+		} else if l.peekChar() == rune('=') {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.ASTERISKEQUALS, Literal: string(ch) + string(l.ch)}
 		} else {
 			tok = newToken(token.ASTERISK, l.ch)
 		}
