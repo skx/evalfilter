@@ -713,7 +713,7 @@ func (vm *VM) optimizeFunctions() {
 	// And `called` containing those functions which were
 	// called.
 	//
-	for name, _ := range vm.functions {
+	for name := range vm.functions {
 
 		// Not called?  Delete it.
 		if !called[name] {
