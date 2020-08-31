@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/skx/evalfilter/v2/code"
+	"github.com/skx/evalfilter/v2/environment"
 	"github.com/skx/evalfilter/v2/object"
 )
 
@@ -710,14 +711,21 @@ func (vm *VM) optimizeFunctions() {
 	//
 	// Now we have `vm.functions` containing all functions.
 	//
-	// And `called` containing those functions which were
-	// called.
+	// And `called` containing those functions which were called.
 	//
-	for name := range vm.functions {
-
-		// Not called?  Delete it.
-		if !called[name] {
-			delete(vm.functions, name)
+	// Copy those that were called into a temporary map, then
+	// switch it over.
+	//
+	tmp := make(map[string]environment.UserFunction)
+	for name, fun := range vm.functions {
+		_, ok := called[name]
+		if !ok {
+			continue
+		}
+		if called[name] {
+			tmp[name] = fun
 		}
 	}
+	vm.functions = tmp
+
 }
