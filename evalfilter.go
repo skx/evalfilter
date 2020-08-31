@@ -182,10 +182,16 @@ func (e *Eval) dumper(offset int, opCode code.Opcode, opArg interface{}) (bool, 
 	if code.Opcode(opCode) == code.OpConstant {
 		v := e.constants[opArg.(int)]
 		s := strings.ReplaceAll(v.Inspect(), "\n", "\\n")
+		s = strings.ReplaceAll(s, "\r", "\\r")
+		s = strings.ReplaceAll(s, "\t", "\\t")
 		fmt.Printf("\t// push constant onto stack: \"%s\"", s)
 	}
 	if code.Opcode(opCode) == code.OpLookup {
-		fmt.Printf("\t// lookup field/variable: %v", e.constants[opArg.(int)])
+		v := e.constants[opArg.(int)]
+		s := strings.ReplaceAll(v.Inspect(), "\n", "\\n")
+		s = strings.ReplaceAll(s, "\r", "\\r")
+		s = strings.ReplaceAll(s, "\t", "\\t")
+		fmt.Printf("\t// lookup field/variable: %s", s)
 	}
 	if code.Opcode(opCode) == code.OpCall {
 		fmt.Printf("\t// call function with %d arg(s)", opArg.(int))
