@@ -233,6 +233,7 @@ func TestFunctionBool(t *testing.T) {
 		{Input: `if ( ! True() ) { return true; } else { return false; }`, Result: false},
 		{Input: `function foo() { local x; x = true; return x; } ; if ( foo() ) { return true ; } return false;`, Result: true},
 		{Input: `function foo() { local a ; a = 0; a += 3; } ; foo() ; if ( a ) { return true ; } return false;`, Result: false},
+		{Input: `function foo() { local a ; a = 3; a -= 3; } ; foo() ; if ( a ) { return true ; } return false;`, Result: false},
 	}
 
 	for _, tst := range tests {
