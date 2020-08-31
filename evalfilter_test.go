@@ -144,6 +144,7 @@ func TestEq(t *testing.T) {
 		{Input: `if ( Count != 12.4 ) { return false; } return true;`, Result: true},
 		{Input: `if ( "Steve" == "Steve" ) { return true; }`, Result: true},
 		{Input: `if ( "Steve" == "Kemp" ) { return true; } return false;`, Result: false},
+		{Input: `a = "Steve"; a += " Kemp"; return ( a == "Steve Kemp" );`, Result: true},
 	}
 
 	for _, tst := range tests {
