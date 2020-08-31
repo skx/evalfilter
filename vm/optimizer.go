@@ -20,6 +20,8 @@ import (
 	"fmt"
 
 	"github.com/skx/evalfilter/v2/code"
+	"github.com/skx/evalfilter/v2/environment"
+	"github.com/skx/evalfilter/v2/object"
 )
 
 // optimize optimizes our bytecode by working over the program
@@ -61,6 +63,9 @@ func (vm *VM) optimizeBytecode() int {
 
 	// Finally kill dead code
 	vm.removeDeadCode()
+
+	// Remove functions that aren't called.
+	vm.optimizeFunctions()
 
 	// And return the changes.
 	return (sz - len(vm.bytecode))
@@ -626,4 +631,101 @@ func (vm *VM) removeDeadCode() {
 	if changed {
 		vm.bytecode = tmp
 	}
+}
+
+// optimizeFunctions - removes functions that aren't called.
+//
+// The key observation here is that to make a call we generate bytecode
+// to setup the stack like so:
+//
+//    arg1
+//    arg2
+//    arg3
+//    ..
+//    argN
+//    OpConstant "print"
+//    OpCall N
+//
+// So we can look at our bytecode to find functions that are called by
+// looking for "OpConstant XXXX" immediately prior to "OpCall NN".
+func (vm *VM) optimizeFunctions() {
+
+	// Keep track of functions which are called here.
+	called := make(map[string]bool)
+
+	// The previous OpConstant value we've found, if any.
+	//
+	// We're looking for OpConstant followed by OpCall.
+	var prev object.Object
+
+	// Walk the main script.
+	vm.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (bool, error) {
+		switch opCode {
+
+		case code.OpConstant:
+			// Save any constant away
+			prev = vm.constants[opArg.(int)]
+		case code.OpCall:
+			// If we got an OpCall instruction then
+			// use the previous constant.
+			if prev != nil {
+				called[prev.Inspect()] = true
+			}
+			prev = nil
+		default:
+			// Any other instruction?  Remove the saved value.
+			prev = nil
+		}
+		return true, nil
+	})
+
+	// Reset to a known-state.
+	prev = nil
+
+	// Now we need to examine every function that has been
+	// defined.
+	for name := range vm.functions {
+
+		vm.WalkFunctionBytecode(name, func(offset int, opCode code.Opcode, opArg interface{}) (bool, error) {
+			switch opCode {
+
+			case code.OpConstant:
+				// Save the constant away
+				prev = vm.constants[opArg.(int)]
+			case code.OpCall:
+				// If we got an OpCall instruction then
+				// use the previous constant.
+				if prev != nil {
+					called[prev.Inspect()] = true
+				}
+				prev = nil
+			default:
+				// Any other instruction?
+				// Remove the saved value.
+				prev = nil
+			}
+			return true, nil
+		})
+	}
+
+	//
+	// Now we have `vm.functions` containing all functions.
+	//
+	// And `called` containing those functions which were called.
+	//
+	// Copy those that were called into a temporary map, then
+	// switch it over.
+	//
+	tmp := make(map[string]environment.UserFunction)
+	for name, fun := range vm.functions {
+		_, ok := called[name]
+		if !ok {
+			continue
+		}
+		if called[name] {
+			tmp[name] = fun
+		}
+	}
+	vm.functions = tmp
+
 }

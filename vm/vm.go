@@ -123,15 +123,12 @@ func New(constants []object.Object, bytecode code.Instructions, functions map[st
 		// Run the optimization, which will return the
 		// number of bytecode instructions "saved" or
 		// reduced/removed.
-		saved := vm.optimizeBytecode()
-
-		if debug && optimize {
-			fmt.Printf("Bytecode optimizer saved %d bytes\n", saved)
-		}
+		vm.optimizeBytecode()
 
 		//
 		// Now functions
 		//
+		tmp := make(map[string]environment.UserFunction)
 		for name, fun := range functions {
 
 			// Save the main bytecode away
@@ -147,16 +144,14 @@ func New(constants []object.Object, bytecode code.Instructions, functions map[st
 				fmt.Printf("Bytecode optimizer saved %d bytes for function %s\n", saved, name)
 			}
 
-			// Now update the function's bytecode
-			//
-			// This will show the savings.
-			x := vm.functions[name]
-			x.Bytecode = vm.bytecode
-			vm.functions[name] = x
+			// Save it away
+			fun.Bytecode = vm.bytecode
+			tmp[name] = fun
 
 			// And reset the saved vm-bytecode
 			vm.bytecode = safe
 		}
+		vm.functions = tmp
 	}
 
 	return vm
