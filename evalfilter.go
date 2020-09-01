@@ -215,22 +215,24 @@ func (e *Eval) Dump() error {
 	e.machine.WalkBytecode(e.dumper)
 
 	// Show constants, if any are present.
-	if len(e.constants) > 0 {
+	consts := e.constants
+	if len(consts) > 0 {
 		fmt.Printf("\n\nConstant Pool:\n")
-		for i, n := range e.constants {
+		for i, n := range consts {
 			s := strings.ReplaceAll(n.Inspect(), "\n", "\\n")
 			fmt.Printf("  %04d Type:%s Value:\"%s\"\n", i, n.Type(), s)
 		}
 	}
 
 	// Do we have user-defined functions?
-	if len(e.functions) > 0 {
+	funs := e.functions
+	if len(funs) > 0 {
 		fmt.Printf("\nUser-defined functions:\n")
 	}
 
 	// For each function
 	count := 0
-	for name, obj := range e.functions {
+	for name, obj := range funs {
 		// Show brief information
 		fmt.Printf(" function %s(%s)\n", name, strings.Join(obj.Arguments, ","))
 
