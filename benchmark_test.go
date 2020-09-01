@@ -173,3 +173,46 @@ func Benchmark_evalfilter_trivial(b *testing.B) {
 		b.Fail()
 	}
 }
+
+// Benchmark_evalfilter_function_calls - This is a simple benchmark that measures
+// the overhead of multiple (recursive) user-defined function-calls.
+func Benchmark_evalfilter_function_calls(b *testing.B) {
+
+	//
+	// Prepare the script
+	//
+	eval := New(`
+function factorial(n ) {
+  if ( n < 1 ) {
+     return 1;
+  }
+  return( n * factorial(n-1) );
+}
+
+result = factorial(10);
+return ( result == 3628800 );`)
+
+	//
+	// Ensure this compiled properly.
+	//
+	err := eval.Prepare()
+	if err != nil {
+		fmt.Printf("Failed to compile: %s\n", err.Error())
+		return
+	}
+
+	var ret bool
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		ret, err = eval.Run(nil)
+	}
+	b.StopTimer()
+
+	if err != nil {
+		b.Fatal(err)
+	}
+	if !ret {
+		b.Fail()
+	}
+}
