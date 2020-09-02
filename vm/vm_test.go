@@ -328,7 +328,6 @@ func TestOpBang(t *testing.T) {
 	RunTestCases(tests, constants, t)
 }
 
-// TODO: User-Defined Function(s)
 func TestOpCall(t *testing.T) {
 
 	functions := make(map[string]environment.UserFunction)
@@ -347,13 +346,30 @@ func TestOpCall(t *testing.T) {
 			byte(code.OpLookup),
 			byte(0),
 			byte(4), // "input"
+			byte(code.OpLocal),
+			byte(code.OpLookup),
+			byte(0),
+			byte(4), // "input"
 			byte(code.OpBang),
 			byte(code.OpReturn),
 		},
 		Arguments: []string{"input"},
 	}
 
+	// error tries to pop from an empty stack.
+	functions["error"] = environment.UserFunction{
+		Bytecode: code.Instructions{
+			byte(code.OpLocal),
+			byte(code.OpReturn),
+		},
+	}
+
 	tests := []TestCase{
+
+		// empty stack
+		{program: code.Instructions{
+			byte(code.OpLocal), // 0x00
+		}, result: "Pop from an empty stack", error: true},
 
 		// empty stack
 		{program: code.Instructions{
@@ -363,15 +379,19 @@ func TestOpCall(t *testing.T) {
 		}, result: "Pop from an empty stack", error: true},
 
 		// call: len(steve) -> but missing the string
-		{program: code.Instructions{
-			byte(code.OpConstant), // len
-			byte(0),
-			byte(1),
-			byte(code.OpCall),
-			byte(0),
-			byte(1),
-			byte(code.OpReturn),
-		}, result: "Pop from an empty stack", error: true},
+		{
+			program: code.Instructions{
+				byte(code.OpConstant), // len
+				byte(0),
+				byte(1),
+				byte(code.OpCall),
+				byte(0),
+				byte(1),
+				byte(code.OpReturn),
+			},
+			result: "Pop from an empty stack",
+			error:  true,
+		},
 
 		// call: len(steve)
 		{program: code.Instructions{
@@ -418,6 +438,16 @@ func TestOpCall(t *testing.T) {
 			functions: functions,
 			result:    "true",
 			error:     false,
+			optimized: code.Instructions{
+				byte(code.OpConstant), // "test"
+				byte(0),
+				byte(2),
+				byte(code.OpCall),
+				byte(0),
+				byte(0),
+
+				byte(code.OpReturn),
+			},
 		},
 		// call: bang()
 		{
@@ -432,6 +462,21 @@ func TestOpCall(t *testing.T) {
 			},
 			functions: functions,
 			result:    "mismatch in argument-counts",
+			error:     true,
+		},
+		// call: error()
+		{
+			program: code.Instructions{
+				byte(code.OpConstant), // "error"
+				byte(0),
+				byte(5),
+				byte(code.OpCall),
+				byte(0),
+				byte(0),
+				byte(code.OpReturn),
+			},
+			functions: functions,
+			result:    "Pop from an empty stack",
 			error:     true,
 		},
 		// call: bang(true)
@@ -474,6 +519,7 @@ func TestOpCall(t *testing.T) {
 		&object.String{Value: "test"},  // user defined fun
 		&object.String{Value: "bang"},  // user defined fun
 		&object.String{Value: "input"}, // input param to bang()
+		&object.String{Value: "error"}, // user defined fun
 	}
 
 	RunTestCases(tests, constants, t)
@@ -1763,6 +1809,7 @@ func RunTestCases(tests []TestCase, objects []object.Object, t *testing.T) {
 
 		if len(test.optimized) > 0 {
 			env.Set("OPTIMIZE", &object.Boolean{Value: true})
+			env.Set("DEBUG", &object.Boolean{Value: true})
 		}
 
 		// Create
