@@ -133,7 +133,7 @@ func (e *Eval) compile(node ast.Node) error {
 
 			l, ok := node.Left.(*ast.Identifier)
 			if !ok {
-				return fmt.Errorf("left-most operand for %s must be identifier", node.Operator)
+				return fmt.Errorf("left-most operand for %s must be an identifier", node.Operator)
 			}
 			if node.Operator == "+=" {
 				e.emit(code.OpAdd)

@@ -2,6 +2,7 @@ package evalfilter
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/skx/evalfilter/v2/object"
@@ -1173,6 +1174,60 @@ func TestNumberTruth(t *testing.T) {
 
 		if ret != true {
 			t.Fatalf("Found unexpected result running script: %s - %v", tst, ret)
+		}
+	}
+}
+
+func TestMutators(t *testing.T) {
+
+	inputs := []string{
+		`1 *= 3;`,
+		`"steve" += "kemp"`,
+		`true -= false`,
+		`3.4 /= 7`,
+
+		// Using this same broken approach to testing
+		// compilation results of various statements
+		// assign:
+		`a = 3 += 3;`,
+		`if ( 3 += 7 ) { return true; } `,
+		`if ( true ) { return 4+=3; } `,
+		`if ( true ) { return 4 ; } else { return 4+=3; } `,
+		`function foo() { 3 += 4; return true; } `,
+		`foreach x in  [ 3, 4, 4+=4 ] { return 127 ; }`,
+
+		// BUG:TODO: This should fail?
+		// `foreach x in 1..3 { return true *= 3; }`,
+
+		`return 4 += 3;`,
+		`(4 += 34) + ( 4 /= 4)`,
+		`a = [ 3, 4, 4+=4 ];`,
+		`(4 + 34) * ( 4 /= 4)`,
+		`√(4+=3);`,
+		`while( 4 += 3 ) { return true; } `,
+		`while( true ) { 4 += 3; }`,
+		`3+= 3 ? true : false;`,
+		`true ? 3+= 3 : false;`,
+		`true ? false : 3+= 3;`,
+		`"steve"[3+= 3];`,
+		`print( 1, 2, 3, 4+= 3 );`,
+
+		// TODO: index expression.
+		//       `3+=1[3];`,
+		// TODO: foreach (ast.Body),
+		//       `foreach x,y in [ 3, 4, 5 ] { return 3+=2; }`,
+	}
+
+	for _, tst := range inputs {
+
+		obj := New(tst)
+
+		err := obj.Prepare()
+		if err == nil {
+			t.Fatalf("Expected error compiling test, got none: %s", tst)
+		}
+		if !strings.Contains(err.Error(), "must be an identifier") {
+			t.Fatalf("Got an error on bogus types, but the wrong one: %s\n", err.Error())
 		}
 	}
 }
