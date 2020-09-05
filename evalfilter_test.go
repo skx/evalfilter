@@ -1,6 +1,7 @@
 package evalfilter
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -60,7 +61,7 @@ func TestLess(t *testing.T) {
 
 		obj := New(tst.Input)
 
-		p := obj.Prepare()
+		p := obj.Prepare([]byte{NoOptimize})
 		if p != nil {
 			t.Fatalf("Failed to compile")
 		}
@@ -117,6 +118,104 @@ func TestMore(t *testing.T) {
 		if ret != tst.Result {
 			t.Fatalf("Found unexpected result running script")
 		}
+	}
+}
+
+// TestBroken confirms "Run" and "Execute" return errors.
+func TestBroken(t *testing.T) {
+	input := `
+
+function top( ) {
+   return 3;
+}
+
+function bottom( ) {
+   return 0;
+}
+
+// Division by zero
+out = top() / bottom();
+
+return( true );
+`
+
+	obj := New(input)
+	err := obj.Prepare()
+	if err != nil {
+		t.Fatalf("Failed to compile")
+	}
+
+	a, err := obj.Run(nil)
+	if err == nil {
+		t.Fatalf("expected error, got none")
+	}
+	if !strings.Contains(err.Error(), "division") {
+		fmt.Printf("Wrong value")
+	}
+	if a != false {
+		fmt.Printf("Wrong value")
+	}
+
+	b, err := obj.Execute(nil)
+	if err == nil {
+		t.Fatalf("expected error, got none")
+	}
+	if !strings.Contains(err.Error(), "division") {
+		fmt.Printf("Wrong value")
+	}
+	if b.Inspect() != "null" {
+		fmt.Printf("Wrong value")
+	}
+}
+
+// TestDump just dumps some bytecode
+func TestDump(t *testing.T) {
+	input := `
+
+function hello( name ) {
+   printf("Hello, %s\n", name );
+}
+
+function goodbye( name ) {
+   printf("Goodbye, %s\n", name );
+}
+
+hello( "world" );
+goodbye( "world" );
+
+a = 3;
+a += 3;
+
+return( true );
+`
+
+	obj := New(input)
+
+	ctx := context.Background()
+	obj.SetContext(ctx)
+	p := obj.Prepare()
+	if p != nil {
+		t.Fatalf("Failed to compile")
+	}
+
+	// Dump
+	obj.Dump()
+
+	_, err := obj.Run(nil)
+	if err != nil {
+		t.Fatalf("unexpected error running code")
+	}
+
+	// Confirm a == 6
+	val := obj.GetVariable("a")
+	if val.Inspect() != "6" {
+		t.Fatalf("Variable had wrong value: Got %v\n", val)
+	}
+
+	// Confirm bogus variables are null
+	val = obj.GetVariable("aa")
+	if val.Inspect() != "null" {
+		t.Fatalf("Variable had wrong value: Got %v\n", val)
 	}
 }
 
