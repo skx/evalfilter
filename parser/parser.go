@@ -217,6 +217,26 @@ func (p *Parser) nextToken() {
 	p.peekToken = p.l.NextToken()
 }
 
+// Parse is the main public-facing method to parse an input program.
+//
+// It will return any error-encountered in parsing the input, but
+// to avoid confusion it will only return the first error.
+//
+// To access any subsequent errors please see `Errors`.
+func (p *Parser) Parse() (*ast.Program, error) {
+
+	// Parse
+	a := p.ParseProgram()
+
+	// Look for errors
+	if len(p.errors) == 0 {
+		return a, nil
+	}
+
+	// Only the first error matters.
+	return a, fmt.Errorf("%s", p.Errors()[0])
+}
+
 // ParseProgram used to parse the whole program
 func (p *Parser) ParseProgram() *ast.Program {
 	program := &ast.Program{}
