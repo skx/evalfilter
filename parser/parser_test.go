@@ -239,6 +239,9 @@ func testIdentifier(t *testing.T, exp ast.Expression, value string) bool {
 
 func TestIncompleteThings(t *testing.T) {
 	input := []string{
+		`if `,
+		`if ( true `,
+		`if ( true ) `,
 		`if ( true ) { `,
 		`if ( true ) { puts( "OK" ) ; } else { `,
 		`x = `,
@@ -250,6 +253,8 @@ func TestIncompleteThings(t *testing.T) {
 	}
 
 	for _, str := range input {
+
+		// Here we do this the typical way.
 		l := lexer.New(str)
 		p := New(l)
 		_ = p.ParseProgram()
@@ -258,8 +263,13 @@ func TestIncompleteThings(t *testing.T) {
 			t.Errorf("unexpected error-count, got %d  expected %d", len(p.errors), 1)
 		}
 
-		if !strings.Contains(p.errors[0], "end of file") {
-			t.Errorf("Unexpected error-message %s\n", p.errors[0])
+		// Now we repeat with the new parser-method.
+		l2 := lexer.New(str)
+		p2 := New(l2)
+		_, err := p2.Parse()
+
+		if err == nil {
+			t.Errorf("We expected an error, but saw none")
 		}
 	}
 }
@@ -312,6 +322,7 @@ func TestParseLocal(t *testing.T) {
 		{input: "function foo() { local; }", error: true},
 		{input: "local a;", error: true}} {
 
+		// Do this the normal way
 		l := lexer.New(test.input)
 		p := New(l)
 		p.ParseProgram()
@@ -327,6 +338,23 @@ func TestParseLocal(t *testing.T) {
 				t.Fatalf("shouldn't have seen an error, but did: %s", p.errors[0])
 			}
 		}
+
+		// Now with our new API
+		l2 := lexer.New(test.input)
+		p2 := New(l2)
+		_, err := p2.Parse()
+
+		if test.error {
+			if err == nil {
+				t.Fatalf("expected to see an error, but didn't")
+			}
+		} else {
+
+			if err != nil {
+				t.Fatalf("shouldn't have seen an error, but did: %s", err.Error())
+			}
+		}
+
 	}
 }
 
@@ -394,6 +422,7 @@ func TestParseTernary(t *testing.T) {
 
 	for _, test := range []TestCase{{input: "min  = ( 3 > 2 ) ? 3 : 2;", error: false},
 		{input: "( 3 > 2 ) ? 3", error: true},
+		{input: "a = subject ? ( subject ? subject : Subject ) : title ", error: true},
 		{input: "( 3 > 2 ) ? 3 :", error: true},
 		{input: "( 3 > 2 ) ? 3 : )", error: true}} {
 		l := lexer.New(test.input)
