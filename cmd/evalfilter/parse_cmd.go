@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"strings"
 
 	"github.com/skx/evalfilter/v2/lexer"
 	"github.com/skx/evalfilter/v2/parser"
@@ -50,16 +49,15 @@ func (p *parseCmd) Parse(file string) {
 	//
 	// Parse the program
 	//
-	program := parse.ParseProgram()
+	program, err := parse.Parse()
 
 	//
 	// Where there any errors produced by the parser?
 	//
 	// If so report that.
 	//
-	if len(parse.Errors()) > 0 {
-		fmt.Printf("\nErrors parsing script:\n" +
-			strings.Join(parse.Errors(), "\n"))
+	if err != nil {
+		fmt.Printf("Error parsing script: %s\n", err.Error())
 		return
 	}
 

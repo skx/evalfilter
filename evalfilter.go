@@ -113,22 +113,15 @@ func (e *Eval) Prepare(flags ...[]byte) error {
 	//
 	// Parse the program into an AST.
 	//
-	program := p.ParseProgram()
-
-	//
-	// Were there any errors produced by the parser?
-	//
-	// If so report that.
-	//
-	if len(p.Errors()) > 0 {
-		return fmt.Errorf("\nErrors parsing script:\n" +
-			strings.Join(p.Errors(), "\n"))
+	program, err := p.Parse()
+	if err != nil {
+		return err
 	}
 
 	//
 	// Compile the program to bytecode
 	//
-	err := e.compile(program)
+	err = e.compile(program)
 
 	//
 	// If there were errors then return them.
