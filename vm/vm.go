@@ -794,12 +794,11 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 	// If we get here we've hit the end of the bytecode, and we
 	// didn't encounter a return-instruction.
 	//
-	// That means the script is malformed..
+	// In the case where a user is running the script as a filter
+	// then a missing return code is probably going to be treated
+	// as a "false" return.  But the caller can decide that.
 	//
-	// We could decide this means the script returns `false`, but
-	// I'd rather users were explicit.
-	//
-	return nil, fmt.Errorf("missing return at the end of the script")
+	return Null, nil
 }
 
 // inspectObject discovers the names/values of all structure fields, or

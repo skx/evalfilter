@@ -181,8 +181,8 @@ func TestMissingReturn(t *testing.T) {
 				byte(code.OpTrue),
 				byte(code.OpFalse),
 			},
-			result: "missing return",
-			error:  true,
+			result: "null",
+			error:  false,
 		},
 	}
 
