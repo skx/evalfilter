@@ -10,6 +10,7 @@
     * [Conditionals](#conditionals)
     * [Loops](#loops)
     * [Functions](#functions)
+    * [Switch/Case](#switch-case)
   * [Use Cases](#use-cases)
   * [Security](#security)
     * [Denial of service](#denial-of-service)
@@ -213,6 +214,38 @@ You can declare functions, for example:
     return false;
 
 See [_examples/scripts/scope.in](_examples/scripts/scope.in) for another brief example, and discussion of scopes.
+
+
+### Switch / Case
+
+We support the use of `switch` and `case` to simplify the handling of some control-flow.  An example would look like this:
+
+   switch( Subject ) {
+      case /^Re:/i {
+         printf("Reply\n");
+      }
+      case /^fwd:/i {
+         printf("Forwarded message\n");
+      }
+      case "DEAR" + "  " + WINNER" {
+         printf("SPAM\n");
+      }
+      case "YOU HAVE WON" {
+         printf("SPAM\n");
+      }
+      default {
+         printf("New message!\n");
+      }
+   }
+
+Note that the `case` expression supports:
+
+* Expression matches.
+* Literal matches.
+* Regular expression matches.
+
+To avoid fall-through-related bugs we've explicitly designed the case-statements to take _blocks_ as arguments, rather than statements.
+
 
 
 ## Use Cases
