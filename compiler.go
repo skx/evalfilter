@@ -635,6 +635,9 @@ func (e *Eval) compile(node ast.Node) error {
 
 				// finally the block
 				err = e.compile(opt.Block)
+				if err != nil {
+					return err
+				}
 
 				// now we know the end of the block.
 				e.changeOperand(pos, len(e.instructions))
