@@ -22,6 +22,10 @@ type SwitchFunction struct {
 //
 func ExampleSwitchFunction() {
 
+	// Ignore this - just to resolve the linter warning
+	x := SwitchFunction{}
+	x.foo = "bar"
+
 	//
 	// We'll run this script, which defines a function and uses
 	// it.
