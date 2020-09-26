@@ -244,6 +244,8 @@ func (p *Parser) ParseProgram() *ast.Program {
 	for p.curToken.Type != token.EOF && p.curToken.Type != token.ILLEGAL {
 		stmt := p.parseStatement()
 		if stmt == nil {
+			msg := fmt.Sprintf("unexpected nil statement around %s", p.curToken.Position())
+			p.errors = append(p.errors, msg)
 			return nil
 		}
 		program.Statements = append(program.Statements, stmt)
@@ -312,6 +314,8 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	prefix := p.prefixParseFns[p.curToken.Type]
 	if prefix == nil {
 		p.noPrefixParseFnError(p.curToken.Type)
+		msg := fmt.Sprintf("invalid token '%s' around %s", p.curToken.Literal, p.curToken.Position())
+		p.errors = append(p.errors, msg)
 		return nil
 	}
 	leftExp := prefix()
@@ -331,6 +335,9 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 
 		// Look for errors
 		if leftExp == nil {
+			// NOTE: not sure what error message needs to go here...
+			msg := fmt.Sprintf("%s around %s", p.curToken.Literal, p.curToken.Position())
+			p.errors = append(p.errors, msg)
 			return nil
 		}
 	}
@@ -341,7 +348,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 //
 // This is generally seen with an unterminated string.
 func (p *Parser) parseIllegal() ast.Expression {
-	msg := fmt.Sprintf("illegal token hit parsing program %s", p.curToken.Literal)
+	msg := fmt.Sprintf("illegal token hit parsing program %s around %s", p.curToken.Literal, p.curToken.Position())
 	p.errors = append(p.errors, msg)
 	return nil
 }
@@ -492,6 +499,9 @@ func (p *Parser) parseTernaryExpression(condition ast.Expression) ast.Expression
 
 	// error?
 	if expression.IfFalse == nil {
+		// NOTE: not sure what error message needs to go here...
+		msg := fmt.Sprintf("%s around %s", p.curToken.Literal, p.curToken.Position())
+		p.errors = append(p.errors, msg)
 		return nil
 	}
 
@@ -504,9 +514,13 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 
 	exp := p.parseExpression(LOWEST)
 	if exp == nil {
+		msg := fmt.Sprintf("unexpected nil expression around %s", p.curToken.Position())
+		p.errors = append(p.errors, msg)
 		return nil
 	}
 	if !p.expectPeek(token.RPAREN) {
+		msg := fmt.Sprintf("expected ) but got %s around %s", p.curToken.Literal, p.curToken.Position())
+		p.errors = append(p.errors, msg)
 		return nil
 	}
 	return exp
@@ -516,9 +530,13 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 func (p *Parser) parseIfExpression() ast.Expression {
 	expression := &ast.IfExpression{Token: p.curToken}
 	if expression == nil {
+		msg := fmt.Sprintf("unexpected nil expression around %s", p.curToken.Position())
+		p.errors = append(p.errors, msg)
 		return nil
 	}
 	if !p.expectPeek(token.LPAREN) {
+		msg := fmt.Sprintf("expected ( but got %s around %s", p.curToken.Literal, p.curToken.Position())
+		p.errors = append(p.errors, msg)
 		return nil
 	}
 	p.nextToken()
@@ -527,9 +545,13 @@ func (p *Parser) parseIfExpression() ast.Expression {
 		return nil
 	}
 	if !p.expectPeek(token.RPAREN) {
+		msg := fmt.Sprintf("expected ) but got %s around %s", p.curToken.Literal, p.curToken.Position())
+		p.errors = append(p.errors, msg)
 		return nil
 	}
 	if !p.expectPeek(token.LBRACE) {
+		msg := fmt.Sprintf("expected { but got %s around %s", p.curToken.Literal, p.curToken.Position())
+		p.errors = append(p.errors, msg)
 		return nil
 	}
 	expression.Consequence = p.parseBlockStatement()
@@ -539,10 +561,14 @@ func (p *Parser) parseIfExpression() ast.Expression {
 	if p.peekTokenIs(token.ELSE) {
 		p.nextToken()
 		if !p.expectPeek(token.LBRACE) {
+			msg := fmt.Sprintf("expected { but got %s around %s", p.curToken.Literal, p.curToken.Position())
+			p.errors = append(p.errors, msg)
 			return nil
 		}
 		expression.Alternative = p.parseBlockStatement()
 		if expression.Alternative == nil {
+			msg := fmt.Sprintf("unexpected nil expression around %s", p.curToken.Position())
+			p.errors = append(p.errors, msg)
 			return nil
 		}
 	}
@@ -588,6 +614,8 @@ func (p *Parser) parseForEach() ast.Expression {
 
 	// The next token, after the ident(s), should be `in`.
 	if !p.expectPeek(token.IN) {
+		msg := fmt.Sprintf("missing 'in' in foreach statement around %s", p.curToken.Position())
+		p.errors = append(p.errors, msg)
 		return nil
 	}
 	p.nextToken()
@@ -595,6 +623,8 @@ func (p *Parser) parseForEach() ast.Expression {
 	// get the thing we're going to iterate  over.
 	expression.Value = p.parseExpression(LOWEST)
 	if expression.Value == nil {
+		msg := fmt.Sprintf("unexpected nil expression around %s", p.curToken.Position())
+		p.errors = append(p.errors, msg)
 		return nil
 	}
 
@@ -619,6 +649,8 @@ func (p *Parser) parseFunctionDefinition() ast.Expression {
 
 	// Expect "("
 	if !p.expectPeek(token.LPAREN) {
+		msg := fmt.Sprintf("expected ( but got %s around %s", p.curToken.Literal, p.curToken.Position())
+		p.errors = append(p.errors, msg)
 		return nil
 	}
 
@@ -627,6 +659,8 @@ func (p *Parser) parseFunctionDefinition() ast.Expression {
 
 	// Now we want "{"
 	if !p.expectPeek(token.LBRACE) {
+		msg := fmt.Sprintf("expected { but got %s around %s", p.curToken.Literal, p.curToken.Position())
+		p.errors = append(p.errors, msg)
 		return nil
 	}
 
@@ -681,9 +715,13 @@ func (p *Parser) parseFunctionParameters() []*ast.Identifier {
 func (p *Parser) parseWhileStatement() ast.Expression {
 	expression := &ast.WhileStatement{Token: p.curToken}
 	if expression == nil {
+		msg := fmt.Sprintf("unexpected nil expression around %s", p.curToken.Position())
+		p.errors = append(p.errors, msg)
 		return nil
 	}
 	if !p.expectPeek(token.LPAREN) {
+		msg := fmt.Sprintf("expected ( but got %s around %s", p.curToken.Literal, p.curToken.Position())
+		p.errors = append(p.errors, msg)
 		return nil
 	}
 	p.nextToken()
@@ -692,9 +730,13 @@ func (p *Parser) parseWhileStatement() ast.Expression {
 		return nil
 	}
 	if !p.expectPeek(token.RPAREN) {
+		msg := fmt.Sprintf("expected ) but got %s around %s", p.curToken.Literal, p.curToken.Position())
+		p.errors = append(p.errors, msg)
 		return nil
 	}
 	if !p.expectPeek(token.LBRACE) {
+		msg := fmt.Sprintf("expected { but got %s around %s", p.curToken.Literal, p.curToken.Position())
+		p.errors = append(p.errors, msg)
 		return nil
 	}
 	expression.Body = p.parseBlockStatement()
@@ -709,6 +751,8 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	for !p.curTokenIs(token.RBRACE) {
 		stmt := p.parseStatement()
 		if stmt == nil {
+			msg := fmt.Sprintf("unexpected nil statement around %s", p.curToken.Position())
+			p.errors = append(p.errors, msg)
 			return nil
 		}
 		block.Statements = append(block.Statements, stmt)
@@ -808,6 +852,8 @@ func (p *Parser) parseAssignExpression(name ast.Expression) ast.Expression {
 
 	stmt.Value = p.parseExpression(LOWEST)
 	if stmt.Value == nil {
+		msg := fmt.Sprintf("unexpected nil statement around %s", p.curToken.Position())
+		p.errors = append(p.errors, msg)
 		return nil
 	}
 	return stmt
