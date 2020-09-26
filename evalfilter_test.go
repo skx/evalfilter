@@ -284,10 +284,10 @@ func TestContains(t *testing.T) {
 	}
 
 	tests := []Test{
-		{Input: `if ( Greeting ~= "World" ) { return true; } return false;`, Result: true},
-		{Input: `if ( Greeting ~= "Moi" ) { return true; } return false;`, Result: false},
-		{Input: `if ( Greeting !~ "Cake" ) { return true; } return false;`, Result: true},
-		{Input: `if ( Greeting ~= "Cake" ) { return true; } return false;`, Result: false},
+		{Input: `if ( Greeting ~= /World/ ) { return true; } return false;`, Result: true},
+		{Input: `if ( Greeting ~= /Moi/ ) { return true; } return false;`, Result: false},
+		{Input: `if ( Greeting !~ /Cake/ ) { return true; } return false;`, Result: true},
+		{Input: `if ( Greeting ~= /Cake/ ) { return true; } return false;`, Result: false},
 	}
 
 	for _, tst := range tests {
