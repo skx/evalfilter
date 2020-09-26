@@ -3,10 +3,9 @@ package object
 // Regexp wraps string and implements the Object interface.
 type Regexp struct {
 	// Value holds the string value this object wraps.
+	//
+	// (Yes we're a regexp, but we pretend we're string!)
 	Value string
-
-	// Offset holds our iteration-offset
-	offset int
 }
 
 // Type returns the type of this object.
