@@ -474,6 +474,10 @@ func (p *Parser) parseSwitchStatement() ast.Expression {
 
 				}
 			}
+		} else {
+			// error - unexpected token
+			p.errors = append(p.errors, fmt.Sprintf("expected case|default, got %s around position %s", p.curToken.Type, p.curToken.Position()))
+			return nil
 		}
 
 		if !p.expectPeek(token.LBRACE) {
