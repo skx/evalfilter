@@ -40,9 +40,9 @@ There is no shortage of embeddable languages which are available to the golang w
 
 The scripting language is C-like, and is generally intended to allow you to _filter_ objects, which means you might call the same script upon multiple objects, and the script will return either `true` or `false` as appropriate to denote whether some action might be taken by your application against that particular object.
 
-It _is_ possible for you to handle arbitrary return-values from the script(s) you execute, and indeed the script itself could call back into your application to carry out tasks, via the addition of new primitives implemented and exported by your host application, which would make the return value almost irrelevant.
+It certainly _is_ possible for you to handle arbitrary return-values from the script(s) you execute, and indeed the script itself could call back into your application to carry out tasks, via the addition of new primitives implemented and exported by your host application, which would make the return value almost irrelevant.
 
-If you go down that route then this is a general-purpose scripting-language, which you can use to allow customization of a golang-based application.
+> If you go down that route then this repository contains a general-purpose scripting-language, which can be used to execute user-supplied scripts.
 
 My [Google GMail message labeller](https://github.com/skx/labeller) uses the evalfilter in such a standalone manner, executing a script for each new/unread email by default.  The script can then add labels to messages based upon their sender/recipients/subjects. etc.  The notion of filtering there doesn't make sense, it just wants to execute flexible operations on messages.
 
