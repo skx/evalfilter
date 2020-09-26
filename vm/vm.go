@@ -578,7 +578,6 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
 			// switch so that we're interpreting the bytecode
 			// of the compiled function-body.
-			ip = 0
 			vm.bytecode = val.Bytecode
 
 			// Sanity-check we have enough arguments
