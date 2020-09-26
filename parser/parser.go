@@ -206,7 +206,7 @@ func (p *Parser) Errors() []string {
 
 // peekError raises an error if the next token is not the expected type.
 func (p *Parser) peekError(t token.Type) {
-	msg := fmt.Sprintf("expected next token to be %s, got %s instead around line %d", t, p.curToken.Type, p.l.GetLine())
+	msg := fmt.Sprintf("expected next token to be %s, got %s instead around %s", t, p.curToken.Type, p.curToken.Position())
 	p.errors = append(p.errors, msg)
 }
 
@@ -289,7 +289,7 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 // Function called on error if there is no prefix-based parsing method
 // for the given token.
 func (p *Parser) noPrefixParseFnError(t token.Type) {
-	msg := fmt.Sprintf("no prefix parse function for %s found around line %d", t, p.l.GetLine())
+	msg := fmt.Sprintf("no prefix parse function for %s found at %d", t, p.curToken.Position())
 	p.errors = append(p.errors, msg)
 }
 
@@ -361,7 +361,7 @@ func (p *Parser) parseIdentifier() ast.Expression {
 func (p *Parser) parseLocalVariable() ast.Expression {
 
 	if !p.function {
-		msg := fmt.Sprintf("'local' may only be used inside a function, around line %d", p.l.GetLine())
+		msg := fmt.Sprintf("'local' may only be used inside a function, around %s", p.curToken.Position())
 		p.errors = append(p.errors, msg)
 		return nil
 	}
@@ -371,7 +371,7 @@ func (p *Parser) parseLocalVariable() ast.Expression {
 
 	// Ensure we got an ident.
 	if !p.curTokenIs(token.IDENT) {
-		msg := fmt.Sprintf("'local' may only be used with an IDENT, around line %d", p.l.GetLine())
+		msg := fmt.Sprintf("'local' may only be used with an IDENT, around %s", p.curToken.Position())
 		p.errors = append(p.errors, msg)
 		return nil
 	}
@@ -386,7 +386,7 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 
 	value, err := strconv.ParseInt(p.curToken.Literal, 10, 64)
 	if err != nil {
-		msg := fmt.Sprintf("could not parse %q as integer around line %d", p.curToken.Literal, p.l.GetLine())
+		msg := fmt.Sprintf("could not parse %q as integer around %s", p.curToken.Literal, p.curToken.Position())
 		p.errors = append(p.errors, msg)
 		return nil
 	}
@@ -399,7 +399,7 @@ func (p *Parser) parseFloatLiteral() ast.Expression {
 	flo := &ast.FloatLiteral{Token: p.curToken}
 	value, err := strconv.ParseFloat(p.curToken.Literal, 64)
 	if err != nil {
-		msg := fmt.Sprintf("could not parse %q as float around line %d", p.curToken.Literal, p.l.GetLine())
+		msg := fmt.Sprintf("could not parse %q as float around %s", p.curToken.Literal, p.curToken.Position())
 		p.errors = append(p.errors, msg)
 		return nil
 	}
@@ -462,7 +462,7 @@ func (p *Parser) parsePostfixExpression() ast.Expression {
 func (p *Parser) parseTernaryExpression(condition ast.Expression) ast.Expression {
 
 	if p.tern {
-		p.errors = append(p.errors, "nested ternary expressions are illegal")
+		p.errors = append(p.errors, fmt.Sprintf("nested ternary expressions are illegal around %s", p.curToken.Position()))
 		return nil
 	}
 
@@ -799,7 +799,7 @@ func (p *Parser) parseAssignExpression(name ast.Expression) ast.Expression {
 	if n, ok := name.(*ast.Identifier); ok {
 		stmt.Name = n
 	} else {
-		msg := fmt.Sprintf("expected assign token to be IDENT, got %s instead around line %d", name.TokenLiteral(), p.l.GetLine())
+		msg := fmt.Sprintf("expected assign token to be IDENT, got %s instead around %s", name.TokenLiteral(), p.curToken.Position())
 		p.errors = append(p.errors, msg)
 	}
 
