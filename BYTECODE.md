@@ -77,8 +77,10 @@ The virtual machine I've implemented needs two things to work:
 
 * A list of instructions to execute.
 * A list of constants.
+* If the user defines functions, via `function name(args) { body }`
+  * There will be a section of bytecode instructions for each such function defintion.
 
-For example the program "`print( 1.0 + 2.0 ); return true;`" contains __three__ constants:
+When it comes to constants it is worth nothing that constants are used in a lot of places, for example the program "`print( 1.0 + 2.0 ); return true;`" contains __three__ constants:
 
 * The name of the function `print`.
 * The floating point value `1.0`.
@@ -199,10 +201,17 @@ The full list is:
 * `OpArrayIn` / `in`
   * This is an array-specific opcode which tests whether a value is contained within an array.
 
+In addition to this there is an `OpCase` instruction which is designed to handle `case` statements.  This is implemented to allow case-matches to match either:
+
+* Static constants (e.g. "`1`", or "`Subject`").
+* The result of executing expressions.
+* Regular Expressions.
+
+
 
 # Control-Flow Operations
 
-There are two control-flow operations:
+There are two control-flow operations for adjusting the instruction-pointer within the bytecode interpreter:
 
 * `OpJump`
   * Which takes the offset within the bytecode to jump to.
@@ -212,16 +221,17 @@ There are two control-flow operations:
   * Otherwise we proceed to the next instruction as expected.
 
 
+
 # Iteration Operations
 
-There is support for iterating over things, currently just arrays but
-soon strings too.
+There is support for iterating over things, at the moment we have support for iterating over the contents of arrays, and the characters within strings.
+
 
 This is implemented via a pair of opcodes:
 
-* OpIterationReset
+* `OpIterationReset`
   * Reset state of the object being iterated over.
-* OpIterationNext
+* `OpIterationNext`
   * Get the next thing from the object on the stack being iterated over.
 
 There's a lot of magic in the compiler/vm to make this work, as both
@@ -245,6 +255,9 @@ There are some miscellaneous instructions:
   * Pushes a `false` value to the stack.
 * `OpVoid`
   * Pushes a `void` value to the stack.
+* `OpPop`
+  * Remove and discard the topmost stack-entry.
+  * This is just used for a `Nop` operation at the moment, when handling `switch`/`case` statements.
 * `OpReturn`
   * Pops a value off the stack and terminates processing.
     * The value taken from the stack is the return-code.

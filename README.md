@@ -42,9 +42,11 @@ The scripting language is C-like, and is generally intended to allow you to _fil
 
 It _is_ possible for you to handle arbitrary return-values from the script(s) you execute, and indeed the script itself could call back into your application to carry out tasks, via the addition of new primitives implemented and exported by your host application, which would make the return value almost irrelevant.
 
-My [Google GMail message labeller](https://github.com/skx/labeller) uses the evalfilter in a standalone manner, executing a script for each new/unread email by default, to add labels to messages based upon their sender/recipients/subjects. etc.  The notion of filtering there doesn't make sense, it just wants to execute operations on the messages so the return-code is ignored.
+If you go down that route then this is a general-purpose scripting-language, which you can use to allow customization of a golang-based application.
 
-However the _ideal_ use-case is that your application receives objects of some kind, perhaps as a result of incoming webhook submissions, network events, or similar, and you wish to decide how to handle those objects in a flexible fashion.
+My [Google GMail message labeller](https://github.com/skx/labeller) uses the evalfilter in such a standalone manner, executing a script for each new/unread email by default.  The script can then add labels to messages based upon their sender/recipients/subjects. etc.  The notion of filtering there doesn't make sense, it just wants to execute flexible operations on messages.
+
+However the _ideal_ use-case, for which this was designed, is that your application receives objects of some kind, perhaps as a result of incoming webhook submissions, network events, or similar, and you wish to decide how to handle those objects in a flexible fashion.
 
 
 
