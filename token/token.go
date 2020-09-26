@@ -40,9 +40,11 @@ const (
 	ASTERISK       = "*"
 	ASTERISKEQUALS = "*="
 	BANG           = "!"
+	CASE           = "case"
 	COLON          = ":"
 	COMMA          = ","
 	CONTAINS       = "~="
+	DEFAULT        = "DEFAULT"
 	DOTDOT         = ".."
 	ELSE           = "ELSE"
 	EOF            = "EOF"
@@ -88,12 +90,15 @@ const (
 	SLASHEQUALS    = "/="
 	SQRT           = "√"
 	STRING         = "STRING"
+	SWITCH         = "switch"
 	TRUE           = "TRUE"
 	WHILE          = "WHILE"
 )
 
 // reversed keywords
 var keywords = map[string]Type{
+	"case":     CASE,
+	"default":  DEFAULT,
 	"else":     ELSE,
 	"false":    FALSE,
 	"for":      FOR,
@@ -103,6 +108,7 @@ var keywords = map[string]Type{
 	"in":       IN,
 	"local":    LOCAL,
 	"return":   RETURN,
+	"switch":   SWITCH,
 	"true":     TRUE,
 	"while":    WHILE,
 }
