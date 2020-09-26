@@ -560,6 +560,92 @@ func (e *Eval) compile(node ast.Node) error {
 		//
 		e.changeOperand(jumpEnd, len(e.instructions))
 
+	case *ast.SwitchExpression:
+
+		//
+		// So a switch statement will look like this:
+		//
+		//   switch( foo ) {
+		//     case "one" {
+		//         one_code;
+		//         ..
+		//     }
+		//     case "two" {
+		//         two_code;
+		//         ..
+		//     }
+		//     default {
+		//         fail_code;
+		//
+		//   }
+		//
+		// We want to compile that into:
+		//
+		//   if ! foo eq one
+		//     jmp two
+		//     one_code
+		//     jmp END
+		//  two:
+		//   if ! foo eq two
+		//     jmp default
+		//     two_code
+		//     jmp END
+		//  default:
+		//     fail_code
+		//  end:
+		//
+		//
+		//		patches := []int{}
+
+		// We have to assemble each choice
+		for _, opt := range node.Choices {
+
+			// skipping the default-case, which we'll
+			// handle later.
+			if opt.Default {
+				continue
+			}
+
+			// Look at any expression we've got in this case.
+			for _, val := range opt.Expr {
+
+				// OK so we have an expression.
+				//
+				// Emit "test Value Expression"
+				// jump if false to end
+
+				// compile the thing we're testing
+				err := e.compile(node.Value)
+				if err != nil {
+					return err
+				}
+
+				// now compile the express
+				err = e.compile(val)
+				if err != nil {
+					return err
+				}
+
+				// the comparison
+				e.emit(code.OpCase)
+
+				// Now the jump over the block to run
+				// if it matches
+				pos := e.emit(code.OpJumpIfFalse, 9999)
+
+				// finally the block
+				err = e.compile(opt.Block)
+
+				// now we know the end of the block.
+				e.changeOperand(pos, len(e.instructions))
+			}
+
+			//
+			// TODO: default-block
+			//
+
+		}
+
 	case *ast.WhileStatement:
 
 		//
