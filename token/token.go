@@ -9,13 +9,28 @@
 // instructions which will ultimately be executed by our virtual machine.
 package token
 
+import "fmt"
+
 // Type is a string
 type Type string
 
 // Token struct represent the lexer token
 type Token struct {
-	Type    Type
+
+	// Type contains the type of the token
+	// "AND", "ASSIGN", "STRING", etc.
+	Type Type
+
+	// Literal contains the literal text of the token
 	Literal string
+
+	// Line contains the line within the input where the
+	// token was found.
+	Line int
+
+	// Column contains the position where the token (start)
+	// was found
+	Column int
 }
 
 // Our known token-types
@@ -98,4 +113,10 @@ func LookupIdentifier(identifier string) Type {
 		return tok
 	}
 	return IDENT
+}
+
+// Position returns a report of the current token's position, reporting on
+// the line-number and column-number of the token.
+func (t Token) Position() string {
+	return (fmt.Sprintf("line %d, column %d", t.Line, t.Column))
 }
