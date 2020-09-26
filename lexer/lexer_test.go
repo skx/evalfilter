@@ -328,8 +328,7 @@ func TestEOF(t *testing.T) {
 
 // TestLine handles testing that line-lengths work.
 func TestLine(t *testing.T) {
-	input := `
-"line 1",
+	input := `"line 1",
 "line 2",
 "line 3,\
 `
@@ -346,10 +345,8 @@ func TestLine(t *testing.T) {
 		}
 		if tk.Type == token.STRING {
 
-			found := l.GetLine()
-
-			if found != line {
-				t.Fatalf("Invalid line number %d vs %d\n", line, l.GetLine())
+			if tk.Line != line {
+				t.Fatalf("Token %v has wrong line number wanted %d got %d\n", tk, line, tk.Line)
 			}
 			line++
 		}
