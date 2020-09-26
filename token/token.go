@@ -14,8 +14,21 @@ type Type string
 
 // Token struct represent the lexer token
 type Token struct {
-	Type    Type
+
+	// Type contains the type of the token
+	// "AND", "ASSIGN", "STRING", etc.
+	Type Type
+
+	// Literal contains the literal text of the token
 	Literal string
+
+	// Line contains the line within the input where the
+	// token was found.
+	Line int
+
+	// Column contains the position where the token (start)
+	// was found
+	Column int
 }
 
 // Our known token-types
