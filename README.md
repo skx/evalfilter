@@ -69,6 +69,7 @@ The scripting-language this package presents supports the basic types you'd expe
 * Arrays.
 * Floating-point numbers.
 * Integers.
+* Regular expressions.
 * Strings.
 * Time / Date values.
   * i.e. We can use reflection to handle `time.Time` values in any structure/map we're operating upon.
