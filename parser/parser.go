@@ -289,7 +289,7 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 // Function called on error if there is no prefix-based parsing method
 // for the given token.
 func (p *Parser) noPrefixParseFnError(t token.Type) {
-	msg := fmt.Sprintf("no prefix parse function for %s found at %d", t, p.curToken.Position())
+	msg := fmt.Sprintf("no prefix parse function for %s found around %s", t, p.curToken.Position())
 	p.errors = append(p.errors, msg)
 }
 
