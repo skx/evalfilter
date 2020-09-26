@@ -10,7 +10,7 @@
     * [Conditionals](#conditionals)
     * [Loops](#loops)
     * [Functions](#functions)
-    * [Switch/Case](#switch-case)
+    * [Case/Switch](#switch--case)
   * [Use Cases](#use-cases)
   * [Security](#security)
     * [Denial of service](#denial-of-service)
@@ -216,7 +216,7 @@ You can declare functions, for example:
 See [_examples/scripts/scope.in](_examples/scripts/scope.in) for another brief example, and discussion of scopes.
 
 
-### Switch / Case
+### Case / Switch
 
 We support the use of `switch` and `case` to simplify the handling of some control-flow.  An example would look like this:
 
