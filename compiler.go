@@ -583,16 +583,38 @@ func (e *Eval) compile(node ast.Node) error {
 		//
 		//   if ! foo eq one
 		//     jmp two
-		//     one_code
-		//     jmp END
+		//       one_code
+		//       jmp END
 		//  two:
 		//   if ! foo eq two
-		//     jmp default
-		//     two_code
-		//     jmp END
+		//     jmp three
+		//       two_code
+		//       jmp END
+		//  three:
 		//  default:
 		//     fail_code
-		//  end:
+		//  END:
+		//
+		//
+		// NOTE: This means that multiple cases cannot match.
+		//
+		//       This is because at the end of each block
+		//       we add a jump to the position AFTER the default
+		//       block.
+		//
+		//       TLDR: We run either ONE block, or the default.
+		//             We cannot run multiple matches.
+		//       is valid:
+		//
+		//   switch (foo ) {
+		//      // The first case wins.
+		//     case 1 { printf("ONE\n"); }
+		//     case 1 { printf("ONE - again\n"); }
+		//   }
+		//
+		//
+		//
+
 		//
 		//
 		patches := []int{}
@@ -630,7 +652,8 @@ func (e *Eval) compile(node ast.Node) error {
 				e.emit(code.OpCase)
 
 				// Now the jump over the block to run
-				// if it matches
+				// if it matches - for the case when it
+				// actually DOESN'T.
 				pos := e.emit(code.OpJumpIfFalse, 9999)
 
 				// finally the block
@@ -670,6 +693,12 @@ func (e *Eval) compile(node ast.Node) error {
 		for _, offset := range patches {
 			e.changeOperand(offset, len(e.instructions))
 		}
+
+		// Finally add a NOP
+		// Because our "jmp END" will jump to an instruction which
+		// doesn't exist otherwise
+		e.emit(code.OpTrue)
+		e.emit(code.OpPop)
 
 	case *ast.WhileStatement:
 

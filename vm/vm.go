@@ -462,6 +462,9 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 		case code.OpVoid:
 			vm.stack.Push(Void)
 
+		case code.OpPop:
+			vm.stack.Pop()
+
 			// Boolean literal
 		case code.OpFalse:
 			vm.stack.Push(False)
