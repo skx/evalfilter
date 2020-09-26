@@ -220,7 +220,7 @@ See [_examples/scripts/scope.in](_examples/scripts/scope.in) for another brief e
 
 We support the use of `switch` and `case` to simplify the handling of some control-flow.  An example would look like this:
 
-   switch( Subject ) {
+    switch( Subject ) {
       case /^Re:/i {
          printf("Reply\n");
       }
@@ -236,7 +236,7 @@ We support the use of `switch` and `case` to simplify the handling of some contr
       default {
          printf("New message!\n");
       }
-   }
+    }
 
 Note that the `case` expression supports:
 
