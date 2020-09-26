@@ -514,7 +514,7 @@ func (p *Parser) parseSwitchStatement() ast.Expression {
 		}
 	}
 	if count > 1 {
-		msg := fmt.Sprintf("A switch-statement should only have one default block")
+		msg := "A switch-statement should only have one default block"
 		p.errors = append(p.errors, msg)
 		return nil
 
