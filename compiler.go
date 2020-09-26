@@ -83,7 +83,7 @@ func (e *Eval) compile(node ast.Node) error {
 		}
 
 		// The value + flags
-		reg := &object.String{Value: val}
+		reg := &object.Regexp{Value: val}
 		e.emit(code.OpConstant, e.addConstant(reg))
 
 	case *ast.ArrayLiteral:
@@ -595,7 +595,7 @@ func (e *Eval) compile(node ast.Node) error {
 		//  end:
 		//
 		//
-		//		patches := []int{}
+		patches := []int{}
 
 		// We have to assemble each choice
 		for _, opt := range node.Choices {
@@ -639,14 +639,36 @@ func (e *Eval) compile(node ast.Node) error {
 					return err
 				}
 
+				// And jump to after the default-block
+				//
+				end := e.emit(code.OpJump, 9999)
+				patches = append(patches, end)
+
 				// now we know the end of the block.
 				e.changeOperand(pos, len(e.instructions))
 			}
 
-			//
-			// TODO: default-block
-			//
+		}
 
+		//
+		// Now the default-block
+		//
+		for _, opt := range node.Choices {
+			if !opt.Default {
+				continue
+			}
+
+			// Compile the block
+			err := e.compile(opt.Block)
+			if err != nil {
+				return err
+			}
+		}
+
+		// And now we're after the default - if there wasn't on,
+		// or after the last choice if here wasn't.
+		for _, offset := range patches {
+			e.changeOperand(offset, len(e.instructions))
 		}
 
 	case *ast.WhileStatement:
