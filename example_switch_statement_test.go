@@ -4,6 +4,19 @@ import (
 	"fmt"
 )
 
+// SwitchFunction is just a temporary structure.
+//
+// Without this the following error occurs when linting this code:
+//
+//
+//   $ go vet ./...
+//   # github.com/skx/evalfilter/v2
+//   ./example_switch_statement_test.go:16:1: ExampleSwitchFunction refers to unknown identifier: SwitchFunction
+//
+type SwitchFunction struct {
+	foo string
+}
+
 // ExampleSwitchFunction demonstrates how the case/switch statement
 // in our scripting language works.
 //
