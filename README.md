@@ -10,7 +10,7 @@
     * [Conditionals](#conditionals)
     * [Loops](#loops)
     * [Functions](#functions)
-    * [Case/Switch](#switch--case)
+    * [Case/Switch](#case--switch)
   * [Use Cases](#use-cases)
   * [Security](#security)
     * [Denial of service](#denial-of-service)
