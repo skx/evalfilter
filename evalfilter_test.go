@@ -625,7 +625,7 @@ func TestOperations(t *testing.T) {
 	}
 }
 
-// TestRevFunction is a trivial test of a simple user-defined funciton
+// TestRevFunction is a trivial test of a simple user-defined functions
 func TestRevFunction(t *testing.T) {
 
 	// Test structure

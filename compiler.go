@@ -310,7 +310,7 @@ func (e *Eval) compile(node ast.Node) error {
 		// Will _ALWAYS_ result in a new set of bytecode
 		// for the function that has an instruction pointer
 		// starting at offset ZERO.  Regardless of the length
-		// of any preceeding bytecode that has already been
+		// of any preceding bytecode that has already been
 		// generated.
 		//
 		// This is hacky, but it is also safe, because we're

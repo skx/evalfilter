@@ -11,7 +11,7 @@ import (
 //
 // This means a function which is defined within our scripting-language,
 // rather than a function implemented in Golang and exported to the
-// scripting environmnet.
+// scripting environment.
 type FunctionDefinition struct {
 
 	// Token holds the name of the function.
