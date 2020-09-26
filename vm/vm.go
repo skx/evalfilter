@@ -386,6 +386,25 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			arr := &object.Array{Elements: elements}
 			vm.stack.Push(arr)
 
+			// Case statement
+		case code.OpCase:
+			caseVal, err := vm.stack.Pop()
+			if err != nil {
+				return nil, err
+			}
+			val, err := vm.stack.Pop()
+			if err != nil {
+				return nil, err
+			}
+
+			// TODO - regexp
+			if val.Type() == caseVal.Type() &&
+				(val.Inspect() == caseVal.Inspect()) {
+				vm.stack.Push(True)
+			} else {
+				vm.stack.Push(False)
+			}
+
 			// Array/String index
 		case code.OpIndex:
 			index, err := vm.stack.Pop()
