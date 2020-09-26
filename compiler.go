@@ -83,7 +83,7 @@ func (e *Eval) compile(node ast.Node) error {
 		}
 
 		// The value + flags
-		reg := &object.String{Value: val}
+		reg := &object.Regexp{Value: val}
 		e.emit(code.OpConstant, e.addConstant(reg))
 
 	case *ast.ArrayLiteral:
@@ -559,6 +559,146 @@ func (e *Eval) compile(node ast.Node) error {
 		// Update our placeholder.
 		//
 		e.changeOperand(jumpEnd, len(e.instructions))
+
+	case *ast.SwitchExpression:
+
+		//
+		// So a switch statement will look like this:
+		//
+		//   switch( foo ) {
+		//     case "one" {
+		//         one_code;
+		//         ..
+		//     }
+		//     case "two" {
+		//         two_code;
+		//         ..
+		//     }
+		//     default {
+		//         fail_code;
+		//
+		//   }
+		//
+		// We want to compile that into:
+		//
+		//   if ! foo eq one
+		//     jmp two
+		//       one_code
+		//       jmp END
+		//  two:
+		//   if ! foo eq two
+		//     jmp three
+		//       two_code
+		//       jmp END
+		//  three:
+		//  default:
+		//     fail_code
+		//  END:
+		//
+		//
+		// NOTE: This means that multiple cases cannot match.
+		//
+		//       This is because at the end of each block
+		//       we add a jump to the position AFTER the default
+		//       block.
+		//
+		//       TLDR: We run either ONE block, or the default.
+		//             We cannot run multiple matches.
+		//       is valid:
+		//
+		//   switch (foo ) {
+		//      // The first case wins.
+		//     case 1 { printf("ONE\n"); }
+		//     case 1 { printf("ONE - again\n"); }
+		//   }
+		//
+		//
+		//
+
+		//
+		//
+		patches := []int{}
+
+		// We have to assemble each choice
+		for _, opt := range node.Choices {
+
+			// skipping the default-case, which we'll
+			// handle later.
+			if opt.Default {
+				continue
+			}
+
+			// Look at any expression we've got in this case.
+			for _, val := range opt.Expr {
+
+				// OK so we have an expression.
+				//
+				// Emit "test Value Expression"
+				// jump if false to end
+
+				// compile the thing we're testing
+				err := e.compile(node.Value)
+				if err != nil {
+					return err
+				}
+
+				// now compile the express
+				err = e.compile(val)
+				if err != nil {
+					return err
+				}
+
+				// the comparison
+				e.emit(code.OpCase)
+
+				// Now the jump over the block to run
+				// if it matches - for the case when it
+				// actually DOESN'T.
+				pos := e.emit(code.OpJumpIfFalse, 9999)
+
+				// finally the block
+				err = e.compile(opt.Block)
+				if err != nil {
+					return err
+				}
+
+				// And jump to after the default-block
+				//
+				end := e.emit(code.OpJump, 9999)
+				patches = append(patches, end)
+
+				// now we know the end of the block.
+				e.changeOperand(pos, len(e.instructions))
+			}
+
+		}
+
+		//
+		// Now the default-block
+		//
+		for _, opt := range node.Choices {
+			if !opt.Default {
+				continue
+			}
+
+			// Compile the block
+			err := e.compile(opt.Block)
+			if err != nil {
+				return err
+			}
+		}
+
+		// And now we're after the default - if there wasn't on,
+		// or after the last choice if here wasn't.
+		for _, offset := range patches {
+			e.changeOperand(offset, len(e.instructions))
+		}
+
+		// Finally add a NOP
+		// Because our "jmp END" will jump to an instruction which
+		// doesn't exist otherwise
+		e.emit(code.OpTrue)
+		e.emit(code.OpPop)
 
 	case *ast.WhileStatement:
 

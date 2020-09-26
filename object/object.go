@@ -9,6 +9,7 @@
 // * Integer number.
 // * Null
 // * String value.
+// * Regular-expression objects.
 //
 // To allow these objects to be used interchanagably each kind of object
 // must implement the same simple interface.
@@ -27,6 +28,7 @@ const (
 	FLOAT   = "FLOAT"
 	INTEGER = "INTEGER"
 	NULL    = "NULL"
+	REGEXP  = "REGEXP"
 	STRING  = "STRING"
 	VOID    = "VOID"
 )

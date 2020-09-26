@@ -10,6 +10,7 @@
     * [Conditionals](#conditionals)
     * [Loops](#loops)
     * [Functions](#functions)
+    * [Case/Switch](#case--switch)
   * [Use Cases](#use-cases)
   * [Security](#security)
     * [Denial of service](#denial-of-service)
@@ -68,6 +69,7 @@ The scripting-language this package presents supports the basic types you'd expe
 * Arrays.
 * Floating-point numbers.
 * Integers.
+* Regular expressions.
 * Strings.
 * Time / Date values.
   * i.e. We can use reflection to handle `time.Time` values in any structure/map we're operating upon.
@@ -213,6 +215,38 @@ You can declare functions, for example:
     return false;
 
 See [_examples/scripts/scope.in](_examples/scripts/scope.in) for another brief example, and discussion of scopes.
+
+
+### Case / Switch
+
+We support the use of `switch` and `case` to simplify the handling of some control-flow.  An example would look like this:
+
+    switch( Subject ) {
+      case /^Re:/i {
+         printf("Reply\n");
+      }
+      case /^fwd:/i {
+         printf("Forwarded message\n");
+      }
+      case "DEAR" + "  " + WINNER" {
+         printf("SPAM\n");
+      }
+      case "YOU HAVE WON" {
+         printf("SPAM\n");
+      }
+      default {
+         printf("New message!\n");
+      }
+    }
+
+Note that the `case` expression supports:
+
+* Expression matches.
+* Literal matches.
+* Regular expression matches.
+
+To avoid fall-through-related bugs we've explicitly designed the case-statements to take _blocks_ as arguments, rather than statements.
+
 
 
 ## Use Cases

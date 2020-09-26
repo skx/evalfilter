@@ -250,6 +250,12 @@ func TestIncompleteThings(t *testing.T) {
 		`for (`,
 		`while (`,
 		`3 + `,
+		`switch `,
+		`switch ( `,
+		`switch (foo `,
+		`switch (foo) `,
+		`switch (foo) { case 3 {`,
+		`switch (foo) { `,
 	}
 
 	for _, str := range input {
@@ -561,5 +567,82 @@ func TestStringLiteralExpression(t *testing.T) {
 	}
 	if literal.Value != "hello world" {
 		t.Errorf("literal.Value not %q, got=%q", "hello world", literal.Value)
+	}
+}
+
+// switch can only have a single `default` block
+func TestCaseDefaults(t *testing.T) {
+
+	type TestCase struct {
+		input string
+		error bool
+	}
+
+	tests := []TestCase{
+
+		// OK
+		{input: `a = 1
+switch( a ) {
+  case 3, 7 {
+    a = 7
+  }
+  default {
+    a = 3
+  }
+}
+a
+`, error: false},
+
+		// Two defaults: error
+		{input: `a = 1
+switch( a ) {
+  default {
+    a = 3
+  }
+  case default {
+    a = 4
+  }
+}
+a
+`, error: true},
+		// Unexpected token: error
+		{input: `a = 1
+switch( a ) {
+  while a < 3 {
+  }
+}
+
+`, error: true},
+
+		// Unexpected token: error
+		{input: `a = 1
+switch( a ) {
+  case "foo" if
+`, error: true},
+
+		// Incomplete: error
+		{input: `a = 1
+switch( a ) {
+  case "foo" {
+     printf("OK\n");
+  }
+if
+`, error: true},
+	}
+
+	for _, test := range tests {
+		l := lexer.New(test.input)
+		p := New(l)
+		_, err := p.Parse()
+
+		if test.error {
+			if err == nil {
+				t.Fatalf("expected error, got none")
+			}
+		} else {
+			if err != nil {
+				t.Fatalf("didn't expect an error, but saw one: %s\n", err.Error())
+			}
+		}
 	}
 }

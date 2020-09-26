@@ -386,6 +386,37 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			arr := &object.Array{Elements: elements}
 			vm.stack.Push(arr)
 
+			// Case statement
+		case code.OpCase:
+			caseVal, err := vm.stack.Pop()
+			if err != nil {
+				return nil, err
+			}
+			val, err := vm.stack.Pop()
+			if err != nil {
+				return nil, err
+			}
+
+			// Is this a literal match
+			if val.Type() == caseVal.Type() &&
+				(val.Inspect() == caseVal.Inspect()) {
+				vm.stack.Push(True)
+			} else if caseVal.Type() == object.REGEXP {
+
+				// Horrid - invoke Matches() to run the test.
+				args := []object.Object{val, caseVal}
+				fn, ok := vm.environment.GetFunction("match")
+				if !ok {
+					return nil, fmt.Errorf("failed to lookup match-function")
+				}
+				out := fn.(func(args []object.Object) object.Object)
+				ret := out(args)
+				vm.stack.Push(ret)
+
+			} else {
+				vm.stack.Push(False)
+			}
+
 			// Array/String index
 		case code.OpIndex:
 			index, err := vm.stack.Pop()
@@ -430,6 +461,9 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
 		case code.OpVoid:
 			vm.stack.Push(Void)
+
+		case code.OpPop:
+			vm.stack.Pop()
 
 			// Boolean literal
 		case code.OpFalse:
@@ -1031,6 +1065,8 @@ func (vm *VM) executeBinaryOperation(op code.Opcode) error {
 		return vm.evalIntegerFloatInfixExpression(op, left, right)
 	case left.Type() == object.STRING && right.Type() == object.STRING:
 		return vm.evalStringInfixExpression(op, left, right)
+	case left.Type() == object.STRING && right.Type() == object.REGEXP:
+		return vm.evalStringRegexpExpression(op, left, right)
 	case op == code.OpAnd:
 		// if left is false skip right
 		if !left.True() {
@@ -1270,6 +1306,26 @@ func (vm *VM) evalStringInfixExpression(op code.Opcode, left object.Object, righ
 		vm.stack.Push(vm.nativeBoolToBooleanObject(l.Value <= r.Value))
 	case code.OpLess:
 		vm.stack.Push(vm.nativeBoolToBooleanObject(l.Value < r.Value))
+	case code.OpAdd:
+		vm.stack.Push(&object.String{Value: l.Value + r.Value})
+	case code.OpArrayIn:
+		if strings.Contains(r.Value, l.Value) {
+			vm.stack.Push(True)
+		} else {
+			vm.stack.Push(False)
+		}
+	default:
+		return (fmt.Errorf("unknown operator: %s %s %s", left.Type(), code.String(op), right.Type()))
+	}
+
+	return nil
+}
+
+func (vm *VM) evalStringRegexpExpression(op code.Opcode, left object.Object, right object.Object) error {
+	l := left.(*object.String)
+	r := right.(*object.Regexp)
+
+	switch op {
 	case code.OpMatches:
 		args := []object.Object{l, r}
 		fn, ok := vm.environment.GetFunction("match")
@@ -1297,14 +1353,6 @@ func (vm *VM) evalStringInfixExpression(op code.Opcode, left object.Object, righ
 			vm.stack.Push(False)
 		} else {
 			vm.stack.Push(True)
-		}
-	case code.OpAdd:
-		vm.stack.Push(&object.String{Value: l.Value + r.Value})
-	case code.OpArrayIn:
-		if strings.Contains(r.Value, l.Value) {
-			vm.stack.Push(True)
-		} else {
-			vm.stack.Push(False)
 		}
 	default:
 		return (fmt.Errorf("unknown operator: %s %s %s", left.Type(), code.String(op), right.Type()))
