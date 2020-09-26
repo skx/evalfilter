@@ -69,6 +69,9 @@ const (
 	// Push a VOID value onto the stack.
 	OpVoid
 
+	// Run a case-comparison
+	OpCase
+
 	// Pop two values from the stack, add them, and push the result.
 	OpAdd
 
@@ -194,6 +197,7 @@ var OpCodeNames = [...]string{
 	OpArrayIn:        "OpArrayIn",
 	OpBang:           "OpBang",
 	OpCall:           "OpCall",
+	OpCase:           "OpCase",
 	OpConstant:       "OpConstant",
 	OpDec:            "OpDec",
 	OpDiv:            "OpDiv",
