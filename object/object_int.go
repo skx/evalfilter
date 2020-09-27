@@ -49,3 +49,8 @@ func (i *Integer) Decrease() {
 func (i *Integer) HashKey() HashKey {
 	return HashKey{Type: i.Type(), Value: uint64(i.Value)}
 }
+
+// Ensure this object implements the expected interfaces.
+var _ Decrement = &Integer{}
+var _ Hashable = &Integer{}
+var _ Increment = &Integer{}

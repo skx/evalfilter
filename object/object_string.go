@@ -70,3 +70,7 @@ func (s *String) HashKey() HashKey {
 	h.Write([]byte(s.Value))
 	return HashKey{Type: s.Type(), Value: h.Sum64()}
 }
+
+// Ensure this object implements the expected interfaces
+var _ Hashable = &String{}
+var _ Iterable = &String{}

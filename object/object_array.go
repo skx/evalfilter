@@ -72,3 +72,6 @@ func (ao *Array) Next() (Object, Object, bool) {
 
 	return nil, &Integer{Value: 0}, false
 }
+
+// Ensure this object implements the expected interfaces
+var _ Iterable = &String{}

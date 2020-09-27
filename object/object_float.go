@@ -54,3 +54,8 @@ func (f *Float) HashKey() HashKey {
 	h.Write([]byte(f.Inspect()))
 	return HashKey{Type: f.Type(), Value: h.Sum64()}
 }
+
+// Ensure this object implements the expected interfaces.
+var _ Decrement = &Float{}
+var _ Hashable = &Float{}
+var _ Increment = &Float{}

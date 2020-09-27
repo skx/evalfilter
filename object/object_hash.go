@@ -90,3 +90,6 @@ func (h *Hash) Next() (Object, Object, bool) {
 func (h *Hash) ToInterface() interface{} {
 	return "<HASH>"
 }
+
+// Ensure this object implements the expected interfaces.
+var _ Iterable = &Hash{}
