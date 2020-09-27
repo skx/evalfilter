@@ -119,8 +119,9 @@ func fnKeys(args []object.Object) object.Object {
 // objects, instead we cast all objects to strings and allow their lengths
 // to be calculated.
 //
-// The obvious exception is the handling of arrays.  The length of
-// an array is the number of elements which it contains.
+// The obvious exception is the handling of arrays and hashes.  The length of
+// an array is the number of elements which it contains.  The length of a
+// hash is the number of key-value pairs present.
 //
 // So `len(false)` is 5, len(3) is 1, and `len(0.123)` is 5, and arrays
 // work as expected: len([]) is zero, and len(["steve", "kemp"]) is two.
@@ -136,6 +137,8 @@ func fnLen(args []object.Object) object.Object {
 	switch arg := args[0].(type) {
 	case *object.Array:
 		return &object.Integer{Value: int64(len(arg.Elements))}
+	case *object.Hash:
+		return &object.Integer{Value: int64(len(arg.Pairs))}
 	}
 
 	// Stringify
