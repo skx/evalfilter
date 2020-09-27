@@ -52,6 +52,13 @@ func (h *Hash) Inspect() string {
 	return out.String()
 }
 
+// True returns whether this object wraps a true-like value.
+//
+// Used when this object is the conditional in a comparison, etc.
+func (h *Hash) True() bool {
+	return (len(h.Pairs) != 0)
+}
+
 // Reset implements the Iterable interface, and allows the contents
 // of the array to be reset to allow re-iteration.
 func (h *Hash) Reset() {

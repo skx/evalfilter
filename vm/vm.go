@@ -386,6 +386,35 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			arr := &object.Array{Elements: elements}
 			vm.stack.Push(arr)
 
+			// Store a hash
+		case code.OpHash:
+
+			hashedPairs := make(map[object.HashKey]object.HashPair)
+
+			for i := 0; i < opArg; i += 2 {
+
+				value, err := vm.stack.Pop()
+				if err != nil {
+					return nil, err
+				}
+
+				key, err := vm.stack.Pop()
+				if err != nil {
+					return nil, err
+				}
+
+				pair := object.HashPair{Key: key, Value: value}
+
+				hashKey, ok := key.(object.Hashable)
+				if !ok {
+					return nil, fmt.Errorf("unusable as hash key: %s", key.Type())
+				}
+
+				hashedPairs[hashKey.HashKey()] = pair
+			}
+			hash := &object.Hash{Pairs: hashedPairs}
+			vm.stack.Push(hash)
+
 			// Case statement
 		case code.OpCase:
 			caseVal, err := vm.stack.Pop()
@@ -1486,8 +1515,11 @@ func (vm *VM) lookup(obj interface{}, name string) object.Object {
 func (vm *VM) executeIndexExpression(left, index object.Object) error {
 
 	// Check arguments
-	if left.Type() != object.ARRAY && left.Type() != object.STRING {
-		return fmt.Errorf("the index operator can only be applied to strings and arrays, not %s", left.Type())
+	if left.Type() != object.ARRAY && left.Type() != object.HASH && left.Type() != object.STRING {
+		return fmt.Errorf("the index operator can only be applied to arrays, hashes, and strings, not %s", left.Type())
+	}
+	if left.Type() == object.HASH {
+		return vm.executeHashIndex(left, index)
 	}
 	if index.Type() != object.INTEGER {
 		return fmt.Errorf("index operator must be given an integer, not %s", index.Type())
@@ -1530,6 +1562,24 @@ func (vm *VM) executeIndexExpression(left, index object.Object) error {
 
 	// Return the appropriate object.
 	vm.stack.Push(arrayObject.Elements[idx])
+	return nil
+}
+
+func (vm *VM) executeHashIndex(hash, index object.Object) error {
+	hashObject := hash.(*object.Hash)
+
+	key, ok := index.(object.Hashable)
+	if !ok {
+		return fmt.Errorf("unusable as hash key: %s", index.Type())
+	}
+
+	pair, ok := hashObject.Pairs[key.HashKey()]
+	if !ok {
+		vm.stack.Push(Null)
+		return nil
+	}
+
+	vm.stack.Push(pair.Value)
 	return nil
 }
 

@@ -1,6 +1,9 @@
 package object
 
-import "unicode/utf8"
+import (
+	"hash/fnv"
+	"unicode/utf8"
+)
 
 // String wraps string and implements the Object interface.
 type String struct {
@@ -59,4 +62,11 @@ func (s *String) Next() (Object, int, bool) {
 	}
 
 	return nil, 0, false
+}
+
+// HashKey returns a hash key for the given object.
+func (s *String) HashKey() HashKey {
+	h := fnv.New64a()
+	h.Write([]byte(s.Value))
+	return HashKey{Type: s.Type(), Value: h.Sum64()}
 }
