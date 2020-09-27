@@ -32,6 +32,7 @@ func TestOpcodes(t *testing.T) {
 		case 3:
 			c := Opcode(k)
 			if c != OpArray &&
+				c != OpHash &&
 				c != OpCall &&
 				c != OpConstant &&
 				c != OpJump &&

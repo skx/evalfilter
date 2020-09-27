@@ -70,6 +70,7 @@ The scripting-language this package presents supports the basic types you'd expe
 
 * Arrays.
 * Floating-point numbers.
+* Hashes.
 * Integers.
 * Regular expressions.
 * Strings.
@@ -93,6 +94,8 @@ You can also easily add new primitives to the engine, by defining a function in 
 * `int(value)`
   * Tries to convert the value to an integer, returns Null on failure.
   * e.g. `int("3")`.
+* `keys`
+  * Returns the keys from the specified hash.
 * `len(field | value)`
   * Returns the length of the given value, or the contents of the given field.
   * For arrays it returns the number of elements, as you'd expect.

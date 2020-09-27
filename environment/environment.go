@@ -67,6 +67,7 @@ func New() *Environment {
 	env.SetFunction("float", fnFloat)
 	env.SetFunction("getenv", fnGetenv)
 	env.SetFunction("int", fnInt)
+	env.SetFunction("keys", fnKeys)
 	env.SetFunction("len", fnLen)
 	env.SetFunction("lower", fnLower)
 	env.SetFunction("match", fnMatch)

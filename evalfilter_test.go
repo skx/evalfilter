@@ -510,6 +510,33 @@ func TestBool(t *testing.T) {
 	}
 }
 
+// TestHash does basic test of hash functionality.
+func TestHash(t *testing.T) {
+	input := `
+
+hash = { "Steve": 5, "Kemp": 4 }
+
+return( hash["Steve"] + hash["Kemp"] == 9);
+`
+
+	obj := New(input)
+	err := obj.Prepare()
+	if err != nil {
+		t.Fatalf("Failed to compile")
+	}
+
+	out, err := obj.Execute(nil)
+	if err != nil {
+		t.Fatalf("unexpected error:%s", err.Error())
+	}
+	if out.Type() != object.BOOLEAN {
+		fmt.Printf("Wrong return type")
+	}
+	if !out.(*object.Boolean).Value {
+		fmt.Printf("Wrong return value")
+	}
+}
+
 // TestVariable sets a variable.
 func TestVariable(t *testing.T) {
 
