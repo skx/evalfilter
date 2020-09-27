@@ -86,14 +86,42 @@ func fnInt(args []object.Object) object.Object {
 	return &object.Integer{Value: i}
 }
 
+// Get hash keys
+func fnKeys(args []object.Object) object.Object {
+	if len(args) != 1 {
+		return &object.Null{}
+	}
+	if args[0].Type() != object.HASH {
+		return &object.Null{}
+	}
+
+	// The object we're working with
+	hash := args[0].(*object.Hash)
+	ents := len(hash.Pairs)
+
+	// Create a new array for the results.
+	array := make([]object.Object, ents)
+
+	// Now copy the keys into it.
+	i := 0
+	for _, ent := range hash.Pairs {
+		array[i] = ent.Key
+		i++
+	}
+
+	// Return the array.
+	return &object.Array{Elements: array}
+}
+
 // fnLen is the implementation of our `len` function.
 //
 // Interestingly this function doesn't just count the length of string
 // objects, instead we cast all objects to strings and allow their lengths
 // to be calculated.
 //
-// The obvious exception is the handling of arrays.  The length of
-// an array is the number of elements which it contains.
+// The obvious exception is the handling of arrays and hashes.  The length of
+// an array is the number of elements which it contains.  The length of a
+// hash is the number of key-value pairs present.
 //
 // So `len(false)` is 5, len(3) is 1, and `len(0.123)` is 5, and arrays
 // work as expected: len([]) is zero, and len(["steve", "kemp"]) is two.
@@ -109,6 +137,8 @@ func fnLen(args []object.Object) object.Object {
 	switch arg := args[0].(type) {
 	case *object.Array:
 		return &object.Integer{Value: int64(len(arg.Elements))}
+	case *object.Hash:
+		return &object.Integer{Value: int64(len(arg.Pairs))}
 	}
 
 	// Stringify

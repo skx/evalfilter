@@ -7,6 +7,7 @@ package evalfilter
 import (
 	"encoding/binary"
 	"fmt"
+	"sort"
 
 	"github.com/skx/evalfilter/v2/ast"
 	"github.com/skx/evalfilter/v2/code"
@@ -94,6 +95,34 @@ func (e *Eval) compile(node ast.Node) error {
 			}
 		}
 		e.emit(code.OpArray, len(node.Elements))
+
+	case *ast.HashLiteral:
+		keys := []ast.Expression{}
+
+		// get the keys
+		for k := range node.Pairs {
+			keys = append(keys, k)
+		}
+
+		// sort them
+		sort.Slice(keys, func(i, j int) bool {
+			return keys[i].String() < keys[j].String()
+		})
+
+		// for each key + value compile them
+		for _, k := range keys {
+			err := e.compile(k)
+			if err != nil {
+				return err
+			}
+			err = e.compile(node.Pairs[k])
+			if err != nil {
+				return err
+			}
+		}
+
+		// Now the number of key+values we've saved
+		e.emit(code.OpHash, len(node.Pairs)*2)
 
 	case *ast.ReturnStatement:
 		err := e.compile(node.ReturnValue)

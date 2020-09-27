@@ -73,7 +73,7 @@ func TestArray(t *testing.T) {
 			obj, offset, more := arr.Next()
 
 			// Ensure the offset matches what we expect
-			if offset != count {
+			if int(offset.(*Integer).Value) != count {
 				t.Fatalf("Iteration offset got messed up: %d != %d", offset, count)
 			}
 
@@ -94,7 +94,7 @@ func TestArray(t *testing.T) {
 		if more {
 			t.Fatalf("We didn't expect more text, but found it")
 		}
-		if offset != 0 {
+		if int(offset.(*Integer).Value) != 0 {
 			t.Fatalf("At the end of the iteration we got a weird offset")
 		}
 		if obj != nil {
@@ -308,7 +308,7 @@ func TestString(t *testing.T) {
 			obj, offset, more := tmp.Next()
 
 			// Ensure the offset matches what we expect
-			if offset != count {
+			if int(offset.(*Integer).Value) != count {
 				t.Fatalf("Iteration offset got messed up: %d != %d", offset, count)
 			}
 
@@ -327,7 +327,7 @@ func TestString(t *testing.T) {
 		if more {
 			t.Fatalf("We didn't expect more text, but found it")
 		}
-		if offset != 0 {
+		if int(offset.(*Integer).Value) != 0 {
 			t.Fatalf("At the end of the iteration we got a weird offset")
 		}
 		if obj != nil {

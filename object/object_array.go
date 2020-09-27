@@ -62,13 +62,13 @@ func (ao *Array) Reset() {
 
 // Next implements the Iterable interface, and allows the contents
 // of our array to be iterated over.
-func (ao *Array) Next() (Object, int, bool) {
+func (ao *Array) Next() (Object, Object, bool) {
 	if ao.offset < len(ao.Elements) {
 		ao.offset++
 
 		element := ao.Elements[ao.offset-1]
-		return element, ao.offset - 1, true
+		return element, &Integer{Value: int64(ao.offset - 1)}, true
 	}
 
-	return nil, 0, false
+	return nil, &Integer{Value: 0}, false
 }

@@ -792,7 +792,7 @@ func TestOpIndex(t *testing.T) {
 				byte(code.OpIndex),
 				byte(code.OpReturn),
 			},
-			result: "the index operator can only be applied to string",
+			result: "the index operator can only be applied to arrays, hashes, and strings,",
 			error:  true,
 		},
 

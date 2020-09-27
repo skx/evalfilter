@@ -48,8 +48,11 @@ const (
 	// Push an integer upon the stack
 	OpPush
 
-	// Store a literal array
+	// Store a literal array.
 	OpArray
+
+	// Store a literal hash.
+	OpHash
 
 	// NOP
 	OpNop
@@ -208,6 +211,7 @@ var OpCodeNames = [...]string{
 	OpFalse:          "OpFalse",
 	OpGreater:        "OpGreater",
 	OpGreaterEqual:   "OpGreaterEqual",
+	OpHash:           "OpHash",
 	OpInc:            "OpInc",
 	OpIndex:          "OpIndex",
 	OpIterationNext:  "OpIterationNext",
@@ -253,6 +257,8 @@ func Length(op Opcode) int {
 
 	switch op {
 	case OpArray:
+		return 3
+	case OpHash:
 		return 3
 	case OpCall:
 		return 3

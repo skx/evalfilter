@@ -26,6 +26,7 @@ const (
 	ARRAY   = "ARRAY"
 	BOOLEAN = "BOOLEAN"
 	FLOAT   = "FLOAT"
+	HASH    = "HASH"
 	INTEGER = "INTEGER"
 	NULL    = "NULL"
 	REGEXP  = "REGEXP"
@@ -100,5 +101,12 @@ type Iterable interface {
 	// If the boolean value returned is false then that
 	// means the iteration has completed and no further
 	// items are available.
-	Next() (Object, int, bool)
+	Next() (Object, Object, bool)
+}
+
+// Hashable type can be hashed
+type Hashable interface {
+
+	// HashKey returns a hash key for the given object.
+	HashKey() HashKey
 }
