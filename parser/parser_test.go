@@ -336,6 +336,8 @@ func TestIncompleteThings(t *testing.T) {
 		`function foo( a, b ="steve", `,
 		`function foo() {`,
 		`for (`,
+		`h { "foo"`,
+		`h { "foo": "test"`,
 		`while (`,
 		`3 + `,
 		`switch `,
