@@ -86,6 +86,33 @@ func fnInt(args []object.Object) object.Object {
 	return &object.Integer{Value: i}
 }
 
+// Get hash keys
+func fnKeys(args []object.Object) object.Object {
+	if len(args) != 1 {
+		return &object.Null{}
+	}
+	if args[0].Type() != object.HASH {
+		return &object.Null{}
+	}
+
+	// The object we're working with
+	hash := args[0].(*object.Hash)
+	ents := len(hash.Pairs)
+
+	// Create a new array for the results.
+	array := make([]object.Object, ents)
+
+	// Now copy the keys into it.
+	i := 0
+	for _, ent := range hash.Pairs {
+		array[i] = ent.Key
+		i++
+	}
+
+	// Return the array.
+	return &object.Array{Elements: array}
+}
+
 // fnLen is the implementation of our `len` function.
 //
 // Interestingly this function doesn't just count the length of string
