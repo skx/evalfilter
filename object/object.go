@@ -101,7 +101,7 @@ type Iterable interface {
 	// If the boolean value returned is false then that
 	// means the iteration has completed and no further
 	// items are available.
-	Next() (Object, int, bool)
+	Next() (Object, Object, bool)
 }
 
 // Hashable type can be hashed

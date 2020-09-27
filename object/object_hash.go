@@ -74,7 +74,7 @@ func (h *Hash) Next() (Object, Object, bool) {
 		for _, pair := range h.Pairs {
 			if h.offset == idx {
 				h.offset++
-				return pair.Key, pair.Value, true
+				return pair.Value, pair.Key, true
 			}
 			idx++
 		}

@@ -705,8 +705,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
 				idxName := idxName.Inspect()
 				if idxName != "" {
-					vm.environment.SetLocal(idxName,
-						&object.Integer{Value: int64(idx)})
+					vm.environment.SetLocal(idxName, idx)
 				}
 
 				// Push the iterable object back upon the

@@ -47,7 +47,7 @@ func (s *String) Reset() {
 
 // Next implements the Iterable interface, and allows the contents
 // of our string to be iterated over.
-func (s *String) Next() (Object, int, bool) {
+func (s *String) Next() (Object, Object, bool) {
 
 	if s.offset < utf8.RuneCountInString(s.Value) {
 		s.offset++
@@ -58,10 +58,10 @@ func (s *String) Next() (Object, int, bool) {
 		// Now index
 		val := String{Value: string(chars[s.offset-1])}
 
-		return &val, s.offset - 1, true
+		return &val, &Integer{Value: int64(s.offset - 1)}, true
 	}
 
-	return nil, 0, false
+	return nil, &Integer{Value: 0}, false
 }
 
 // HashKey returns a hash key for the given object.
