@@ -255,9 +255,6 @@ There are some miscellaneous instructions:
   * Pushes a `false` value to the stack.
 * `OpVoid`
   * Pushes a `void` value to the stack.
-* `OpPop`
-  * Remove and discard the topmost stack-entry.
-  * This is just used for a `Nop` operation at the moment, when handling `switch`/`case` statements.
 * `OpReturn`
   * Pops a value off the stack and terminates processing.
     * The value taken from the stack is the return-code.
