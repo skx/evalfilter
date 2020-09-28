@@ -62,9 +62,6 @@ func (h *Hash) Entries() []HashPair {
 	// Sort them
 	sort.Sort(ByName(entries))
 
-	for i, n := range entries {
-		fmt.Printf("%d: %v\n", i, n)
-	}
 	return entries
 }
 
