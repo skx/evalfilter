@@ -184,6 +184,23 @@ func TestFloat(t *testing.T) {
 	if tmp.Inspect() != "2.7" {
 		t.Errorf("Decrease() failed")
 	}
+
+	// Hash checks - two identical values should hash
+	// in the same way
+	a := Float{Value: 3.1}
+	b := Float{Value: 3.1}
+	c := Float{Value: 33.1}
+
+	aH := a.HashKey()
+	bH := b.HashKey()
+	cH := c.HashKey()
+
+	if aH != bH {
+		t.Fatalf("two identical values should have the same hash")
+	}
+	if aH == cH {
+		t.Fatalf("two different values should have different hashes")
+	}
 }
 
 // TestInt tests our Integer-object in a basic way.
@@ -227,6 +244,23 @@ func TestInt(t *testing.T) {
 	if tmp.Inspect() != "2" {
 		t.Errorf("Decrease() failed")
 	}
+
+	// Hash checks - two identical values should hash
+	// in the same way
+	a := Integer{Value: 31}
+	b := Integer{Value: 31}
+	c := Integer{Value: 33}
+
+	aH := a.HashKey()
+	bH := b.HashKey()
+	cH := c.HashKey()
+
+	if aH != bH {
+		t.Fatalf("two identical values should have the same hash")
+	}
+	if aH == cH {
+		t.Fatalf("two different values should have different hashes")
+	}
 }
 
 // TestNull tests our Null-object in a basic way.
@@ -253,6 +287,37 @@ func TestNull(t *testing.T) {
 	if x != nil {
 		t.Fatalf("interface usage failed")
 	}
+}
+
+// TestRegexp tests our Regexp-object in a basic way.
+func TestRegexp(t *testing.T) {
+
+	tmp := &Regexp{Value: "Steve"}
+	nul := &Regexp{Value: ""}
+
+	// Inspect
+	if tmp.Inspect() != "Steve" {
+		t.Fatalf("Invalid value!")
+	}
+
+	// Type
+	if tmp.Type() != REGEXP {
+		t.Fatalf("Wrong type")
+	}
+
+	// True
+	if !tmp.True() {
+		t.Fatalf("Non-empty string should be true")
+	}
+	if nul.True() {
+		t.Fatalf("empty string should be false")
+	}
+
+	x := tmp.ToInterface()
+	if x.(string) != "Steve" {
+		t.Fatalf("interface usage failed")
+	}
+
 }
 
 // TestString tests our String-object in a basic way.
@@ -333,6 +398,23 @@ func TestString(t *testing.T) {
 		if obj != nil {
 			t.Fatalf("At the end of the iteration we got a weird object")
 		}
+	}
+
+	// Hash checks - two identical values should hash
+	// in the same way
+	a := String{Value: "Steve"}
+	b := String{Value: "Steve"}
+	c := String{Value: "steve"}
+
+	aH := a.HashKey()
+	bH := b.HashKey()
+	cH := c.HashKey()
+
+	if aH != bH {
+		t.Fatalf("two identical values should have the same hash")
+	}
+	if aH == cH {
+		t.Fatalf("two different values should have different hashes")
 	}
 }
 
