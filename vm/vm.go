@@ -491,9 +491,6 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 		case code.OpVoid:
 			vm.stack.Push(Void)
 
-		case code.OpPop:
-			vm.stack.Pop()
-
 			// Boolean literal
 		case code.OpFalse:
 			vm.stack.Push(False)
@@ -842,6 +839,9 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			if err != nil {
 				return nil, err
 			}
+
+			// NOP
+		case code.OpPlaceholder:
 
 			// Unknown opcode
 		default:

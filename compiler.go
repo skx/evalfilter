@@ -312,6 +312,13 @@ func (e *Eval) compile(node ast.Node) error {
 		// back-patch
 		e.changeOperand(end, len(e.instructions))
 
+		// Finally add a "Nop" instruction, one that will not
+		// be optimized away.
+		//
+		// Because our "jmp END" will jump to an instruction which
+		// doesn't exist otherwise
+		e.emit(code.OpPlaceholder)
+
 		return nil
 
 	case *ast.FunctionDefinition:
@@ -524,6 +531,13 @@ func (e *Eval) compile(node ast.Node) error {
 		//  C:
 		//
 
+		// Finally add a "Nop" instruction, one that will not
+		// be optimized away.
+		//
+		// Because our "jmp END" will jump to an instruction which
+		// doesn't exist otherwise
+		e.emit(code.OpPlaceholder)
+
 	case *ast.TernaryExpression:
 
 		//
@@ -723,11 +737,12 @@ func (e *Eval) compile(node ast.Node) error {
 			e.changeOperand(offset, len(e.instructions))
 		}
 
-		// Finally add a NOP
+		// Finally add a "Nop" instruction, one that will not
+		// be optimized away.
+		//
 		// Because our "jmp END" will jump to an instruction which
 		// doesn't exist otherwise
-		e.emit(code.OpTrue)
-		e.emit(code.OpPop)
+		e.emit(code.OpPlaceholder)
 
 	case *ast.WhileStatement:
 
@@ -791,6 +806,13 @@ func (e *Eval) compile(node ast.Node) error {
 		// was false.
 		//
 		e.changeOperand(jumpNotTruthyPos, len(e.instructions))
+
+		// Finally add a "Nop" instruction, one that will not
+		// be optimized away.
+		//
+		// Because our "jmp END" will jump to an instruction which
+		// doesn't exist otherwise
+		e.emit(code.OpPlaceholder)
 
 	case *ast.AssignStatement:
 

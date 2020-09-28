@@ -57,6 +57,9 @@ const (
 	// NOP
 	OpNop
 
+	// NOP - But one that the optimizer won't remove
+	OpPlaceholder
+
 	// Set a variable by name
 	OpSet
 
@@ -71,9 +74,6 @@ const (
 
 	// Push a VOID value onto the stack.
 	OpVoid
-
-	// Pop a value from the stack
-	OpPop
 
 	// Run a case-comparison
 	OpCase
@@ -230,7 +230,7 @@ var OpCodeNames = [...]string{
 	OpNotEqual:       "OpNotEqual",
 	OpNotMatches:     "OpNotMatches",
 	OpOr:             "OpOr",
-	OpPop:            "OpPop",
+	OpPlaceholder:    "OpPlaceholder",
 	OpPower:          "OpPower",
 	OpPush:           "OpPush",
 	OpRange:          "OpRange",
