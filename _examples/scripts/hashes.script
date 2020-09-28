@@ -14,14 +14,14 @@
 //    $ evalfilter run hashes.script
 //    Iterating over the hash via the output of keys():
 //    	KEY:Age Value:'44'
-//    	KEY:Name Value:'Steve'
 //    	KEY:Location Value:'Helsinki'
+//    	KEY:Name Value:'Steve'
 //    Iterating via foreach key,value:
+//    	Age -> 44
 //    	Location -> Helsinki
 //    	Name -> Steve
-//    	Age -> 44
 //    I am Steve - 44
-//    My hash is {Name: Steve, Location: Helsinki, Age: 44}
+//    My hash is s {Age: 44, Location: Helsinki, Name: Steve}
 //    My hash has len 3
 //    Script gave result type:NULL value:null - which is 'false'.
 //
