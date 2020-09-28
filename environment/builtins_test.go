@@ -143,6 +143,72 @@ func TestInt(t *testing.T) {
 	}
 }
 
+// Test keys-primitive
+func TestKeys(t *testing.T) {
+
+	// One argument is required
+	var args []object.Object
+	out := fnKeys(args)
+	if out.Type() != object.NULL {
+		t.Errorf("no arguments returns a weird result")
+	}
+
+	// The argument must be a hash
+	args = append(args, &object.String{Value: "bogus type"})
+	out = fnKeys(args)
+	if out.Type() != object.NULL {
+		t.Errorf("bad argument-type returns a weird result")
+	}
+
+	// OK now we have a hash.  Empty one is easy
+	tmp := &object.Hash{}
+	out = fnKeys([]object.Object{tmp})
+	if out.Type() != object.ARRAY {
+		t.Errorf("keys(hash) returned non-arry")
+	}
+
+	// Populate the hash with a pair of keys
+	a := object.HashPair{Key: &object.String{Value: "Name"}, Value: &object.String{Value: "Steve"}}
+	aK := &object.String{Value: "Name"}
+	b := object.HashPair{Key: &object.String{Value: "Country"}, Value: &object.String{Value: "Finland"}}
+	bK := &object.String{Value: "Country"}
+
+	tmp.Pairs = make(map[object.HashKey]object.HashPair)
+	tmp.Pairs[aK.HashKey()] = a
+	tmp.Pairs[bK.HashKey()] = b
+
+	// Get the keys now
+	out = fnKeys([]object.Object{tmp})
+	if out.Type() != object.ARRAY {
+		t.Errorf("keys(hash) returned non-arry")
+	}
+
+	// Array should have two elements.
+	if len(out.(*object.Array).Elements) != 2 {
+		t.Errorf("wrong number of keys")
+	}
+
+	// Key names will be stored in the array.
+	//
+	// Since keys are sorted we can assume:
+	//    key1 = Country
+	//    key2 = Name
+	//
+	values := out.(*object.Array).Elements
+	if values[0].Type() != object.STRING {
+		t.Errorf("not right type")
+	}
+	if values[0].(*object.String).Value != "Country" {
+		t.Errorf("wrong key-name - 'Country' got %s", values[0].(*object.String).Value)
+	}
+	if values[1].Type() != object.STRING {
+		t.Errorf("not right type")
+	}
+	if values[1].(*object.String).Value != "Name" {
+		t.Errorf("wrong key-name - expected 'Name' got %s", values[1].(*object.String).Value)
+	}
+}
+
 // Test split-primitive
 func TestSplit(t *testing.T) {
 
@@ -229,6 +295,19 @@ func TestString(t *testing.T) {
 // Test string length
 func TestLen(t *testing.T) {
 
+	// Hash entries
+	a := object.HashPair{Key: &object.String{Value: "Name"}, Value: &object.String{Value: "Steve"}}
+	aK := &object.String{Value: "Name"}
+	b := object.HashPair{Key: &object.String{Value: "Country"}, Value: &object.String{Value: "Finland"}}
+	bK := &object.String{Value: "Country"}
+
+	tmpOne := make(map[object.HashKey]object.HashPair)
+	tmpTwo := make(map[object.HashKey]object.HashPair)
+
+	tmpOne[aK.HashKey()] = a
+	tmpTwo[aK.HashKey()] = a
+	tmpTwo[bK.HashKey()] = b
+
 	type TestCase struct {
 		Input  object.Object
 		Result int
@@ -250,6 +329,11 @@ func TestLen(t *testing.T) {
 		{Input: &object.Array{Elements: []object.Object{
 			&object.String{Value: "steve"}}},
 			Result: 1},
+
+		// Hashes
+		{Input: &object.Hash{}, Result: 0},
+		{Input: &object.Hash{Pairs: tmpOne}, Result: 1},
+		{Input: &object.Hash{Pairs: tmpTwo}, Result: 2},
 	}
 
 	// For each test

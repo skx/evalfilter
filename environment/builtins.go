@@ -86,27 +86,29 @@ func fnInt(args []object.Object) object.Object {
 	return &object.Integer{Value: i}
 }
 
-// Get hash keys
+// Get the (sorted) keys from the specified hash.
 func fnKeys(args []object.Object) object.Object {
+
+	// We expect a single argument
 	if len(args) != 1 {
 		return &object.Null{}
 	}
+
+	// The argument must be a hash
 	if args[0].Type() != object.HASH {
 		return &object.Null{}
 	}
 
 	// The object we're working with
 	hash := args[0].(*object.Hash)
-	ents := len(hash.Pairs)
+	entries := hash.Entries()
 
 	// Create a new array for the results.
-	array := make([]object.Object, ents)
+	array := make([]object.Object, len(entries))
 
 	// Now copy the keys into it.
-	i := 0
-	for _, ent := range hash.Pairs {
+	for i, ent := range entries {
 		array[i] = ent.Key
-		i++
 	}
 
 	// Return the array.

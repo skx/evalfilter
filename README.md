@@ -95,7 +95,7 @@ You can also easily add new primitives to the engine, by defining a function in 
   * Tries to convert the value to an integer, returns Null on failure.
   * e.g. `int("3")`.
 * `keys`
-  * Returns the keys from the specified hash.
+  * Returns the available keys in the specified hash, in sorted order.
 * `len(field | value)`
   * Returns the length of the given value, or the contents of the given field.
   * For arrays it returns the number of elements, as you'd expect.
@@ -191,6 +191,12 @@ If you don't supply an index you'll receive just the item being iterated over in
         len++;
     }
     return( len == 2 );
+
+The same kind of iteration works over hashes too (the single-argument version of the `foreach` loop iterates over values, rather than keys.  Hash keys are available via `keys` so that seems like a more useful thing to return):
+
+    foreach key,value in { "Name": "Steve", "Location": "Finland" } {
+      printf("Key %s has value %s\n", key, value );
+    }
 
 The final helper is the ability to create arrays of integers via the `..` primitive:
 
