@@ -525,6 +525,106 @@ func TestOpCall(t *testing.T) {
 	RunTestCases(tests, constants, t)
 }
 
+func TestOpCase(t *testing.T) {
+
+	tests := []TestCase{
+		// stack underflow
+		{
+			program: code.Instructions{
+				byte(code.OpCase), // 0x00
+			},
+			result: "Pop from an empty stack",
+			error:  true,
+		},
+		// stack underflow
+		{
+			program: code.Instructions{
+				byte(code.OpTrue), // 0x00
+				byte(code.OpCase), // 0x01
+			},
+			result: "Pop from an empty stack",
+			error:  true,
+		},
+
+		// switch("steve") { case "steve" { return true } }
+
+		{
+			program: code.Instructions{
+				byte(code.OpConstant), // 0x00
+				byte(0),               // 0x01
+				byte(0),               // 0x02 "steve"
+				byte(code.OpConstant), // 0x03
+				byte(0),               // 0x04
+				byte(0),               // 0x05 "steve"
+				byte(code.OpCase),     // 0x06
+				byte(code.OpReturn),   // 0x07
+			},
+			result: "true",
+			error:  false,
+		},
+
+		// switch("steve") { case /steve/ { return true } }
+
+		{
+			program: code.Instructions{
+				byte(code.OpConstant), // 0x00
+				byte(0),               // 0x01
+				byte(0),               // 0x02 "steve"
+				byte(code.OpConstant), // 0x03
+				byte(0),               // 0x04
+				byte(1),               // 0x05 /steve/
+				byte(code.OpCase),     // 0x06
+				byte(code.OpReturn),   // 0x07
+			},
+			result: "true",
+			error:  false,
+		},
+
+		// switch("steve") { case /steve/ { return true }  return false;}
+
+		{
+			program: code.Instructions{
+				byte(code.OpConstant), // 0x00
+				byte(0),               // 0x01
+				byte(2),               // 0x02 "foo"
+				byte(code.OpConstant), // 0x03
+				byte(0),               // 0x04
+				byte(1),               // 0x05 /steve/
+				byte(code.OpCase),     // 0x06
+				byte(code.OpReturn),   // 0x07
+			},
+			result: "false",
+			error:  false,
+		},
+
+		// switch("steve") { case FALSE { return true }  return false;}
+
+		{
+			program: code.Instructions{
+				byte(code.OpConstant), // 0x00
+				byte(0),               // 0x01
+				byte(0),               // 0x02 "steve"
+				byte(code.OpConstant), // 0x03
+				byte(0),               // 0x04
+				byte(3),               // 0x05 FALSE
+				byte(code.OpCase),     // 0x06
+				byte(code.OpReturn),   // 0x07
+			},
+			result: "false",
+			error:  false,
+		},
+	}
+
+	constants := []object.Object{
+		&object.String{Value: "steve"},
+		&object.Regexp{Value: "steve"},
+		&object.String{Value: "foo"},
+		&object.Boolean{Value: false},
+	}
+
+	RunTestCases(tests, constants, t)
+}
+
 func TestOpConstant(t *testing.T) {
 
 	tests := []TestCase{
