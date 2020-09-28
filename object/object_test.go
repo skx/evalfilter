@@ -203,6 +203,79 @@ func TestFloat(t *testing.T) {
 	}
 }
 
+// TestHash tests our hash object in a basic way
+func TestHash(t *testing.T) {
+	tmp := &Hash{}
+
+	if tmp.True() {
+		t.Fatalf("empty hash should be false")
+	}
+
+	if tmp.Type() != HASH {
+		t.Fatalf("hash has the wrong type")
+	}
+
+	x := tmp.ToInterface()
+	if x.(string) != "<HASH>" {
+		t.Fatalf("interface usage failed")
+	}
+
+	// Create some values for the hash
+	a := HashPair{Key: &String{Value: "Name"}, Value: &String{Value: "Steve"}}
+	aK := &String{Value: "Name"}
+	b := HashPair{Key: &String{Value: "Country"}, Value: &String{Value: "Finland"}}
+	bK := &String{Value: "Country"}
+
+	tmp.Pairs = make(map[HashKey]HashPair)
+	tmp.Pairs[aK.HashKey()] = a
+	tmp.Pairs[bK.HashKey()] = b
+
+	// Now we have some entries
+	if !tmp.True() {
+		t.Fatalf("populated hash should be true")
+	}
+
+	if tmp.Inspect() != "{Country: Finland, Name: Steve}" {
+		t.Fatalf("Got %s for hash", tmp.Inspect())
+	}
+
+	// Reset the iteration
+	tmp.Reset()
+
+	// Get the next-value from the array, via the
+	// iterator.
+	v1, k1, more1 := tmp.Next()
+
+	if !more1 {
+		t.Fatalf("we expect more iterations")
+	}
+
+	if k1.Inspect() != "Country" {
+		t.Fatalf("wrong key, got %s", k1.Inspect())
+	}
+	if v1.Inspect() != "Finland" {
+		t.Fatalf("wrong key")
+	}
+
+	// Get the next-value from the array, via the
+	// iterator.
+	v2, k2, more2 := tmp.Next()
+	if !more2 {
+		t.Fatalf("we expect more iterations")
+	}
+	if k2.Inspect() != "Name" {
+		t.Fatalf("wrong key, got %s", k2.Inspect())
+	}
+	if v2.Inspect() != "Steve" {
+		t.Fatalf("wrong key")
+	}
+
+	_, _, more3 := tmp.Next()
+	if more3 {
+		t.Fatalf("iteration should be over now")
+	}
+}
+
 // TestInt tests our Integer-object in a basic way.
 func TestInt(t *testing.T) {
 

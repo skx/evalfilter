@@ -3,6 +3,7 @@ package object
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -24,6 +25,13 @@ type HashPair struct {
 	Value Object
 }
 
+// ByName implements sort.Interface for []HashPair based on the Key field.
+type ByName []HashPair
+
+func (a ByName) Len() int           { return len(a) }
+func (a ByName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByName) Less(i, j int) bool { return a[i].Key.Inspect() < a[j].Key.Inspect() }
+
 // Hash wrap map[HashKey]HashPair and implements Object interface.
 type Hash struct {
 	// Pairs holds the key/value pairs of the hash we wrap
@@ -38,13 +46,41 @@ func (h *Hash) Type() Type {
 	return HASH
 }
 
+// Entries returns the sorted list of entries we maintain
+//
+// We need this to guarantee a stable order when iterating, or
+// exporting to a string.
+func (h *Hash) Entries() []HashPair {
+
+	// Maintain an array of values
+	var entries []HashPair
+
+	for _, pair := range h.Pairs {
+		entries = append(entries, pair)
+	}
+
+	// Sort them
+	sort.Sort(ByName(entries))
+
+	for i, n := range entries {
+		fmt.Printf("%d: %v\n", i, n)
+	}
+	return entries
+}
+
 // Inspect returns a string-representation of the given object.
 func (h *Hash) Inspect() string {
+
+	// Get the list of entries, sorted by key-name.
+	entries := h.Entries()
+
+	// Now output
 	var out bytes.Buffer
+
 	pairs := make([]string, 0)
-	for _, pair := range h.Pairs {
+	for _, entry := range entries {
 		pairs = append(pairs, fmt.Sprintf("%s: %s",
-			pair.Key.Inspect(), pair.Value.Inspect()))
+			entry.Key.Inspect(), entry.Value.Inspect()))
 	}
 	out.WriteString("{")
 	out.WriteString(strings.Join(pairs, ", "))
@@ -68,10 +104,15 @@ func (h *Hash) Reset() {
 // Next implements the Iterable interface, and allows the contents
 // of our array to be iterated over.
 func (h *Hash) Next() (Object, Object, bool) {
-	if h.offset < len(h.Pairs) {
+
+	// Get the list of entries, sorted by key-name.
+	entries := h.Entries()
+
+	// Now pick the next entry
+	if h.offset < len(entries) {
 		idx := 0
 
-		for _, pair := range h.Pairs {
+		for _, pair := range entries {
 			if h.offset == idx {
 				h.offset++
 				return pair.Value, pair.Key, true
