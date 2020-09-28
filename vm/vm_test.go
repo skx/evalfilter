@@ -655,6 +655,115 @@ func TestOpDec(t *testing.T) {
 	RunTestCases(tests, constants, t)
 }
 
+func TestOpHash(t *testing.T) {
+
+	tests := []TestCase{
+		// Build a hash with zero args.
+		{
+			program: code.Instructions{
+				byte(code.OpHash),   // 0x00
+				byte(0),             // 0x01
+				byte(0),             // 0x02
+				byte(code.OpReturn), // 0x03
+			},
+			result: "{}",
+			error:  false,
+		},
+
+		// stack underflow
+		{
+			program: code.Instructions{
+				byte(code.OpHash),   // 0x00
+				byte(0),             // 0x01
+				byte(1),             // 0x02
+				byte(code.OpReturn), // 0x03
+			},
+			result: "Pop from an empty stack",
+			error:  true,
+		},
+
+		// stack underflow
+		{
+			program: code.Instructions{
+				byte(code.OpTrue),   // 0x00
+				byte(code.OpHash),   // 0x01
+				byte(0),             // 0x02
+				byte(1),             // 0x03
+				byte(code.OpReturn), // 0x04
+			},
+			result: "Pop from an empty stack",
+			error:  true,
+		},
+
+		// {"foo":"bar"}
+		{
+			program: code.Instructions{
+				byte(code.OpConstant),
+				byte(0),
+				byte(0), // "foo"
+				byte(code.OpConstant),
+				byte(0),
+				byte(1), // "bar"
+				byte(code.OpHash),
+				byte(0),
+				byte(2),
+				byte(code.OpReturn),
+			},
+			result: "{foo: bar}",
+			error:  false,
+		},
+
+		// return len({"foo":"bar"})
+		{
+			program: code.Instructions{
+				byte(code.OpConstant),
+				byte(0),
+				byte(0), // "foo"
+				byte(code.OpConstant),
+				byte(0),
+				byte(1), // "bar"
+				byte(code.OpHash),
+				byte(0),
+				byte(2),
+				byte(code.OpConstant),
+				byte(0),
+				byte(2), // "len"
+				byte(code.OpCall),
+				byte(0),
+				byte(1),
+				byte(code.OpReturn),
+			},
+			result: "1",
+			error:  false,
+		},
+
+		// {true: bar} - > invalid key
+		{
+			program: code.Instructions{
+				byte(code.OpTrue),
+				byte(code.OpConstant),
+				byte(0),
+				byte(1), // "bar"
+				byte(code.OpHash),
+				byte(0),
+				byte(2),
+				byte(code.OpReturn),
+			},
+			result: "unusable as hash key",
+			error:  true,
+		},
+	}
+
+	constants := []object.Object{
+		&object.String{Value: "foo"},
+		&object.String{Value: "bar"},
+		&object.String{Value: "len"},
+		&object.Boolean{Value: true},
+	}
+
+	RunTestCases(tests, constants, t)
+}
+
 func TestOpInc(t *testing.T) {
 
 	tests := []TestCase{
@@ -898,7 +1007,105 @@ func TestOpIndex(t *testing.T) {
 }
 
 func TestOpIterationNext(t *testing.T) {
-	// TODO - This is a hard one due to the magic the compiler emits.
+
+	tests := []TestCase{
+
+		// OpIterationNext requires three stack entries: give it none
+		{
+			program: code.Instructions{
+				byte(code.OpIterationNext),
+			},
+			error:  true,
+			result: "Pop from an empty stack",
+		},
+
+		// OpIterationNext requires three stack entries: give it one
+		{
+			program: code.Instructions{
+				byte(code.OpTrue),
+				byte(code.OpIterationNext),
+			},
+			error:  true,
+			result: "Pop from an empty stack",
+		},
+
+		// OpIterationNext requires three stack entries: give it two
+		{
+			program: code.Instructions{
+				byte(code.OpTrue),
+				byte(code.OpTrue),
+				byte(code.OpIterationNext),
+			},
+			error:  true,
+			result: "Pop from an empty stack",
+		},
+
+		// OpIterationNext requires three stack entries: give it three,
+		// but not an iterable thing.
+		{
+			program: code.Instructions{
+				byte(code.OpTrue),
+				byte(code.OpTrue),
+				byte(code.OpTrue),
+				byte(code.OpIterationNext),
+			},
+			error:  true,
+			result: "object doesn't implement the Iterable interface",
+		},
+		// iterate over characters in a string
+		{
+			program: code.Instructions{
+				byte(code.OpConstant),       // 0x00
+				byte(0),                     // 0x01
+				byte(0),                     // 0x02 -> "Steve"
+				byte(code.OpIterationReset), // 0x03
+				byte(code.OpConstant),       // 0x04 XXXX:
+				byte(0),                     // 0x05
+				byte(1),                     // 0x06 -> "i"
+				byte(code.OpConstant),       // 0x07
+				byte(0),                     // 0x08
+				byte(2),                     // 0x09 -> "c"
+				byte(code.OpIterationNext),  // 0x0A
+				byte(code.OpJumpIfFalse),    // 0x0B
+				byte(0),                     // 0x0C
+				byte(32),                    // 0x0D -> YYYY
+				byte(code.OpConstant),       // 0x0E
+				byte(0),                     // 0x0F
+				byte(3),                     // 0x10 -> "%d: %s\n"
+				byte(code.OpLookup),         // 0x11
+				byte(0),                     // 0x12
+				byte(1),                     // 0x13 -> "lookup: i"
+				byte(code.OpLookup),         // 0x14
+				byte(0),                     // 0x15
+				byte(2),                     // 0x16 -> "lookup: c"
+				byte(code.OpConstant),       // 0x17
+				byte(0),                     // 0x18
+				byte(4),                     // 0x19 -> "printf"
+				byte(code.OpCall),           // 0x1A
+				byte(0),                     // 0x1B
+				byte(3),                     // 0x1C -> call printf with 3 args
+				byte(code.OpJump),           // 0x1D
+				byte(0),                     // 0x1E
+				byte(4),                     // 0x1F -> XXXX
+				byte(code.OpTrue),           // 0x20 YYYYY:
+				byte(code.OpReturn),         // 0x21
+			},
+			result: "true",
+			error:  false,
+		},
+	}
+
+	// Constants
+	constants := []object.Object{
+		&object.String{Value: "Steve"},    // 0x00
+		&object.String{Value: "i"},        // 0x01
+		&object.String{Value: "c"},        // 0x02
+		&object.String{Value: "%d: %s\n"}, // 0x03
+		&object.String{Value: "printf"},   // 0x04
+	}
+
+	RunTestCases(tests, constants, t)
+
 }
 
 func TestOpIterationReset(t *testing.T) {
