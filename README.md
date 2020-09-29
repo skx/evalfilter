@@ -250,7 +250,7 @@ We support the use of `switch` and `case` to simplify the handling of some contr
       }
     }
 
-Note that the `case` expression supports:
+Note that the `case` expression supports the following, as demonstrated in our [switch example](_examples/scripts/switch.script):
 
 * Expression matches.
 * Literal matches.
@@ -258,6 +258,18 @@ Note that the `case` expression supports:
 
 To avoid fall-through-related bugs we've explicitly designed the case-statements to take _blocks_ as arguments, rather than statements.
 
+**NOTE**: Only the first matching case-statement will execute.  In the following example only __one__ message will be output:
+
+    count = 1;
+
+    switch( count ) {
+      case 1 {
+         printf("Match!\n");
+      }
+      case 1 {
+         printf("This is not a match - the previous case statement won!\n");
+      }
+    }
 
 
 ## Use Cases
