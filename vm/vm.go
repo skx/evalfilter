@@ -111,6 +111,7 @@ func New(constants []object.Object, bytecode code.Instructions, functions map[st
 		debug:       debug,
 		environment: env,
 		functions:   functions,
+		stack:       stack.New(),
 	}
 
 	// Set a default context
@@ -205,7 +206,9 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 	// via the addition of the &object.Void{} type.   However we
 	// cannot assume everybody remember to use that.)
 	//
-	vm.stack = stack.New()
+	for !vm.stack.Empty() {
+		vm.stack.Pop()
+	}
 
 	//
 	// Instruction pointer and length of bytecode.
