@@ -18,6 +18,7 @@ package vm
 import (
 	"encoding/binary"
 	"fmt"
+	"math"
 
 	"github.com/skx/evalfilter/v2/code"
 )
@@ -117,6 +118,42 @@ func (vm *VM) optimizeMaths() (bool, error) {
 			// add that to our list tracking such things.
 			//
 			args = append(args, Constants{offset: offset, value: opArg.(int)})
+
+		case code.OpSquareRoot:
+			if len(args) >= 1 {
+				// the arg
+				a := args[len(args)-1]
+
+				// get the square root
+				r := math.Sqrt(float64(a.value))
+
+				// round to an int
+				result := int(r)
+
+				// is the result as int & floating point equale.
+				// i.e. root(9) -> 3 which is fine.
+				// but root(2) is a float, which is not something we can replace
+				if (float64(result) == r) && result%1 == 0 && result >= 0 && result <= 65534 {
+
+					// Make a buffer for the argument
+					data := make([]byte, 2)
+					binary.BigEndian.PutUint16(data, uint16(result))
+
+					// Replace the argument
+					vm.bytecode[a.offset+1] = data[0]
+					vm.bytecode[a.offset+2] = data[1]
+
+					// and finally replace the math-operation
+					// itself with a Nop.
+					vm.bytecode[offset] = byte(code.OpNop)
+
+					// We changed something, so we stop now.
+					changed = true
+					return false, nil
+				}
+			}
+			// reset our argument counters.
+			args = nil
 
 		case code.OpNop:
 

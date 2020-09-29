@@ -2008,6 +2008,8 @@ func TestOptimizerJumps(t *testing.T) {
 func TestOptimizerMaths(t *testing.T) {
 
 	tests := []TestCase{
+
+		// Constant maths
 		{
 			program: code.Instructions{
 				byte(code.OpPush),
@@ -2048,7 +2050,47 @@ func TestOptimizerMaths(t *testing.T) {
 				byte(0),
 				byte(7),
 				byte(code.OpReturn),
-			}}}
+			},
+		},
+
+		// Square root of 9 -> 3
+		{
+			program: code.Instructions{
+				byte(code.OpPush),
+				byte(0),
+				byte(9),
+				byte(code.OpSquareRoot),
+				byte(code.OpReturn)},
+			result: "3",
+			error:  false,
+			optimized: code.Instructions{
+				byte(code.OpPush),
+				byte(0),
+				byte(3),
+				byte(code.OpReturn),
+			},
+		},
+
+		// Square root of 2 -> remains unchanged
+		{
+			program: code.Instructions{
+				byte(code.OpPush),
+				byte(0),
+				byte(2),
+				byte(code.OpSquareRoot),
+				byte(code.OpReturn),
+			},
+			result: "1.4142135623730951",
+			error:  false,
+			optimized: code.Instructions{
+				byte(code.OpPush),
+				byte(0),
+				byte(2),
+				byte(code.OpSquareRoot),
+				byte(code.OpReturn),
+			},
+		},
+	}
 
 	constants := []object.Object{}
 
