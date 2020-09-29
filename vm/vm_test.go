@@ -14,6 +14,7 @@ import (
 	"github.com/skx/evalfilter/v2/code"
 	"github.com/skx/evalfilter/v2/environment"
 	"github.com/skx/evalfilter/v2/object"
+	"github.com/skx/evalfilter/v2/stack"
 )
 
 // TestCase is the structure for describing our test-cases.
@@ -2158,4 +2159,104 @@ func RunTestCases(tests []TestCase, objects []object.Object, t *testing.T) {
 		}
 	}
 
+}
+
+// Now operation tests
+
+func TestBinOp(t *testing.T) {
+
+	type TestCase struct {
+		left   object.Object
+		right  object.Object
+		op     code.Opcode
+		result string
+		error  bool
+	}
+
+	tests := []TestCase{
+		// bool op bool
+		TestCase{left: &object.Boolean{Value: true}, right: &object.Boolean{Value: false}, op: code.OpEqual, result: "false"},
+		TestCase{left: &object.Boolean{Value: true}, right: &object.Boolean{Value: true}, op: code.OpEqual, result: "true"},
+		TestCase{left: &object.Boolean{Value: true}, right: &object.Regexp{Value: "steve"}, op: code.OpEqual, result: "type mismatch", error: true},
+
+		// int op int
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Integer{Value: 3}, op: code.OpAdd, result: "6"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Integer{Value: 4}, op: code.OpSub, result: "-1"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Integer{Value: 4}, op: code.OpMul, result: "12"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Integer{Value: 3}, op: code.OpDiv, result: "1"},
+		TestCase{left: &object.Integer{Value: 13}, right: &object.Integer{Value: 3}, op: code.OpMod, result: "1"},
+		TestCase{left: &object.Integer{Value: 2}, right: &object.Integer{Value: 4}, op: code.OpPower, result: "16"},
+		TestCase{left: &object.Integer{Value: 2}, right: &object.Integer{Value: 4}, op: code.OpLess, result: "true"},
+		TestCase{left: &object.Integer{Value: 32}, right: &object.Integer{Value: 4}, op: code.OpLess, result: "false"},
+		TestCase{left: &object.Integer{Value: 2}, right: &object.Integer{Value: 4}, op: code.OpLessEqual, result: "true"},
+		TestCase{left: &object.Integer{Value: 32}, right: &object.Integer{Value: 4}, op: code.OpLessEqual, result: "false"},
+		TestCase{left: &object.Integer{Value: 33}, right: &object.Integer{Value: 32}, op: code.OpGreater, result: "true"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Integer{Value: 32}, op: code.OpGreater, result: "false"},
+		TestCase{left: &object.Integer{Value: 33}, right: &object.Integer{Value: 32}, op: code.OpGreaterEqual, result: "true"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Integer{Value: 32}, op: code.OpGreaterEqual, result: "false"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Integer{Value: 32}, op: code.OpEqual, result: "false"},
+		TestCase{left: &object.Integer{Value: 17}, right: &object.Integer{Value: 17}, op: code.OpEqual, result: "true"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Integer{Value: 32}, op: code.OpNotEqual, result: "true"},
+		TestCase{left: &object.Integer{Value: 17}, right: &object.Integer{Value: 17}, op: code.OpNotEqual, result: "false"},
+		TestCase{left: &object.Integer{Value: 17}, right: &object.Integer{Value: 17}, op: code.OpCase, result: "unknown operator", error: true},
+
+		// string op string
+		TestCase{left: &object.String{Value: "steve"}, right: &object.String{Value: "steve"}, op: code.OpEqual, result: "true"},
+		TestCase{left: &object.String{Value: "steve"}, right: &object.String{Value: "kemp"}, op: code.OpEqual, result: "false"},
+		TestCase{left: &object.String{Value: "steve"}, right: &object.String{Value: "steve"}, op: code.OpNotEqual, result: "false"},
+		TestCase{left: &object.String{Value: "steve"}, right: &object.String{Value: "kemp"}, op: code.OpNotEqual, result: "true"},
+		TestCase{left: &object.String{Value: "a"}, right: &object.String{Value: "b"}, op: code.OpEqual, result: "false"},
+		TestCase{left: &object.String{Value: "b"}, right: &object.String{Value: "b"}, op: code.OpEqual, result: "true"},
+		TestCase{left: &object.String{Value: "a"}, right: &object.String{Value: "b"}, op: code.OpGreater, result: "false"},
+		TestCase{left: &object.String{Value: "b"}, right: &object.String{Value: "a"}, op: code.OpGreater, result: "true"},
+		TestCase{left: &object.String{Value: "a"}, right: &object.String{Value: "b"}, op: code.OpGreaterEqual, result: "false"},
+		TestCase{left: &object.String{Value: "b"}, right: &object.String{Value: "a"}, op: code.OpGreaterEqual, result: "true"},
+		TestCase{left: &object.String{Value: "a"}, right: &object.String{Value: "b"}, op: code.OpLess, result: "true"},
+		TestCase{left: &object.String{Value: "b"}, right: &object.String{Value: "a"}, op: code.OpLess, result: "false"},
+		TestCase{left: &object.String{Value: "a"}, right: &object.String{Value: "b"}, op: code.OpLessEqual, result: "true"},
+		TestCase{left: &object.String{Value: "b"}, right: &object.String{Value: "a"}, op: code.OpLessEqual, result: "false"},
+		TestCase{left: &object.String{Value: "b"}, right: &object.String{Value: "a"}, op: code.OpAdd, result: "ba"},
+		TestCase{left: &object.String{Value: "b"}, right: &object.String{Value: "a"}, op: code.OpCase, result: "unknown operator", error: true},
+
+		// string op regexp
+		TestCase{left: &object.String{Value: "b"}, right: &object.Regexp{Value: "[a-c]"}, op: code.OpMatches, result: "true"},
+		TestCase{left: &object.String{Value: "D"}, right: &object.Regexp{Value: "[a-c]"}, op: code.OpMatches, result: "false"},
+		TestCase{left: &object.String{Value: "b"}, right: &object.Regexp{Value: "[a-c]"}, op: code.OpNotMatches, result: "false"},
+		TestCase{left: &object.String{Value: "D"}, right: &object.Regexp{Value: "[a-c]"}, op: code.OpNotMatches, result: "true"},
+		TestCase{left: &object.String{Value: "D"}, right: &object.Regexp{Value: "[a-c]"}, op: code.OpCase, result: "unknown operator", error: true},
+	}
+
+	for _, test := range tests {
+
+		vm := New(nil, nil, nil, environment.New())
+		vm.stack = stack.New()
+
+		vm.stack.Push(test.left)
+		vm.stack.Push(test.right)
+
+		err := vm.executeBinaryOperation(test.op)
+
+		if test.error {
+			if err == nil {
+				t.Fatalf("expected error, got none!")
+			}
+			if !strings.Contains(err.Error(), test.result) {
+				t.Fatalf("error %s did not match %s", err.Error(), test.result)
+			}
+		} else {
+			if err != nil {
+				t.Fatalf("unexpected error")
+			}
+
+			out, err := vm.stack.Pop()
+			if err != nil {
+				t.Fatalf("error popping result")
+			}
+			if test.result != out.Inspect() {
+				t.Fatalf("wrong result")
+			}
+
+		}
+
+	}
 }
