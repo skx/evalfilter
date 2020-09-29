@@ -14,7 +14,6 @@ import (
 	"github.com/skx/evalfilter/v2/code"
 	"github.com/skx/evalfilter/v2/environment"
 	"github.com/skx/evalfilter/v2/object"
-	"github.com/skx/evalfilter/v2/stack"
 )
 
 // TestCase is the structure for describing our test-cases.
@@ -1099,10 +1098,57 @@ func TestOpIndex(t *testing.T) {
 			result: "null",
 			error:  false,
 		},
+
+		// hash: {foo: bar}["steve"]
+		{
+			program: code.Instructions{
+				byte(code.OpConstant),
+				byte(0),
+				byte(1), // "foo"
+				byte(code.OpConstant),
+				byte(0),
+				byte(2), // "bar"
+				byte(code.OpHash),
+				byte(0),
+				byte(2),
+				byte(code.OpConstant),
+				byte(0),
+				byte(0), // "steve"
+				byte(code.OpIndex),
+				byte(code.OpReturn),
+			},
+			result: "null",
+			error:  false,
+		},
+
+		// hash: {foo: bar}["foo"]
+		{
+			program: code.Instructions{
+				byte(code.OpConstant),
+				byte(0),
+				byte(1), // "foo"
+				byte(code.OpConstant),
+				byte(0),
+				byte(2), // "bar"
+				byte(code.OpHash),
+				byte(0),
+				byte(2),
+				byte(code.OpConstant),
+				byte(0),
+				byte(1), // "foo"
+				byte(code.OpIndex),
+				byte(code.OpReturn),
+			},
+			result: "bar",
+			error:  false,
+		},
 	}
 
 	// Constants
-	constants := []object.Object{&object.String{Value: "Steve"}}
+	constants := []object.Object{&object.String{Value: "Steve"},
+		&object.String{Value: "foo"},
+		&object.String{Value: "bar"},
+	}
 
 	RunTestCases(tests, constants, t)
 }
@@ -2266,7 +2312,6 @@ func TestBinOp(t *testing.T) {
 		TestCase{left: &object.Integer{Value: 3}, right: &object.Float{Value: 32}, op: code.OpNotEqual, result: "true"},
 		TestCase{left: &object.Integer{Value: 17}, right: &object.Float{Value: 17}, op: code.OpNotEqual, result: "false"},
 		TestCase{left: &object.Integer{Value: 17}, right: &object.Float{Value: 17}, op: code.OpCase, result: "unknown operator", error: true},
-		// TODO: /0
 
 		// string op string
 		TestCase{left: &object.String{Value: "steve"}, right: &object.String{Value: "steve"}, op: code.OpEqual, result: "true"},
@@ -2316,8 +2361,6 @@ func TestBinOp(t *testing.T) {
 	for _, test := range tests {
 
 		vm := New(nil, nil, nil, environment.New())
-		vm.stack = stack.New()
-
 		vm.stack.Push(test.left)
 		vm.stack.Push(test.right)
 
@@ -2347,14 +2390,12 @@ func TestBinOp(t *testing.T) {
 
 	// binops requires two values on the stack
 	vm := New(nil, nil, nil, environment.New())
-	vm.stack = stack.New()
 	err := vm.executeBinaryOperation(code.OpEqual)
 	if err == nil {
 		t.Fatalf("expected error")
 	}
 
 	vm = New(nil, nil, nil, environment.New())
-	vm.stack = stack.New()
 	vm.stack.Push(&object.Boolean{Value: true})
 	err = vm.executeBinaryOperation(code.OpEqual)
 	if err == nil {
