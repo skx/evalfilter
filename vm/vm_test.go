@@ -2184,6 +2184,7 @@ func TestBinOp(t *testing.T) {
 		TestCase{left: &object.Float{Value: 3}, right: &object.Float{Value: 4}, op: code.OpSub, result: "-1"},
 		TestCase{left: &object.Float{Value: 3}, right: &object.Float{Value: 4}, op: code.OpMul, result: "12"},
 		TestCase{left: &object.Float{Value: 3}, right: &object.Float{Value: 3}, op: code.OpDiv, result: "1"},
+		TestCase{left: &object.Float{Value: 3}, right: &object.Float{Value: 0}, op: code.OpDiv, result: "division by zero", error: true},
 		TestCase{left: &object.Float{Value: 13}, right: &object.Float{Value: 3}, op: code.OpMod, result: "1"},
 		TestCase{left: &object.Float{Value: 2}, right: &object.Float{Value: 4}, op: code.OpPower, result: "16"},
 		TestCase{left: &object.Float{Value: 2}, right: &object.Float{Value: 4}, op: code.OpLess, result: "true"},
@@ -2205,6 +2206,7 @@ func TestBinOp(t *testing.T) {
 		TestCase{left: &object.Float{Value: 3}, right: &object.Integer{Value: 4}, op: code.OpSub, result: "-1"},
 		TestCase{left: &object.Float{Value: 3}, right: &object.Integer{Value: 4}, op: code.OpMul, result: "12"},
 		TestCase{left: &object.Float{Value: 3}, right: &object.Integer{Value: 3}, op: code.OpDiv, result: "1"},
+		TestCase{left: &object.Float{Value: 3}, right: &object.Integer{Value: 0}, op: code.OpDiv, result: "division by zero", error: true},
 		TestCase{left: &object.Float{Value: 13}, right: &object.Integer{Value: 3}, op: code.OpMod, result: "1"},
 		TestCase{left: &object.Float{Value: 2}, right: &object.Integer{Value: 4}, op: code.OpPower, result: "16"},
 		TestCase{left: &object.Float{Value: 2}, right: &object.Integer{Value: 4}, op: code.OpLess, result: "true"},
@@ -2226,6 +2228,7 @@ func TestBinOp(t *testing.T) {
 		TestCase{left: &object.Integer{Value: 3}, right: &object.Integer{Value: 4}, op: code.OpSub, result: "-1"},
 		TestCase{left: &object.Integer{Value: 3}, right: &object.Integer{Value: 4}, op: code.OpMul, result: "12"},
 		TestCase{left: &object.Integer{Value: 3}, right: &object.Integer{Value: 3}, op: code.OpDiv, result: "1"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Integer{Value: 0}, op: code.OpDiv, result: "division by zero", error: true},
 		TestCase{left: &object.Integer{Value: 13}, right: &object.Integer{Value: 3}, op: code.OpMod, result: "1"},
 		TestCase{left: &object.Integer{Value: 2}, right: &object.Integer{Value: 4}, op: code.OpPower, result: "16"},
 		TestCase{left: &object.Integer{Value: 2}, right: &object.Integer{Value: 4}, op: code.OpLess, result: "true"},
@@ -2247,6 +2250,7 @@ func TestBinOp(t *testing.T) {
 		TestCase{left: &object.Integer{Value: 3}, right: &object.Float{Value: 4}, op: code.OpSub, result: "-1"},
 		TestCase{left: &object.Integer{Value: 3}, right: &object.Float{Value: 4}, op: code.OpMul, result: "12"},
 		TestCase{left: &object.Integer{Value: 3}, right: &object.Float{Value: 3}, op: code.OpDiv, result: "1"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Float{Value: 0}, op: code.OpDiv, result: "division by zero", error: true},
 		TestCase{left: &object.Integer{Value: 13}, right: &object.Float{Value: 3}, op: code.OpMod, result: "1"},
 		TestCase{left: &object.Integer{Value: 2}, right: &object.Float{Value: 4}, op: code.OpPower, result: "16"},
 		TestCase{left: &object.Integer{Value: 2}, right: &object.Float{Value: 4}, op: code.OpLess, result: "true"},
@@ -2290,6 +2294,23 @@ func TestBinOp(t *testing.T) {
 		TestCase{left: &object.String{Value: "b"}, right: &object.Regexp{Value: "[a-c]"}, op: code.OpNotMatches, result: "false"},
 		TestCase{left: &object.String{Value: "D"}, right: &object.Regexp{Value: "[a-c]"}, op: code.OpNotMatches, result: "true"},
 		TestCase{left: &object.String{Value: "D"}, right: &object.Regexp{Value: "[a-c]"}, op: code.OpCase, result: "unknown operator", error: true},
+
+		// Logic: and
+		TestCase{left: &object.Boolean{Value: true}, right: &object.Boolean{Value: true}, op: code.OpAnd, result: "true"},
+		TestCase{left: &object.Boolean{Value: false}, right: &object.Boolean{Value: true}, op: code.OpAnd, result: "false"},
+		TestCase{left: &object.Boolean{Value: true}, right: &object.Boolean{Value: false}, op: code.OpAnd, result: "false"},
+
+		// Logic: or
+		TestCase{left: &object.Boolean{Value: true}, right: &object.Boolean{Value: true}, op: code.OpOr, result: "true"},
+		TestCase{left: &object.Boolean{Value: false}, right: &object.Boolean{Value: true}, op: code.OpOr, result: "true"},
+		TestCase{left: &object.Boolean{Value: true}, right: &object.Boolean{Value: false}, op: code.OpOr, result: "true"},
+		TestCase{left: &object.Boolean{Value: false}, right: &object.Boolean{Value: false}, op: code.OpOr, result: "false"},
+
+		// array
+		TestCase{left: &object.String{Value: "steve"}, right: &object.Array{Elements: []object.Object{&object.String{Value: "Name"}}}, op: code.OpArrayIn, result: "false"},
+		TestCase{left: &object.String{Value: "Name"}, right: &object.Array{Elements: []object.Object{&object.String{Value: "Name"}}}, op: code.OpArrayIn, result: "true"},
+		TestCase{left: &object.Array{}, right: &object.Array{}, op: code.OpCase, result: "unknown operator", error: true},
+		TestCase{left: &object.Boolean{Value: false}, right: &object.Boolean{Value: false}, op: code.OpArrayIn, result: "perand for 'in' must be an array", error: true},
 	}
 
 	for _, test := range tests {
@@ -2321,8 +2342,23 @@ func TestBinOp(t *testing.T) {
 			if test.result != out.Inspect() {
 				t.Fatalf("wrong result")
 			}
-
 		}
-
 	}
+
+	// binops requires two values on the stack
+	vm := New(nil, nil, nil, environment.New())
+	vm.stack = stack.New()
+	err := vm.executeBinaryOperation(code.OpEqual)
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+
+	vm = New(nil, nil, nil, environment.New())
+	vm.stack = stack.New()
+	vm.stack.Push(&object.Boolean{Value: true})
+	err = vm.executeBinaryOperation(code.OpEqual)
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+
 }
