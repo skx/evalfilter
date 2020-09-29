@@ -71,6 +71,7 @@ The scripting-language this package presents supports the basic types you'd expe
 * Arrays.
 * Floating-point numbers.
 * Hashes.
+  * [Hash example](_examples/scripts/hashes.script).
 * Integers.
 * Regular expressions.
 * Strings.
