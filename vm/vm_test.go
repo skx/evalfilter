@@ -2217,6 +2217,8 @@ func TestBinOp(t *testing.T) {
 		TestCase{left: &object.String{Value: "b"}, right: &object.String{Value: "a"}, op: code.OpLessEqual, result: "false"},
 		TestCase{left: &object.String{Value: "b"}, right: &object.String{Value: "a"}, op: code.OpAdd, result: "ba"},
 		TestCase{left: &object.String{Value: "b"}, right: &object.String{Value: "a"}, op: code.OpCase, result: "unknown operator", error: true},
+		TestCase{left: &object.String{Value: "b"}, right: &object.String{Value: "boy"}, op: code.OpArrayIn, result: "true"},
+		TestCase{left: &object.String{Value: "a"}, right: &object.String{Value: "boy"}, op: code.OpArrayIn, result: "false"},
 
 		// string op regexp
 		TestCase{left: &object.String{Value: "b"}, right: &object.Regexp{Value: "[a-c]"}, op: code.OpMatches, result: "true"},
