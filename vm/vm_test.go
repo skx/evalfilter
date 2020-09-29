@@ -52,6 +52,11 @@ type TestCase struct {
 	// must be contained in the error-message, otherwise
 	// we'll compare the result with the output-value.
 	error bool
+
+	// dropCase will cause the `match` built-in function
+	// to be removed from the environment.  This is only
+	// used in one or two cases
+	dropMatch bool
 }
 
 func TestBool(t *testing.T) {
@@ -595,6 +600,24 @@ func TestOpCase(t *testing.T) {
 			},
 			result: "false",
 			error:  false,
+		},
+
+		// switch("foo") { case /steve/ ..
+		// dropped the match function
+		{
+			program: code.Instructions{
+				byte(code.OpConstant), // 0x00
+				byte(0),               // 0x01
+				byte(2),               // 0x02 "foo"
+				byte(code.OpConstant), // 0x03
+				byte(0),               // 0x04
+				byte(1),               // 0x05 /steve/
+				byte(code.OpCase),     // 0x06
+				byte(code.OpReturn),   // 0x07
+			},
+			result:    "failed to lookup match-function",
+			dropMatch: true,
+			error:     true,
 		},
 
 		// switch("steve") { case FALSE { return true }  return false;}
@@ -1141,6 +1164,26 @@ func TestOpIndex(t *testing.T) {
 			},
 			result: "bar",
 			error:  false,
+		},
+
+		// hash: {foo: bar}[true] -> error
+		{
+			program: code.Instructions{
+				byte(code.OpConstant),
+				byte(0),
+				byte(1), // "foo"
+				byte(code.OpConstant),
+				byte(0),
+				byte(2), // "bar"
+				byte(code.OpHash),
+				byte(0),
+				byte(2),
+				byte(code.OpTrue),
+				byte(code.OpIndex),
+				byte(code.OpReturn),
+			},
+			result: "unusable as hash key:",
+			error:  true,
 		},
 	}
 
@@ -2211,6 +2254,10 @@ func RunTestCases(tests []TestCase, objects []object.Object, t *testing.T) {
 		// Create
 		vm := New(objects, test.program, funs, env)
 
+		if test.dropMatch {
+			vm.environment.DeleteFunction("match")
+		}
+
 		// Run
 		out, err := vm.Run(nil)
 
@@ -2254,11 +2301,12 @@ func RunTestCases(tests []TestCase, objects []object.Object, t *testing.T) {
 func TestBinOp(t *testing.T) {
 
 	type TestCase struct {
-		left   object.Object
-		right  object.Object
-		op     code.Opcode
-		result string
-		error  bool
+		left      object.Object
+		right     object.Object
+		op        code.Opcode
+		result    string
+		error     bool
+		dropMatch bool
 	}
 
 	tests := []TestCase{
@@ -2382,6 +2430,10 @@ func TestBinOp(t *testing.T) {
 		TestCase{left: &object.String{Value: "D"}, right: &object.Regexp{Value: "[a-c]"}, op: code.OpNotMatches, result: "true"},
 		TestCase{left: &object.String{Value: "D"}, right: &object.Regexp{Value: "[a-c]"}, op: code.OpCase, result: "unknown operator", error: true},
 
+		// string op regexp - no match built-in
+		TestCase{left: &object.String{Value: "b"}, right: &object.Regexp{Value: "[a-c]"}, op: code.OpMatches, result: "failed to lookup match-function", error: true, dropMatch: true},
+		TestCase{left: &object.String{Value: "b"}, right: &object.Regexp{Value: "[a-c]"}, op: code.OpNotMatches, result: "failed to lookup match-function", error: true, dropMatch: true},
+
 		// Logic: and
 		TestCase{left: &object.Boolean{Value: true}, right: &object.Boolean{Value: true}, op: code.OpAnd, result: "true"},
 		TestCase{left: &object.Boolean{Value: false}, right: &object.Boolean{Value: true}, op: code.OpAnd, result: "false"},
@@ -2405,6 +2457,10 @@ func TestBinOp(t *testing.T) {
 		vm := New(nil, nil, nil, environment.New())
 		vm.stack.Push(test.left)
 		vm.stack.Push(test.right)
+
+		if test.dropMatch {
+			vm.environment.DeleteFunction("match")
+		}
 
 		err := vm.executeBinaryOperation(test.op)
 
