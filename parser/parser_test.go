@@ -460,7 +460,7 @@ func TestParseMissingPrefix(t *testing.T) {
 	p := New(l)
 	p.ParseProgram()
 
-	if len(p.errors) != 1 {
+	if len(p.errors) < 1 {
 		t.Fatalf("expected a parse error - got none")
 	}
 
@@ -485,7 +485,7 @@ func TestParsePrefixPostfix(t *testing.T) {
 		_ = p.ParseProgram()
 
 		if len(p.errors) != 0 {
-			t.Errorf("unexpected error on %s", test)
+			t.Errorf("unexpected error on %s: %s", test, strings.Join(p.errors, ","))
 		}
 	}
 
@@ -633,8 +633,8 @@ return "steve";
 	p = New(l)
 	p.ParseProgram()
 
-	if len(p.errors) != 1 {
-		t.Fatalf("expected a parse error - got none")
+	if len(p.errors) < 1 {
+		t.Fatalf("expected a parse error - got none: %s", strings.Join(p.errors, ","))
 	}
 
 	txt := p.Errors()[0]

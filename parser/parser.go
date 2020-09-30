@@ -313,8 +313,6 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	postfix := p.postfixParseFns[p.curToken.Type]
 	if postfix != nil {
-		msg := fmt.Sprintf("expected nil expression around %s", p.curToken.Position())
-		p.errors = append(p.errors, msg)
 		return (postfix())
 	}
 	prefix := p.prefixParseFns[p.curToken.Type]
