@@ -7,6 +7,7 @@ import (
 
 	"github.com/skx/evalfilter/v2/ast"
 	"github.com/skx/evalfilter/v2/lexer"
+	"github.com/skx/evalfilter/v2/token"
 )
 
 func checkParserErrors(t *testing.T, p *Parser) {
@@ -346,6 +347,7 @@ func TestIncompleteThings(t *testing.T) {
 		`switch (foo) `,
 		`switch (foo) { case 3 {`,
 		`switch (foo) { `,
+		`a = b[3`,
 	}
 
 	for _, str := range input {
@@ -390,18 +392,16 @@ func TestIndex(t *testing.T) {
 }
 
 func TestParseIllegal(t *testing.T) {
-	incomplete := `#`
-	l := lexer.New(incomplete)
+
+	l := lexer.New("")
 	p := New(l)
-	p.ParseProgram()
+
+	// int
+	p.curToken = token.Token{Literal: "xx", Type: token.ILLEGAL}
+	p.parseIllegal()
 
 	if len(p.errors) != 1 {
-		t.Fatalf("expected a parse error - got none")
-	}
-
-	txt := p.errors[0]
-	if !strings.Contains(txt, "invalid character for") {
-		t.Fatalf("parse error was not the error we expected, got %s", txt)
+		fmt.Printf("weird error-count")
 	}
 }
 
@@ -734,5 +734,36 @@ if
 				t.Fatalf("didn't expect an error, but saw one: %s\n", err.Error())
 			}
 		}
+	}
+}
+
+func TestParseNumberLiteral(t *testing.T) {
+
+	l := lexer.New("")
+	p := New(l)
+
+	// int
+	p.curToken = token.Token{Literal: "0b33"}
+	err := p.parseIntegerLiteral()
+	if err != nil {
+		t.Fatalf("expected error parsing '0b33', got none")
+	}
+
+	fmt.Printf("ERROR: %s\n", err)
+	out := strings.Join(p.errors, ",")
+	if !strings.Contains(out, "could not parse") {
+		t.Fatalf("error was different than expected: %s", out)
+	}
+
+	// float
+	p.curToken = token.Token{Literal: "0.3.2.1"}
+	err = p.parseFloatLiteral()
+	if err != nil {
+		t.Fatalf("expected error parsing '0.3.2.1', got none")
+	}
+
+	out = strings.Join(p.errors, ",")
+	if !strings.Contains(out, "could not parse") {
+		t.Fatalf("error was different than expected: %s", out)
 	}
 }

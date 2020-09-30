@@ -518,11 +518,6 @@ func (p *Parser) parseSwitchStatement() ast.Expression {
 
 	}
 
-	// ensure we're at the the closing "}"
-	if !p.curTokenIs(token.RBRACE) {
-		return nil
-	}
-
 	// More than one default is a bug
 	count := 0
 	for _, c := range expression.Choices {
@@ -958,9 +953,9 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 			return nil
 		}
 	}
-	if !p.expectPeek(token.RBRACE) {
-		return nil
-	}
+
+	// we've confirmed the next token is token.RBRACE - skip it
+	p.nextToken()
 	return hash
 }
 
