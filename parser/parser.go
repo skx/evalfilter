@@ -996,7 +996,7 @@ func (p *Parser) parseExpressionList(end token.Type) []ast.Expression {
 		list = append(list, ent)
 	}
 	if !p.expectPeek(end) {
-		msg := fmt.Sprintf("expected EOF not found around %s", p.curToken.Position())
+		msg := fmt.Sprintf("expected %v not found around %s", end, p.curToken.Position())
 		p.errors = append(p.errors, msg)
 		return nil
 	}
