@@ -6,6 +6,212 @@ import (
 	"github.com/skx/evalfilter/v2/token"
 )
 
+func TestTokenPosition(t *testing.T) {
+	input := `
+
+
+a = { "Name": "Steve",
+      "Age": 2020 - 1976,
+      "Location": "Helsinki", }
+
+
+k = keys(a);
+
+printf("Iterating over the hash via the output of keys():\n");
+foreach name in k {
+}
+
+printf("Iterating via foreach key,value:\n");
+foreach key, value in a {
+  printf("\t%s -> %s\n", key, string(value) )
+}
+
+printf("I am %s - %d\n", a["Name"], a["Age"] );
+printf("My hash is %s\n", string(a));
+
+
+print( "Hello, world!\n" );
+
+return false;
+
+if ( √9 == 3 ) { print("Mathematics is fun\n"); }
+
+return false;
+{"Author":"Bob",
+ "Channel": "tech_alerts",
+ "Message": "Database on Fire!"}
+
+
+
+if ( Channel !~ /_Alerts$/i ) {
+    print("The channel " + Channel + " is not important\n");
+    return false;
+}
+
+
+staff = [ "Alice", "Bob", "Chris", "Diane" ];
+
+if ( Author in staff ) {
+    print( "Ignoring message from staff-member ", Author, "\n" );
+    return false;
+}
+
+
+if ( Message ~= /backup complete/ ) {
+   return false;
+}
+
+if ( Channel == "dev_alerts" ) {
+   print( "development-environment is not worth waking somebody over\n" );
+   return false;
+}
+
+if ( weekday(now()) == "Saturday" || weekday(now()) == "Sunday" ) {
+
+    print("This is the weekend, triggering call ..\n" );
+    return true;
+}
+
+if ( hour(now()) <= 7 || hour(now()) >= 18 ) {
+   print( "Outside working hours on a week-day - triggering call\n" );
+   return true;
+}
+
+
+print( "Working hours, on a working day, ignoring the event\n");
+
+return false;
+
+
+if ( 1 + 2 * 3 == 7 ) {
+   print("OK\n");
+}
+
+return( true );
+
+i = 3;
+
+print( "Starting value: ", i, "\n");
+
+while( i < 10 ) {
+   print("In loop, value: ", i, "\n");
+   i++
+}
+
+print( "Completed.  Value is: ", i, "\n");
+return 0;
+
+
+x = 1;
+y = 2;
+
+printf("Start: x => %d, y => %d, z is not defined (%v)\n", x, y, z );
+
+tmp(x);
+
+printf("End: x => %d, y => %d, z is defined (%d)\n", x, y, z );
+
+if ( test ) {
+}
+else {
+  printf("The local variable did not leak, and is null as expected: %v\n", test);
+}
+
+
+return 1;
+
+
+
+
+
+function tmp(x) {
+
+   x = 10;
+
+   y = 100;
+
+   z = 1000;
+
+   local test;
+   test = 33;
+
+   printf(" Inside the function we have a local-variable: test=>%d\n", test);
+   test = test * 2;
+   printf(" Inside the function the local-variable can be updated: test=>%d\n", test);
+
+
+   printf(" At function end: x => %d, y => %d, z => %d, test => %d\n", x, y, z, test );
+
+
+input = [ "Hello", "my", "name", "is", "Steve" ];
+
+print("Showing array items:\n");
+foreach index,entry in input {
+   printf("\t%d:%s\n", index, entry );
+}
+
+
+print( "Showing sorted array items:\n");
+sorted = sort(input);
+foreach index,entry in sorted {
+   printf("\t%d:%s\n", index, entry );
+}
+
+print( "Showing reversed array items:\n");
+reversed = reverse(input);
+foreach entry in reversed {
+   print("\t", entry, "\n" );
+}
+
+print( "\n" );
+print( "Original input:", input, "\n");
+print( "Sorted  result:", sorted, "\n");
+print( "Reversed  list:", reversed, "\n");
+
+
+return false;
+
+function test( name ) {
+
+  switch( name ) {
+    case "Ste" + "ve" {
+	printf("I know you %s - expression-match!\n", name );
+    }
+    case "Steven" {
+	printf("I know you %s - literal-match!\n", name );
+    }
+    case /^steve$/ {
+        printf("I know you %s - regexp-match!\n", name );
+    }
+    default {
+    }
+  }
+}
+
+
+foreach name in [ "Steve", "Steven", "steve", "steven", "bob", "test" ] {
+  test( name );
+}
+`
+
+	// current line/position
+	line := 0
+
+	// lex
+	l := New(input)
+	tok := l.NextToken()
+	for tok.Type != token.EOF {
+
+		if tok.Line < line {
+			t.Fatalf("Token %v went backwards!", tok)
+		}
+		line = tok.Line
+
+		tok = l.NextToken()
+	}
+
+}
+
 func TestWhile(t *testing.T) {
 	input := `while ( true ) { a += 1;}`
 

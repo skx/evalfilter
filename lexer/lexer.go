@@ -304,6 +304,8 @@ func (l *Lexer) NextToken() token.Token {
 
 			tok := l.readDecimal()
 			l.prevToken = tok
+			tok.Column = l.column
+			tok.Line = l.line
 			return tok
 		}
 
@@ -311,10 +313,14 @@ func (l *Lexer) NextToken() token.Token {
 		if len(tok.Literal) > 0 {
 			tok.Type = token.LookupIdentifier(tok.Literal)
 			l.prevToken = tok
+			tok.Column = l.column
+			tok.Line = l.line
 			return tok
 		}
 		tok.Type = token.ILLEGAL
 		tok.Literal = fmt.Sprintf("invalid character for indentifier '%c'", l.ch)
+		tok.Column = l.column
+		tok.Line = l.line
 		l.readChar()
 		return tok
 
