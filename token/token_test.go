@@ -22,3 +22,11 @@ func TestLookup(t *testing.T) {
 		}
 	}
 }
+
+// TestPosition doesn't really test anything :/
+func TestPosition(t *testing.T) {
+	x := &Token{}
+	if !strings.Contains(x.Position(), ", column") {
+		t.Fatalf("failed to get position")
+	}
+}
