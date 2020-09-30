@@ -48,11 +48,17 @@ const (
 	// Push an integer upon the stack
 	OpPush
 
-	// Store a literal array
+	// Store a literal array.
 	OpArray
+
+	// Store a literal hash.
+	OpHash
 
 	// NOP
 	OpNop
+
+	// NOP - But one that the optimizer won't remove
+	OpPlaceholder
 
 	// Set a variable by name
 	OpSet
@@ -68,6 +74,9 @@ const (
 
 	// Push a VOID value onto the stack.
 	OpVoid
+
+	// Run a case-comparison
+	OpCase
 
 	// Pop two values from the stack, add them, and push the result.
 	OpAdd
@@ -194,6 +203,7 @@ var OpCodeNames = [...]string{
 	OpArrayIn:        "OpArrayIn",
 	OpBang:           "OpBang",
 	OpCall:           "OpCall",
+	OpCase:           "OpCase",
 	OpConstant:       "OpConstant",
 	OpDec:            "OpDec",
 	OpDiv:            "OpDiv",
@@ -201,6 +211,7 @@ var OpCodeNames = [...]string{
 	OpFalse:          "OpFalse",
 	OpGreater:        "OpGreater",
 	OpGreaterEqual:   "OpGreaterEqual",
+	OpHash:           "OpHash",
 	OpInc:            "OpInc",
 	OpIndex:          "OpIndex",
 	OpIterationNext:  "OpIterationNext",
@@ -219,6 +230,7 @@ var OpCodeNames = [...]string{
 	OpNotEqual:       "OpNotEqual",
 	OpNotMatches:     "OpNotMatches",
 	OpOr:             "OpOr",
+	OpPlaceholder:    "OpPlaceholder",
 	OpPower:          "OpPower",
 	OpPush:           "OpPush",
 	OpRange:          "OpRange",
@@ -245,6 +257,8 @@ func Length(op Opcode) int {
 
 	switch op {
 	case OpArray:
+		return 3
+	case OpHash:
 		return 3
 	case OpCall:
 		return 3

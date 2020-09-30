@@ -1,6 +1,9 @@
 package object
 
-import "strconv"
+import (
+	"hash/fnv"
+	"strconv"
+)
 
 // Float wraps float64 and implements the Object interface.
 type Float struct {
@@ -44,3 +47,15 @@ func (f *Float) Increase() {
 func (f *Float) Decrease() {
 	f.Value--
 }
+
+// HashKey returns a hash key for the given object.
+func (f *Float) HashKey() HashKey {
+	h := fnv.New64a()
+	h.Write([]byte(f.Inspect()))
+	return HashKey{Type: f.Type(), Value: h.Sum64()}
+}
+
+// Ensure this object implements the expected interfaces.
+var _ Decrement = &Float{}
+var _ Hashable = &Float{}
+var _ Increment = &Float{}

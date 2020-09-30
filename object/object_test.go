@@ -73,7 +73,7 @@ func TestArray(t *testing.T) {
 			obj, offset, more := arr.Next()
 
 			// Ensure the offset matches what we expect
-			if offset != count {
+			if int(offset.(*Integer).Value) != count {
 				t.Fatalf("Iteration offset got messed up: %d != %d", offset, count)
 			}
 
@@ -94,7 +94,7 @@ func TestArray(t *testing.T) {
 		if more {
 			t.Fatalf("We didn't expect more text, but found it")
 		}
-		if offset != 0 {
+		if int(offset.(*Integer).Value) != 0 {
 			t.Fatalf("At the end of the iteration we got a weird offset")
 		}
 		if obj != nil {
@@ -184,6 +184,96 @@ func TestFloat(t *testing.T) {
 	if tmp.Inspect() != "2.7" {
 		t.Errorf("Decrease() failed")
 	}
+
+	// Hash checks - two identical values should hash
+	// in the same way
+	a := Float{Value: 3.1}
+	b := Float{Value: 3.1}
+	c := Float{Value: 33.1}
+
+	aH := a.HashKey()
+	bH := b.HashKey()
+	cH := c.HashKey()
+
+	if aH != bH {
+		t.Fatalf("two identical values should have the same hash")
+	}
+	if aH == cH {
+		t.Fatalf("two different values should have different hashes")
+	}
+}
+
+// TestHash tests our hash object in a basic way
+func TestHash(t *testing.T) {
+	tmp := &Hash{}
+
+	if tmp.True() {
+		t.Fatalf("empty hash should be false")
+	}
+
+	if tmp.Type() != HASH {
+		t.Fatalf("hash has the wrong type")
+	}
+
+	x := tmp.ToInterface()
+	if x.(string) != "<HASH>" {
+		t.Fatalf("interface usage failed")
+	}
+
+	// Create some values for the hash
+	a := HashPair{Key: &String{Value: "Name"}, Value: &String{Value: "Steve"}}
+	aK := &String{Value: "Name"}
+	b := HashPair{Key: &String{Value: "Country"}, Value: &String{Value: "Finland"}}
+	bK := &String{Value: "Country"}
+
+	tmp.Pairs = make(map[HashKey]HashPair)
+	tmp.Pairs[aK.HashKey()] = a
+	tmp.Pairs[bK.HashKey()] = b
+
+	// Now we have some entries
+	if !tmp.True() {
+		t.Fatalf("populated hash should be true")
+	}
+
+	if tmp.Inspect() != "{Country: Finland, Name: Steve}" {
+		t.Fatalf("Got %s for hash", tmp.Inspect())
+	}
+
+	// Reset the iteration
+	tmp.Reset()
+
+	// Get the next-value from the array, via the
+	// iterator.
+	v1, k1, more1 := tmp.Next()
+
+	if !more1 {
+		t.Fatalf("we expect more iterations")
+	}
+
+	if k1.Inspect() != "Country" {
+		t.Fatalf("wrong key, got %s", k1.Inspect())
+	}
+	if v1.Inspect() != "Finland" {
+		t.Fatalf("wrong key")
+	}
+
+	// Get the next-value from the array, via the
+	// iterator.
+	v2, k2, more2 := tmp.Next()
+	if !more2 {
+		t.Fatalf("we expect more iterations")
+	}
+	if k2.Inspect() != "Name" {
+		t.Fatalf("wrong key, got %s", k2.Inspect())
+	}
+	if v2.Inspect() != "Steve" {
+		t.Fatalf("wrong key")
+	}
+
+	_, _, more3 := tmp.Next()
+	if more3 {
+		t.Fatalf("iteration should be over now")
+	}
 }
 
 // TestInt tests our Integer-object in a basic way.
@@ -227,6 +317,23 @@ func TestInt(t *testing.T) {
 	if tmp.Inspect() != "2" {
 		t.Errorf("Decrease() failed")
 	}
+
+	// Hash checks - two identical values should hash
+	// in the same way
+	a := Integer{Value: 31}
+	b := Integer{Value: 31}
+	c := Integer{Value: 33}
+
+	aH := a.HashKey()
+	bH := b.HashKey()
+	cH := c.HashKey()
+
+	if aH != bH {
+		t.Fatalf("two identical values should have the same hash")
+	}
+	if aH == cH {
+		t.Fatalf("two different values should have different hashes")
+	}
 }
 
 // TestNull tests our Null-object in a basic way.
@@ -253,6 +360,37 @@ func TestNull(t *testing.T) {
 	if x != nil {
 		t.Fatalf("interface usage failed")
 	}
+}
+
+// TestRegexp tests our Regexp-object in a basic way.
+func TestRegexp(t *testing.T) {
+
+	tmp := &Regexp{Value: "Steve"}
+	nul := &Regexp{Value: ""}
+
+	// Inspect
+	if tmp.Inspect() != "Steve" {
+		t.Fatalf("Invalid value!")
+	}
+
+	// Type
+	if tmp.Type() != REGEXP {
+		t.Fatalf("Wrong type")
+	}
+
+	// True
+	if !tmp.True() {
+		t.Fatalf("Non-empty string should be true")
+	}
+	if nul.True() {
+		t.Fatalf("empty string should be false")
+	}
+
+	x := tmp.ToInterface()
+	if x.(string) != "Steve" {
+		t.Fatalf("interface usage failed")
+	}
+
 }
 
 // TestString tests our String-object in a basic way.
@@ -308,7 +446,7 @@ func TestString(t *testing.T) {
 			obj, offset, more := tmp.Next()
 
 			// Ensure the offset matches what we expect
-			if offset != count {
+			if int(offset.(*Integer).Value) != count {
 				t.Fatalf("Iteration offset got messed up: %d != %d", offset, count)
 			}
 
@@ -327,12 +465,29 @@ func TestString(t *testing.T) {
 		if more {
 			t.Fatalf("We didn't expect more text, but found it")
 		}
-		if offset != 0 {
+		if int(offset.(*Integer).Value) != 0 {
 			t.Fatalf("At the end of the iteration we got a weird offset")
 		}
 		if obj != nil {
 			t.Fatalf("At the end of the iteration we got a weird object")
 		}
+	}
+
+	// Hash checks - two identical values should hash
+	// in the same way
+	a := String{Value: "Steve"}
+	b := String{Value: "Steve"}
+	c := String{Value: "steve"}
+
+	aH := a.HashKey()
+	bH := b.HashKey()
+	cH := c.HashKey()
+
+	if aH != bH {
+		t.Fatalf("two identical values should have the same hash")
+	}
+	if aH == cH {
+		t.Fatalf("two different values should have different hashes")
 	}
 }
 

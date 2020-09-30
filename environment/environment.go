@@ -67,6 +67,7 @@ func New() *Environment {
 	env.SetFunction("float", fnFloat)
 	env.SetFunction("getenv", fnGetenv)
 	env.SetFunction("int", fnInt)
+	env.SetFunction("keys", fnKeys)
 	env.SetFunction("len", fnLen)
 	env.SetFunction("lower", fnLower)
 	env.SetFunction("match", fnMatch)
@@ -260,4 +261,13 @@ func (e *Environment) SetFunction(name string, fun interface{}) interface{} {
 func (e *Environment) GetFunction(name string) (interface{}, bool) {
 	fun, ok := e.functions[name]
 	return fun, ok
+}
+
+// DeleteFunction allows a function to be disabled by name.
+//
+// This is used at the moment in our test-cases, however it could be
+// used to allow you to disable any existing built-in functions you did
+// not wish to expose to your scripting environment.
+func (e *Environment) DeleteFunction(name string) {
+	delete(e.functions, name)
 }

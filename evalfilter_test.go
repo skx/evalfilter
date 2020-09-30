@@ -284,10 +284,10 @@ func TestContains(t *testing.T) {
 	}
 
 	tests := []Test{
-		{Input: `if ( Greeting ~= "World" ) { return true; } return false;`, Result: true},
-		{Input: `if ( Greeting ~= "Moi" ) { return true; } return false;`, Result: false},
-		{Input: `if ( Greeting !~ "Cake" ) { return true; } return false;`, Result: true},
-		{Input: `if ( Greeting ~= "Cake" ) { return true; } return false;`, Result: false},
+		{Input: `if ( Greeting ~= /World/ ) { return true; } return false;`, Result: true},
+		{Input: `if ( Greeting ~= /Moi/ ) { return true; } return false;`, Result: false},
+		{Input: `if ( Greeting !~ /Cake/ ) { return true; } return false;`, Result: true},
+		{Input: `if ( Greeting ~= /Cake/ ) { return true; } return false;`, Result: false},
 	}
 
 	for _, tst := range tests {
@@ -510,6 +510,33 @@ func TestBool(t *testing.T) {
 	}
 }
 
+// TestHash does basic test of hash functionality.
+func TestHash(t *testing.T) {
+	input := `
+
+hash = { "Steve": 5, "Kemp": 4 }
+
+return( hash["Steve"] + hash["Kemp"] == 9);
+`
+
+	obj := New(input)
+	err := obj.Prepare()
+	if err != nil {
+		t.Fatalf("Failed to compile")
+	}
+
+	out, err := obj.Execute(nil)
+	if err != nil {
+		t.Fatalf("unexpected error:%s", err.Error())
+	}
+	if out.Type() != object.BOOLEAN {
+		fmt.Printf("Wrong return type")
+	}
+	if !out.(*object.Boolean).Value {
+		fmt.Printf("Wrong return value")
+	}
+}
+
 // TestVariable sets a variable.
 func TestVariable(t *testing.T) {
 
@@ -625,7 +652,7 @@ func TestOperations(t *testing.T) {
 	}
 }
 
-// TestRevFunction is a trivial test of a simple user-defined funciton
+// TestRevFunction is a trivial test of a simple user-defined functions
 func TestRevFunction(t *testing.T) {
 
 	// Test structure

@@ -1,0 +1,52 @@
+//
+// This is a very basic example of defining/using hashes.
+//
+// It is basic because it doesn't require the use of any object,
+// or map, to process.  Instead it does the same thing every time
+// it is executed.
+//
+// You can run this via the `evalfilter` command like so:
+//
+//    $ evalfilter run hashes.script
+//
+// Once you do so you'll see the output, and the return-code displayed:
+//
+//    $ evalfilter run hashes.script
+//    Iterating over the hash via the output of keys():
+//    	KEY:Age Value:'44'
+//    	KEY:Location Value:'Helsinki'
+//    	KEY:Name Value:'Steve'
+//    Iterating via foreach key,value:
+//    	Age -> 44
+//    	Location -> Helsinki
+//    	Name -> Steve
+//    I am Steve - 44
+//    My hash is s {Age: 44, Location: Helsinki, Name: Steve}
+//    My hash has len 3
+//    Script gave result type:NULL value:null - which is 'false'.
+//
+
+a = { "Name": "Steve",
+      "Age": 2020 - 1976,
+      "Location": "Helsinki", }
+
+
+// Get the keys which are present in the hash:
+k = keys(a);
+
+// Show the keys and their values
+printf("Iterating over the hash via the output of keys():\n");
+foreach name in k {
+  printf("\tKEY:%s Value:'%s'\n", name, string(a[name]))
+}
+
+// Now do the same thing in one go, via our iteration interface.
+printf("Iterating via foreach key,value:\n");
+foreach key, value in a {
+  printf("\t%s -> %s\n", key, string(value) )
+}
+
+// Finally show indexing, `len`, and general output:
+printf("I am %s - %d\n", a["Name"], a["Age"] );
+printf("My hash is %s\n", string(a));
+printf("My hash has len %d\n", len(a))

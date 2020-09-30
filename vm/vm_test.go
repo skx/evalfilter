@@ -52,6 +52,11 @@ type TestCase struct {
 	// must be contained in the error-message, otherwise
 	// we'll compare the result with the output-value.
 	error bool
+
+	// dropCase will cause the `match` built-in function
+	// to be removed from the environment.  This is only
+	// used in one or two cases
+	dropMatch bool
 }
 
 func TestBool(t *testing.T) {
@@ -525,6 +530,124 @@ func TestOpCall(t *testing.T) {
 	RunTestCases(tests, constants, t)
 }
 
+func TestOpCase(t *testing.T) {
+
+	tests := []TestCase{
+		// stack underflow
+		{
+			program: code.Instructions{
+				byte(code.OpCase), // 0x00
+			},
+			result: "Pop from an empty stack",
+			error:  true,
+		},
+		// stack underflow
+		{
+			program: code.Instructions{
+				byte(code.OpTrue), // 0x00
+				byte(code.OpCase), // 0x01
+			},
+			result: "Pop from an empty stack",
+			error:  true,
+		},
+
+		// switch("steve") { case "steve" { return true } }
+
+		{
+			program: code.Instructions{
+				byte(code.OpConstant), // 0x00
+				byte(0),               // 0x01
+				byte(0),               // 0x02 "steve"
+				byte(code.OpConstant), // 0x03
+				byte(0),               // 0x04
+				byte(0),               // 0x05 "steve"
+				byte(code.OpCase),     // 0x06
+				byte(code.OpReturn),   // 0x07
+			},
+			result: "true",
+			error:  false,
+		},
+
+		// switch("steve") { case /steve/ { return true } }
+
+		{
+			program: code.Instructions{
+				byte(code.OpConstant), // 0x00
+				byte(0),               // 0x01
+				byte(0),               // 0x02 "steve"
+				byte(code.OpConstant), // 0x03
+				byte(0),               // 0x04
+				byte(1),               // 0x05 /steve/
+				byte(code.OpCase),     // 0x06
+				byte(code.OpReturn),   // 0x07
+			},
+			result: "true",
+			error:  false,
+		},
+
+		// switch("steve") { case /steve/ { return true }  return false;}
+
+		{
+			program: code.Instructions{
+				byte(code.OpConstant), // 0x00
+				byte(0),               // 0x01
+				byte(2),               // 0x02 "foo"
+				byte(code.OpConstant), // 0x03
+				byte(0),               // 0x04
+				byte(1),               // 0x05 /steve/
+				byte(code.OpCase),     // 0x06
+				byte(code.OpReturn),   // 0x07
+			},
+			result: "false",
+			error:  false,
+		},
+
+		// switch("foo") { case /steve/ ..
+		// dropped the match function
+		{
+			program: code.Instructions{
+				byte(code.OpConstant), // 0x00
+				byte(0),               // 0x01
+				byte(2),               // 0x02 "foo"
+				byte(code.OpConstant), // 0x03
+				byte(0),               // 0x04
+				byte(1),               // 0x05 /steve/
+				byte(code.OpCase),     // 0x06
+				byte(code.OpReturn),   // 0x07
+			},
+			result:    "failed to lookup match-function",
+			dropMatch: true,
+			error:     true,
+		},
+
+		// switch("steve") { case FALSE { return true }  return false;}
+
+		{
+			program: code.Instructions{
+				byte(code.OpConstant), // 0x00
+				byte(0),               // 0x01
+				byte(0),               // 0x02 "steve"
+				byte(code.OpConstant), // 0x03
+				byte(0),               // 0x04
+				byte(3),               // 0x05 FALSE
+				byte(code.OpCase),     // 0x06
+				byte(code.OpReturn),   // 0x07
+			},
+			result: "false",
+			error:  false,
+		},
+	}
+
+	constants := []object.Object{
+		&object.String{Value: "steve"},
+		&object.Regexp{Value: "steve"},
+		&object.String{Value: "foo"},
+		&object.Boolean{Value: false},
+	}
+
+	RunTestCases(tests, constants, t)
+}
+
 func TestOpConstant(t *testing.T) {
 
 	tests := []TestCase{
@@ -651,6 +774,115 @@ func TestOpDec(t *testing.T) {
 	// Constants
 	constants := []object.Object{&object.String{Value: "key"},
 		&object.String{Value: "val"}}
+
+	RunTestCases(tests, constants, t)
+}
+
+func TestOpHash(t *testing.T) {
+
+	tests := []TestCase{
+		// Build a hash with zero args.
+		{
+			program: code.Instructions{
+				byte(code.OpHash),   // 0x00
+				byte(0),             // 0x01
+				byte(0),             // 0x02
+				byte(code.OpReturn), // 0x03
+			},
+			result: "{}",
+			error:  false,
+		},
+
+		// stack underflow
+		{
+			program: code.Instructions{
+				byte(code.OpHash),   // 0x00
+				byte(0),             // 0x01
+				byte(1),             // 0x02
+				byte(code.OpReturn), // 0x03
+			},
+			result: "Pop from an empty stack",
+			error:  true,
+		},
+
+		// stack underflow
+		{
+			program: code.Instructions{
+				byte(code.OpTrue),   // 0x00
+				byte(code.OpHash),   // 0x01
+				byte(0),             // 0x02
+				byte(1),             // 0x03
+				byte(code.OpReturn), // 0x04
+			},
+			result: "Pop from an empty stack",
+			error:  true,
+		},
+
+		// {"foo":"bar"}
+		{
+			program: code.Instructions{
+				byte(code.OpConstant),
+				byte(0),
+				byte(0), // "foo"
+				byte(code.OpConstant),
+				byte(0),
+				byte(1), // "bar"
+				byte(code.OpHash),
+				byte(0),
+				byte(2),
+				byte(code.OpReturn),
+			},
+			result: "{foo: bar}",
+			error:  false,
+		},
+
+		// return len({"foo":"bar"})
+		{
+			program: code.Instructions{
+				byte(code.OpConstant),
+				byte(0),
+				byte(0), // "foo"
+				byte(code.OpConstant),
+				byte(0),
+				byte(1), // "bar"
+				byte(code.OpHash),
+				byte(0),
+				byte(2),
+				byte(code.OpConstant),
+				byte(0),
+				byte(2), // "len"
+				byte(code.OpCall),
+				byte(0),
+				byte(1),
+				byte(code.OpReturn),
+			},
+			result: "1",
+			error:  false,
+		},
+
+		// {true: bar} - > invalid key
+		{
+			program: code.Instructions{
+				byte(code.OpTrue),
+				byte(code.OpConstant),
+				byte(0),
+				byte(1), // "bar"
+				byte(code.OpHash),
+				byte(0),
+				byte(2),
+				byte(code.OpReturn),
+			},
+			result: "unusable as hash key",
+			error:  true,
+		},
+	}
+
+	constants := []object.Object{
+		&object.String{Value: "foo"},
+		&object.String{Value: "bar"},
+		&object.String{Value: "len"},
+		&object.Boolean{Value: true},
+	}
 
 	RunTestCases(tests, constants, t)
 }
@@ -792,7 +1024,7 @@ func TestOpIndex(t *testing.T) {
 				byte(code.OpIndex),
 				byte(code.OpReturn),
 			},
-			result: "the index operator can only be applied to string",
+			result: "the index operator can only be applied to arrays, hashes, and strings,",
 			error:  true,
 		},
 
@@ -889,16 +1121,181 @@ func TestOpIndex(t *testing.T) {
 			result: "null",
 			error:  false,
 		},
+
+		// hash: {foo: bar}["steve"]
+		{
+			program: code.Instructions{
+				byte(code.OpConstant),
+				byte(0),
+				byte(1), // "foo"
+				byte(code.OpConstant),
+				byte(0),
+				byte(2), // "bar"
+				byte(code.OpHash),
+				byte(0),
+				byte(2),
+				byte(code.OpConstant),
+				byte(0),
+				byte(0), // "steve"
+				byte(code.OpIndex),
+				byte(code.OpReturn),
+			},
+			result: "null",
+			error:  false,
+		},
+
+		// hash: {foo: bar}["foo"]
+		{
+			program: code.Instructions{
+				byte(code.OpConstant),
+				byte(0),
+				byte(1), // "foo"
+				byte(code.OpConstant),
+				byte(0),
+				byte(2), // "bar"
+				byte(code.OpHash),
+				byte(0),
+				byte(2),
+				byte(code.OpConstant),
+				byte(0),
+				byte(1), // "foo"
+				byte(code.OpIndex),
+				byte(code.OpReturn),
+			},
+			result: "bar",
+			error:  false,
+		},
+
+		// hash: {foo: bar}[true] -> error
+		{
+			program: code.Instructions{
+				byte(code.OpConstant),
+				byte(0),
+				byte(1), // "foo"
+				byte(code.OpConstant),
+				byte(0),
+				byte(2), // "bar"
+				byte(code.OpHash),
+				byte(0),
+				byte(2),
+				byte(code.OpTrue),
+				byte(code.OpIndex),
+				byte(code.OpReturn),
+			},
+			result: "unusable as hash key:",
+			error:  true,
+		},
 	}
 
 	// Constants
-	constants := []object.Object{&object.String{Value: "Steve"}}
+	constants := []object.Object{&object.String{Value: "Steve"},
+		&object.String{Value: "foo"},
+		&object.String{Value: "bar"},
+	}
 
 	RunTestCases(tests, constants, t)
 }
 
 func TestOpIterationNext(t *testing.T) {
-	// TODO - This is a hard one due to the magic the compiler emits.
+
+	tests := []TestCase{
+
+		// OpIterationNext requires three stack entries: give it none
+		{
+			program: code.Instructions{
+				byte(code.OpIterationNext),
+			},
+			error:  true,
+			result: "Pop from an empty stack",
+		},
+
+		// OpIterationNext requires three stack entries: give it one
+		{
+			program: code.Instructions{
+				byte(code.OpTrue),
+				byte(code.OpIterationNext),
+			},
+			error:  true,
+			result: "Pop from an empty stack",
+		},
+
+		// OpIterationNext requires three stack entries: give it two
+		{
+			program: code.Instructions{
+				byte(code.OpTrue),
+				byte(code.OpTrue),
+				byte(code.OpIterationNext),
+			},
+			error:  true,
+			result: "Pop from an empty stack",
+		},
+
+		// OpIterationNext requires three stack entries: give it three,
+		// but not an iterable thing.
+		{
+			program: code.Instructions{
+				byte(code.OpTrue),
+				byte(code.OpTrue),
+				byte(code.OpTrue),
+				byte(code.OpIterationNext),
+			},
+			error:  true,
+			result: "object doesn't implement the Iterable interface",
+		},
+		// iterate over characters in a string
+		{
+			program: code.Instructions{
+				byte(code.OpConstant),       // 0x00
+				byte(0),                     // 0x01
+				byte(0),                     // 0x02 -> "Steve"
+				byte(code.OpIterationReset), // 0x03
+				byte(code.OpConstant),       // 0x04 XXXX:
+				byte(0),                     // 0x05
+				byte(1),                     // 0x06 -> "i"
+				byte(code.OpConstant),       // 0x07
+				byte(0),                     // 0x08
+				byte(2),                     // 0x09 -> "c"
+				byte(code.OpIterationNext),  // 0x0A
+				byte(code.OpJumpIfFalse),    // 0x0B
+				byte(0),                     // 0x0C
+				byte(32),                    // 0x0D -> YYYY
+				byte(code.OpConstant),       // 0x0E
+				byte(0),                     // 0x0F
+				byte(3),                     // 0x10 -> "%d: %s\n"
+				byte(code.OpLookup),         // 0x11
+				byte(0),                     // 0x12
+				byte(1),                     // 0x13 -> "lookup: i"
+				byte(code.OpLookup),         // 0x14
+				byte(0),                     // 0x15
+				byte(2),                     // 0x16 -> "lookup: c"
+				byte(code.OpConstant),       // 0x17
+				byte(0),                     // 0x18
+				byte(4),                     // 0x19 -> "printf"
+				byte(code.OpCall),           // 0x1A
+				byte(0),                     // 0x1B
+				byte(3),                     // 0x1C -> call printf with 3 args
+				byte(code.OpJump),           // 0x1D
+				byte(0),                     // 0x1E
+				byte(4),                     // 0x1F -> XXXX
+				byte(code.OpTrue),           // 0x20 YYYYY:
+				byte(code.OpReturn),         // 0x21
+			},
+			result: "true",
+			error:  false,
+		},
+	}
+
+	// Constants
+	constants := []object.Object{
+		&object.String{Value: "Steve"},    // 0x00
+		&object.String{Value: "i"},        // 0x01
+		&object.String{Value: "c"},        // 0x02
+		&object.String{Value: "%d: %s\n"}, // 0x03
+		&object.String{Value: "printf"},   // 0x04
+	}
+
+	RunTestCases(tests, constants, t)
+
 }
 
 func TestOpIterationReset(t *testing.T) {
@@ -1654,6 +2051,8 @@ func TestOptimizerJumps(t *testing.T) {
 func TestOptimizerMaths(t *testing.T) {
 
 	tests := []TestCase{
+
+		// Constant maths
 		{
 			program: code.Instructions{
 				byte(code.OpPush),
@@ -1694,7 +2093,47 @@ func TestOptimizerMaths(t *testing.T) {
 				byte(0),
 				byte(7),
 				byte(code.OpReturn),
-			}}}
+			},
+		},
+
+		// Square root of 9 -> 3
+		{
+			program: code.Instructions{
+				byte(code.OpPush),
+				byte(0),
+				byte(9),
+				byte(code.OpSquareRoot),
+				byte(code.OpReturn)},
+			result: "3",
+			error:  false,
+			optimized: code.Instructions{
+				byte(code.OpPush),
+				byte(0),
+				byte(3),
+				byte(code.OpReturn),
+			},
+		},
+
+		// Square root of 2 -> remains unchanged
+		{
+			program: code.Instructions{
+				byte(code.OpPush),
+				byte(0),
+				byte(2),
+				byte(code.OpSquareRoot),
+				byte(code.OpReturn),
+			},
+			result: "1.4142135623730951",
+			error:  false,
+			optimized: code.Instructions{
+				byte(code.OpPush),
+				byte(0),
+				byte(2),
+				byte(code.OpSquareRoot),
+				byte(code.OpReturn),
+			},
+		},
+	}
 
 	constants := []object.Object{}
 
@@ -1815,6 +2254,10 @@ func RunTestCases(tests []TestCase, objects []object.Object, t *testing.T) {
 		// Create
 		vm := New(objects, test.program, funs, env)
 
+		if test.dropMatch {
+			vm.environment.DeleteFunction("match")
+		}
+
 		// Run
 		out, err := vm.Run(nil)
 
@@ -1849,6 +2292,212 @@ func RunTestCases(tests []TestCase, objects []object.Object, t *testing.T) {
 				}
 			}
 		}
+	}
+
+}
+
+// Now operation tests
+
+func TestBinOp(t *testing.T) {
+
+	type TestCase struct {
+		left      object.Object
+		right     object.Object
+		op        code.Opcode
+		result    string
+		error     bool
+		dropMatch bool
+	}
+
+	tests := []TestCase{
+		// bool op bool
+		TestCase{left: &object.Boolean{Value: true}, right: &object.Boolean{Value: false}, op: code.OpEqual, result: "false"},
+		TestCase{left: &object.Boolean{Value: true}, right: &object.Boolean{Value: true}, op: code.OpEqual, result: "true"},
+		TestCase{left: &object.Boolean{Value: true}, right: &object.Regexp{Value: "steve"}, op: code.OpEqual, result: "type mismatch", error: true},
+
+		// float op float
+		TestCase{left: &object.Float{Value: 3}, right: &object.Float{Value: 3}, op: code.OpAdd, result: "6"},
+		TestCase{left: &object.Float{Value: 3}, right: &object.Float{Value: 4}, op: code.OpSub, result: "-1"},
+		TestCase{left: &object.Float{Value: 3}, right: &object.Float{Value: 4}, op: code.OpMul, result: "12"},
+		TestCase{left: &object.Float{Value: 3}, right: &object.Float{Value: 3}, op: code.OpDiv, result: "1"},
+		TestCase{left: &object.Float{Value: 3}, right: &object.Float{Value: 0}, op: code.OpDiv, result: "division by zero", error: true},
+		TestCase{left: &object.Float{Value: 13}, right: &object.Float{Value: 3}, op: code.OpMod, result: "1"},
+		TestCase{left: &object.Float{Value: 2}, right: &object.Float{Value: 4}, op: code.OpPower, result: "16"},
+		TestCase{left: &object.Float{Value: 2}, right: &object.Float{Value: 4}, op: code.OpLess, result: "true"},
+		TestCase{left: &object.Float{Value: 32}, right: &object.Float{Value: 4}, op: code.OpLess, result: "false"},
+		TestCase{left: &object.Float{Value: 2}, right: &object.Float{Value: 4}, op: code.OpLessEqual, result: "true"},
+		TestCase{left: &object.Float{Value: 32}, right: &object.Float{Value: 4}, op: code.OpLessEqual, result: "false"},
+		TestCase{left: &object.Float{Value: 33}, right: &object.Float{Value: 32}, op: code.OpGreater, result: "true"},
+		TestCase{left: &object.Float{Value: 3}, right: &object.Float{Value: 32}, op: code.OpGreater, result: "false"},
+		TestCase{left: &object.Float{Value: 33}, right: &object.Float{Value: 32}, op: code.OpGreaterEqual, result: "true"},
+		TestCase{left: &object.Float{Value: 3}, right: &object.Float{Value: 32}, op: code.OpGreaterEqual, result: "false"},
+		TestCase{left: &object.Float{Value: 3}, right: &object.Float{Value: 32}, op: code.OpEqual, result: "false"},
+		TestCase{left: &object.Float{Value: 17}, right: &object.Float{Value: 17}, op: code.OpEqual, result: "true"},
+		TestCase{left: &object.Float{Value: 3}, right: &object.Float{Value: 32}, op: code.OpNotEqual, result: "true"},
+		TestCase{left: &object.Float{Value: 17}, right: &object.Float{Value: 17}, op: code.OpNotEqual, result: "false"},
+		TestCase{left: &object.Float{Value: 17}, right: &object.Float{Value: 17}, op: code.OpCase, result: "unknown operator", error: true},
+
+		// float op int
+		TestCase{left: &object.Float{Value: 3}, right: &object.Integer{Value: 3}, op: code.OpAdd, result: "6"},
+		TestCase{left: &object.Float{Value: 3}, right: &object.Integer{Value: 4}, op: code.OpSub, result: "-1"},
+		TestCase{left: &object.Float{Value: 3}, right: &object.Integer{Value: 4}, op: code.OpMul, result: "12"},
+		TestCase{left: &object.Float{Value: 3}, right: &object.Integer{Value: 3}, op: code.OpDiv, result: "1"},
+		TestCase{left: &object.Float{Value: 3}, right: &object.Integer{Value: 0}, op: code.OpDiv, result: "division by zero", error: true},
+		TestCase{left: &object.Float{Value: 13}, right: &object.Integer{Value: 3}, op: code.OpMod, result: "1"},
+		TestCase{left: &object.Float{Value: 2}, right: &object.Integer{Value: 4}, op: code.OpPower, result: "16"},
+		TestCase{left: &object.Float{Value: 2}, right: &object.Integer{Value: 4}, op: code.OpLess, result: "true"},
+		TestCase{left: &object.Float{Value: 32}, right: &object.Integer{Value: 4}, op: code.OpLess, result: "false"},
+		TestCase{left: &object.Float{Value: 2}, right: &object.Integer{Value: 4}, op: code.OpLessEqual, result: "true"},
+		TestCase{left: &object.Float{Value: 32}, right: &object.Integer{Value: 4}, op: code.OpLessEqual, result: "false"},
+		TestCase{left: &object.Float{Value: 33}, right: &object.Integer{Value: 32}, op: code.OpGreater, result: "true"},
+		TestCase{left: &object.Float{Value: 3}, right: &object.Integer{Value: 32}, op: code.OpGreater, result: "false"},
+		TestCase{left: &object.Float{Value: 33}, right: &object.Integer{Value: 32}, op: code.OpGreaterEqual, result: "true"},
+		TestCase{left: &object.Float{Value: 3}, right: &object.Integer{Value: 32}, op: code.OpGreaterEqual, result: "false"},
+		TestCase{left: &object.Float{Value: 3}, right: &object.Integer{Value: 32}, op: code.OpEqual, result: "false"},
+		TestCase{left: &object.Float{Value: 17}, right: &object.Integer{Value: 17}, op: code.OpEqual, result: "true"},
+		TestCase{left: &object.Float{Value: 3}, right: &object.Integer{Value: 32}, op: code.OpNotEqual, result: "true"},
+		TestCase{left: &object.Float{Value: 17}, right: &object.Integer{Value: 17}, op: code.OpNotEqual, result: "false"},
+		TestCase{left: &object.Float{Value: 17}, right: &object.Integer{Value: 17}, op: code.OpCase, result: "unknown operator", error: true},
+
+		// int op int
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Integer{Value: 3}, op: code.OpAdd, result: "6"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Integer{Value: 4}, op: code.OpSub, result: "-1"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Integer{Value: 4}, op: code.OpMul, result: "12"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Integer{Value: 3}, op: code.OpDiv, result: "1"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Integer{Value: 0}, op: code.OpDiv, result: "division by zero", error: true},
+		TestCase{left: &object.Integer{Value: 13}, right: &object.Integer{Value: 3}, op: code.OpMod, result: "1"},
+		TestCase{left: &object.Integer{Value: 2}, right: &object.Integer{Value: 4}, op: code.OpPower, result: "16"},
+		TestCase{left: &object.Integer{Value: 2}, right: &object.Integer{Value: 4}, op: code.OpLess, result: "true"},
+		TestCase{left: &object.Integer{Value: 32}, right: &object.Integer{Value: 4}, op: code.OpLess, result: "false"},
+		TestCase{left: &object.Integer{Value: 2}, right: &object.Integer{Value: 4}, op: code.OpLessEqual, result: "true"},
+		TestCase{left: &object.Integer{Value: 32}, right: &object.Integer{Value: 4}, op: code.OpLessEqual, result: "false"},
+		TestCase{left: &object.Integer{Value: 33}, right: &object.Integer{Value: 32}, op: code.OpGreater, result: "true"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Integer{Value: 32}, op: code.OpGreater, result: "false"},
+		TestCase{left: &object.Integer{Value: 33}, right: &object.Integer{Value: 32}, op: code.OpGreaterEqual, result: "true"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Integer{Value: 32}, op: code.OpGreaterEqual, result: "false"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Integer{Value: 32}, op: code.OpEqual, result: "false"},
+		TestCase{left: &object.Integer{Value: 17}, right: &object.Integer{Value: 17}, op: code.OpEqual, result: "true"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Integer{Value: 32}, op: code.OpNotEqual, result: "true"},
+		TestCase{left: &object.Integer{Value: 17}, right: &object.Integer{Value: 17}, op: code.OpNotEqual, result: "false"},
+		TestCase{left: &object.Integer{Value: 17}, right: &object.Integer{Value: 17}, op: code.OpCase, result: "unknown operator", error: true},
+
+		// int op float
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Float{Value: 3}, op: code.OpAdd, result: "6"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Float{Value: 4}, op: code.OpSub, result: "-1"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Float{Value: 4}, op: code.OpMul, result: "12"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Float{Value: 3}, op: code.OpDiv, result: "1"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Float{Value: 0}, op: code.OpDiv, result: "division by zero", error: true},
+		TestCase{left: &object.Integer{Value: 13}, right: &object.Float{Value: 3}, op: code.OpMod, result: "1"},
+		TestCase{left: &object.Integer{Value: 2}, right: &object.Float{Value: 4}, op: code.OpPower, result: "16"},
+		TestCase{left: &object.Integer{Value: 2}, right: &object.Float{Value: 4}, op: code.OpLess, result: "true"},
+		TestCase{left: &object.Integer{Value: 32}, right: &object.Float{Value: 4}, op: code.OpLess, result: "false"},
+		TestCase{left: &object.Integer{Value: 2}, right: &object.Float{Value: 4}, op: code.OpLessEqual, result: "true"},
+		TestCase{left: &object.Integer{Value: 32}, right: &object.Float{Value: 4}, op: code.OpLessEqual, result: "false"},
+		TestCase{left: &object.Integer{Value: 33}, right: &object.Float{Value: 32}, op: code.OpGreater, result: "true"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Float{Value: 32}, op: code.OpGreater, result: "false"},
+		TestCase{left: &object.Integer{Value: 33}, right: &object.Float{Value: 32}, op: code.OpGreaterEqual, result: "true"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Float{Value: 32}, op: code.OpGreaterEqual, result: "false"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Float{Value: 32}, op: code.OpEqual, result: "false"},
+		TestCase{left: &object.Integer{Value: 17}, right: &object.Float{Value: 17}, op: code.OpEqual, result: "true"},
+		TestCase{left: &object.Integer{Value: 3}, right: &object.Float{Value: 32}, op: code.OpNotEqual, result: "true"},
+		TestCase{left: &object.Integer{Value: 17}, right: &object.Float{Value: 17}, op: code.OpNotEqual, result: "false"},
+		TestCase{left: &object.Integer{Value: 17}, right: &object.Float{Value: 17}, op: code.OpCase, result: "unknown operator", error: true},
+
+		// string op string
+		TestCase{left: &object.String{Value: "steve"}, right: &object.String{Value: "steve"}, op: code.OpEqual, result: "true"},
+		TestCase{left: &object.String{Value: "steve"}, right: &object.String{Value: "kemp"}, op: code.OpEqual, result: "false"},
+		TestCase{left: &object.String{Value: "steve"}, right: &object.String{Value: "steve"}, op: code.OpNotEqual, result: "false"},
+		TestCase{left: &object.String{Value: "steve"}, right: &object.String{Value: "kemp"}, op: code.OpNotEqual, result: "true"},
+		TestCase{left: &object.String{Value: "a"}, right: &object.String{Value: "b"}, op: code.OpEqual, result: "false"},
+		TestCase{left: &object.String{Value: "b"}, right: &object.String{Value: "b"}, op: code.OpEqual, result: "true"},
+		TestCase{left: &object.String{Value: "a"}, right: &object.String{Value: "b"}, op: code.OpGreater, result: "false"},
+		TestCase{left: &object.String{Value: "b"}, right: &object.String{Value: "a"}, op: code.OpGreater, result: "true"},
+		TestCase{left: &object.String{Value: "a"}, right: &object.String{Value: "b"}, op: code.OpGreaterEqual, result: "false"},
+		TestCase{left: &object.String{Value: "b"}, right: &object.String{Value: "a"}, op: code.OpGreaterEqual, result: "true"},
+		TestCase{left: &object.String{Value: "a"}, right: &object.String{Value: "b"}, op: code.OpLess, result: "true"},
+		TestCase{left: &object.String{Value: "b"}, right: &object.String{Value: "a"}, op: code.OpLess, result: "false"},
+		TestCase{left: &object.String{Value: "a"}, right: &object.String{Value: "b"}, op: code.OpLessEqual, result: "true"},
+		TestCase{left: &object.String{Value: "b"}, right: &object.String{Value: "a"}, op: code.OpLessEqual, result: "false"},
+		TestCase{left: &object.String{Value: "b"}, right: &object.String{Value: "a"}, op: code.OpAdd, result: "ba"},
+		TestCase{left: &object.String{Value: "b"}, right: &object.String{Value: "a"}, op: code.OpCase, result: "unknown operator", error: true},
+		TestCase{left: &object.String{Value: "b"}, right: &object.String{Value: "boy"}, op: code.OpArrayIn, result: "true"},
+		TestCase{left: &object.String{Value: "a"}, right: &object.String{Value: "boy"}, op: code.OpArrayIn, result: "false"},
+
+		// string op regexp
+		TestCase{left: &object.String{Value: "b"}, right: &object.Regexp{Value: "[a-c]"}, op: code.OpMatches, result: "true"},
+		TestCase{left: &object.String{Value: "D"}, right: &object.Regexp{Value: "[a-c]"}, op: code.OpMatches, result: "false"},
+		TestCase{left: &object.String{Value: "b"}, right: &object.Regexp{Value: "[a-c]"}, op: code.OpNotMatches, result: "false"},
+		TestCase{left: &object.String{Value: "D"}, right: &object.Regexp{Value: "[a-c]"}, op: code.OpNotMatches, result: "true"},
+		TestCase{left: &object.String{Value: "D"}, right: &object.Regexp{Value: "[a-c]"}, op: code.OpCase, result: "unknown operator", error: true},
+
+		// string op regexp - no match built-in
+		TestCase{left: &object.String{Value: "b"}, right: &object.Regexp{Value: "[a-c]"}, op: code.OpMatches, result: "failed to lookup match-function", error: true, dropMatch: true},
+		TestCase{left: &object.String{Value: "b"}, right: &object.Regexp{Value: "[a-c]"}, op: code.OpNotMatches, result: "failed to lookup match-function", error: true, dropMatch: true},
+
+		// Logic: and
+		TestCase{left: &object.Boolean{Value: true}, right: &object.Boolean{Value: true}, op: code.OpAnd, result: "true"},
+		TestCase{left: &object.Boolean{Value: false}, right: &object.Boolean{Value: true}, op: code.OpAnd, result: "false"},
+		TestCase{left: &object.Boolean{Value: true}, right: &object.Boolean{Value: false}, op: code.OpAnd, result: "false"},
+
+		// Logic: or
+		TestCase{left: &object.Boolean{Value: true}, right: &object.Boolean{Value: true}, op: code.OpOr, result: "true"},
+		TestCase{left: &object.Boolean{Value: false}, right: &object.Boolean{Value: true}, op: code.OpOr, result: "true"},
+		TestCase{left: &object.Boolean{Value: true}, right: &object.Boolean{Value: false}, op: code.OpOr, result: "true"},
+		TestCase{left: &object.Boolean{Value: false}, right: &object.Boolean{Value: false}, op: code.OpOr, result: "false"},
+
+		// array
+		TestCase{left: &object.String{Value: "steve"}, right: &object.Array{Elements: []object.Object{&object.String{Value: "Name"}}}, op: code.OpArrayIn, result: "false"},
+		TestCase{left: &object.String{Value: "Name"}, right: &object.Array{Elements: []object.Object{&object.String{Value: "Name"}}}, op: code.OpArrayIn, result: "true"},
+		TestCase{left: &object.Array{}, right: &object.Array{}, op: code.OpCase, result: "unknown operator", error: true},
+		TestCase{left: &object.Boolean{Value: false}, right: &object.Boolean{Value: false}, op: code.OpArrayIn, result: "perand for 'in' must be an array", error: true},
+	}
+
+	for _, test := range tests {
+
+		vm := New(nil, nil, nil, environment.New())
+		vm.stack.Push(test.left)
+		vm.stack.Push(test.right)
+
+		if test.dropMatch {
+			vm.environment.DeleteFunction("match")
+		}
+
+		err := vm.executeBinaryOperation(test.op)
+
+		if test.error {
+			if err == nil {
+				t.Fatalf("expected error, got none!")
+			}
+			if !strings.Contains(err.Error(), test.result) {
+				t.Fatalf("error %s did not match %s", err.Error(), test.result)
+			}
+		} else {
+			if err != nil {
+				t.Fatalf("unexpected error")
+			}
+
+			out, err := vm.stack.Pop()
+			if err != nil {
+				t.Fatalf("error popping result")
+			}
+			if test.result != out.Inspect() {
+				t.Fatalf("wrong result")
+			}
+		}
+	}
+
+	// binops requires two values on the stack
+	vm := New(nil, nil, nil, environment.New())
+	err := vm.executeBinaryOperation(code.OpEqual)
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+
+	vm = New(nil, nil, nil, environment.New())
+	vm.stack.Push(&object.Boolean{Value: true})
+	err = vm.executeBinaryOperation(code.OpEqual)
+	if err == nil {
+		t.Fatalf("expected error")
 	}
 
 }

@@ -44,3 +44,13 @@ func (i *Integer) Increase() {
 func (i *Integer) Decrease() {
 	i.Value--
 }
+
+// HashKey returns a hash key for the given object.
+func (i *Integer) HashKey() HashKey {
+	return HashKey{Type: i.Type(), Value: uint64(i.Value)}
+}
+
+// Ensure this object implements the expected interfaces.
+var _ Decrement = &Integer{}
+var _ Hashable = &Integer{}
+var _ Increment = &Integer{}

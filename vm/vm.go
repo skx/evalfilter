@@ -111,6 +111,7 @@ func New(constants []object.Object, bytecode code.Instructions, functions map[st
 		debug:       debug,
 		environment: env,
 		functions:   functions,
+		stack:       stack.New(),
 	}
 
 	// Set a default context
@@ -205,7 +206,9 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 	// via the addition of the &object.Void{} type.   However we
 	// cannot assume everybody remember to use that.)
 	//
-	vm.stack = stack.New()
+	for !vm.stack.Empty() {
+		vm.stack.Pop()
+	}
 
 	//
 	// Instruction pointer and length of bytecode.
@@ -386,6 +389,66 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			arr := &object.Array{Elements: elements}
 			vm.stack.Push(arr)
 
+			// Store a hash
+		case code.OpHash:
+
+			hashedPairs := make(map[object.HashKey]object.HashPair)
+
+			for i := 0; i < opArg; i += 2 {
+
+				value, err := vm.stack.Pop()
+				if err != nil {
+					return nil, err
+				}
+
+				key, err := vm.stack.Pop()
+				if err != nil {
+					return nil, err
+				}
+
+				pair := object.HashPair{Key: key, Value: value}
+
+				hashKey, ok := key.(object.Hashable)
+				if !ok {
+					return nil, fmt.Errorf("unusable as hash key: %s", key.Type())
+				}
+
+				hashedPairs[hashKey.HashKey()] = pair
+			}
+			hash := &object.Hash{Pairs: hashedPairs}
+			vm.stack.Push(hash)
+
+			// Case statement
+		case code.OpCase:
+			caseVal, err := vm.stack.Pop()
+			if err != nil {
+				return nil, err
+			}
+			val, err := vm.stack.Pop()
+			if err != nil {
+				return nil, err
+			}
+
+			// Is this a literal match
+			if val.Type() == caseVal.Type() &&
+				(val.Inspect() == caseVal.Inspect()) {
+				vm.stack.Push(True)
+			} else if caseVal.Type() == object.REGEXP {
+
+				// Horrid - invoke Matches() to run the test.
+				args := []object.Object{val, caseVal}
+				fn, ok := vm.environment.GetFunction("match")
+				if !ok {
+					return nil, fmt.Errorf("failed to lookup match-function")
+				}
+				out := fn.(func(args []object.Object) object.Object)
+				ret := out(args)
+				vm.stack.Push(ret)
+
+			} else {
+				vm.stack.Push(False)
+			}
+
 			// Array/String index
 		case code.OpIndex:
 			index, err := vm.stack.Pop()
@@ -544,7 +607,6 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
 			// switch so that we're interpreting the bytecode
 			// of the compiled function-body.
-			ip = 0
 			vm.bytecode = val.Bytecode
 
 			// Sanity-check we have enough arguments
@@ -643,8 +705,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
 				idxName := idxName.Inspect()
 				if idxName != "" {
-					vm.environment.SetLocal(idxName,
-						&object.Integer{Value: int64(idx)})
+					vm.environment.SetLocal(idxName, idx)
 				}
 
 				// Push the iterable object back upon the
@@ -781,6 +842,9 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			if err != nil {
 				return nil, err
 			}
+
+			// NOP
+		case code.OpPlaceholder:
 
 			// Unknown opcode
 		default:
@@ -1031,6 +1095,8 @@ func (vm *VM) executeBinaryOperation(op code.Opcode) error {
 		return vm.evalIntegerFloatInfixExpression(op, left, right)
 	case left.Type() == object.STRING && right.Type() == object.STRING:
 		return vm.evalStringInfixExpression(op, left, right)
+	case left.Type() == object.STRING && right.Type() == object.REGEXP:
+		return vm.evalStringRegexpExpression(op, left, right)
 	case op == code.OpAnd:
 		// if left is false skip right
 		if !left.True() {
@@ -1270,6 +1336,26 @@ func (vm *VM) evalStringInfixExpression(op code.Opcode, left object.Object, righ
 		vm.stack.Push(vm.nativeBoolToBooleanObject(l.Value <= r.Value))
 	case code.OpLess:
 		vm.stack.Push(vm.nativeBoolToBooleanObject(l.Value < r.Value))
+	case code.OpAdd:
+		vm.stack.Push(&object.String{Value: l.Value + r.Value})
+	case code.OpArrayIn:
+		if strings.Contains(r.Value, l.Value) {
+			vm.stack.Push(True)
+		} else {
+			vm.stack.Push(False)
+		}
+	default:
+		return (fmt.Errorf("unknown operator: %s %s %s", left.Type(), code.String(op), right.Type()))
+	}
+
+	return nil
+}
+
+func (vm *VM) evalStringRegexpExpression(op code.Opcode, left object.Object, right object.Object) error {
+	l := left.(*object.String)
+	r := right.(*object.Regexp)
+
+	switch op {
 	case code.OpMatches:
 		args := []object.Object{l, r}
 		fn, ok := vm.environment.GetFunction("match")
@@ -1297,14 +1383,6 @@ func (vm *VM) evalStringInfixExpression(op code.Opcode, left object.Object, righ
 			vm.stack.Push(False)
 		} else {
 			vm.stack.Push(True)
-		}
-	case code.OpAdd:
-		vm.stack.Push(&object.String{Value: l.Value + r.Value})
-	case code.OpArrayIn:
-		if strings.Contains(r.Value, l.Value) {
-			vm.stack.Push(True)
-		} else {
-			vm.stack.Push(False)
 		}
 	default:
 		return (fmt.Errorf("unknown operator: %s %s %s", left.Type(), code.String(op), right.Type()))
@@ -1439,8 +1517,11 @@ func (vm *VM) lookup(obj interface{}, name string) object.Object {
 func (vm *VM) executeIndexExpression(left, index object.Object) error {
 
 	// Check arguments
-	if left.Type() != object.ARRAY && left.Type() != object.STRING {
-		return fmt.Errorf("the index operator can only be applied to strings and arrays, not %s", left.Type())
+	if left.Type() != object.ARRAY && left.Type() != object.HASH && left.Type() != object.STRING {
+		return fmt.Errorf("the index operator can only be applied to arrays, hashes, and strings, not %s", left.Type())
+	}
+	if left.Type() == object.HASH {
+		return vm.executeHashIndex(left, index)
 	}
 	if index.Type() != object.INTEGER {
 		return fmt.Errorf("index operator must be given an integer, not %s", index.Type())
@@ -1483,6 +1564,24 @@ func (vm *VM) executeIndexExpression(left, index object.Object) error {
 
 	// Return the appropriate object.
 	vm.stack.Push(arrayObject.Elements[idx])
+	return nil
+}
+
+func (vm *VM) executeHashIndex(hash, index object.Object) error {
+	hashObject := hash.(*object.Hash)
+
+	key, ok := index.(object.Hashable)
+	if !ok {
+		return fmt.Errorf("unusable as hash key: %s", index.Type())
+	}
+
+	pair, ok := hashObject.Pairs[key.HashKey()]
+	if !ok {
+		vm.stack.Push(Null)
+		return nil
+	}
+
+	vm.stack.Push(pair.Value)
 	return nil
 }
 

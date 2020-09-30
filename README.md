@@ -10,6 +10,7 @@
     * [Conditionals](#conditionals)
     * [Loops](#loops)
     * [Functions](#functions)
+    * [Case/Switch](#case--switch)
   * [Use Cases](#use-cases)
   * [Security](#security)
     * [Denial of service](#denial-of-service)
@@ -39,11 +40,13 @@ There is no shortage of embeddable languages which are available to the golang w
 
 The scripting language is C-like, and is generally intended to allow you to _filter_ objects, which means you might call the same script upon multiple objects, and the script will return either `true` or `false` as appropriate to denote whether some action might be taken by your application against that particular object.
 
-It _is_ possible for you to handle arbitrary return-values from the script(s) you execute, and indeed the script itself could call back into your application to carry out tasks, via the addition of new primitives implemented and exported by your host application, which would make the return value almost irrelevant.
+It certainly _is_ possible for you to handle arbitrary return-values from the script(s) you execute, and indeed the script itself could call back into your application to carry out tasks, via the addition of new primitives implemented and exported by your host application, which would make the return value almost irrelevant.
 
-My [Google GMail message labeller](https://github.com/skx/labeller) uses the evalfilter in a standalone manner, executing a script for each new/unread email by default, to add labels to messages based upon their sender/recipients/subjects. etc.  The notion of filtering there doesn't make sense, it just wants to execute operations on the messages so the return-code is ignored.
+> If you go down that route then this repository contains a general-purpose scripting-language, which can be used to execute user-supplied scripts.
 
-However the _ideal_ use-case is that your application receives objects of some kind, perhaps as a result of incoming webhook submissions, network events, or similar, and you wish to decide how to handle those objects in a flexible fashion.
+My [Google GMail message labeller](https://github.com/skx/labeller) uses the evalfilter in such a standalone manner, executing a script for each new/unread email by default.  The script can then add labels to messages based upon their sender/recipients/subjects. etc.  The notion of filtering there doesn't make sense, it just wants to execute flexible operations on messages.
+
+However the _ideal_ use-case, for which this was designed, is that your application receives objects of some kind, perhaps as a result of incoming webhook submissions, network events, or similar, and you wish to decide how to handle those objects in a flexible fashion.
 
 
 
@@ -67,7 +70,10 @@ The scripting-language this package presents supports the basic types you'd expe
 
 * Arrays.
 * Floating-point numbers.
+* Hashes.
+  * [Hash example](_examples/scripts/hashes.script).
 * Integers.
+* Regular expressions.
 * Strings.
 * Time / Date values.
   * i.e. We can use reflection to handle `time.Time` values in any structure/map we're operating upon.
@@ -89,6 +95,8 @@ You can also easily add new primitives to the engine, by defining a function in 
 * `int(value)`
   * Tries to convert the value to an integer, returns Null on failure.
   * e.g. `int("3")`.
+* `keys`
+  * Returns the available keys in the specified hash, in sorted order.
 * `len(field | value)`
   * Returns the length of the given value, or the contents of the given field.
   * For arrays it returns the number of elements, as you'd expect.
@@ -185,6 +193,12 @@ If you don't supply an index you'll receive just the item being iterated over in
     }
     return( len == 2 );
 
+The same kind of iteration works over hashes too (the single-argument version of the `foreach` loop iterates over values, rather than keys.  Hash keys are available via `keys` so that seems like a more useful thing to return):
+
+    foreach key,value in { "Name": "Steve", "Location": "Finland" } {
+      printf("Key %s has value %s\n", key, value );
+    }
+
 The final helper is the ability to create arrays of integers via the `..` primitive:
 
     sum = 0;
@@ -213,6 +227,50 @@ You can declare functions, for example:
     return false;
 
 See [_examples/scripts/scope.in](_examples/scripts/scope.in) for another brief example, and discussion of scopes.
+
+
+### Case / Switch
+
+We support the use of `switch` and `case` to simplify the handling of some control-flow.  An example would look like this:
+
+    switch( Subject ) {
+      case /^Re:/i {
+         printf("Reply\n");
+      }
+      case /^fwd:/i {
+         printf("Forwarded message\n");
+      }
+      case "DEAR" + "  " + WINNER" {
+         printf("SPAM\n");
+      }
+      case "YOU HAVE WON" {
+         printf("SPAM\n");
+      }
+      default {
+         printf("New message!\n");
+      }
+    }
+
+Note that the `case` expression supports the following, as demonstrated in our [switch example](_examples/scripts/switch.script):
+
+* Expression matches.
+* Literal matches.
+* Regular expression matches.
+
+To avoid fall-through-related bugs we've explicitly designed the case-statements to take _blocks_ as arguments, rather than statements.
+
+**NOTE**: Only the first matching case-statement will execute.  In the following example only __one__ message will be output:
+
+    count = 1;
+
+    switch( count ) {
+      case 1 {
+         printf("Match!\n");
+      }
+      case 1 {
+         printf("This is not a match - the previous case statement won!\n");
+      }
+    }
 
 
 ## Use Cases
