@@ -6,6 +6,36 @@ import (
 	"github.com/skx/evalfilter/v2/object"
 )
 
+func TestAddDelete(t *testing.T) {
+	env := New()
+
+	// Function won't exist
+	_, ok := env.GetFunction("foo")
+	if ok {
+		t.Fatalf("retrieved a function that doesn't exist")
+	}
+
+	// Define it
+	f := func(args []object.Object) object.Object {
+		return &object.Integer{Value: 3}
+	}
+
+	// Set it, and confirm it worked
+	env.SetFunction("foo", f)
+	_, ok = env.GetFunction("foo")
+	if !ok {
+		t.Fatalf("failed to get function which was set")
+	}
+
+	// Delete it
+	env.DeleteFunction("foo")
+	_, ok = env.GetFunction("foo")
+	if ok {
+		t.Fatalf("after deletion the function still exists")
+	}
+
+}
+
 func TestFunctions(t *testing.T) {
 
 	env := New()
