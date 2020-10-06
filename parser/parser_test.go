@@ -333,7 +333,9 @@ func TestIncompleteThings(t *testing.T) {
 		`if ( true ) `,
 		`if ( true ) { `,
 		`if ( true ) { puts( "OK" ) ; } else { `,
+		`if ( true ) { puts( "OK" ) ; } else while { `,
 		`x = `,
+		`function foo bar `,
 		`function foo( a, b ="steve", `,
 		`function foo() {`,
 		`for (`,
@@ -348,6 +350,14 @@ func TestIncompleteThings(t *testing.T) {
 		`switch (foo) { case 3 {`,
 		`switch (foo) { `,
 		`a = b[3`,
+		`a = ( 1 + ( 2 * 3 ) `,
+		`if ( += 3`,
+		`while ( true ) { 1; `,
+		`while ( true ) { `,
+		`while ( true ) `,
+		`while ( true `,
+		`while (  `,
+		`while  `,
 	}
 
 	for _, str := range input {
