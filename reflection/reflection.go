@@ -88,11 +88,15 @@ func (r *Reflection) Process() error {
 	// Already processed?  Then avoid a repeat
 	if r.processed {
 		return nil
-	} else {
-		r.processed = true
 	}
 
+	// Now we're processed.
+	r.processed = true
+
 	// Yeah, horrid.
+	//
+	// This needs some work, as it was a temporary hack.  (Because
+	// reflection in golang is hard without a unified input.)
 	data, err := json.Marshal(r.input)
 	if err != nil {
 		return err
@@ -100,7 +104,6 @@ func (r *Reflection) Process() error {
 
 	// Now we have json.
 	//
-	// unmarshal
 	var obj interface{}
 	err = json.Unmarshal(data, &obj)
 	if err != nil {
@@ -108,7 +111,10 @@ func (r *Reflection) Process() error {
 	}
 
 	//
-	// Flatten and store
+	// Flatten and store.
+	//
+	// Flatten here is the key to our operation, we want to allow
+	// nested objects to be accessed correctly.
 	//
 	r.flatten(obj, "")
 
@@ -126,7 +132,7 @@ func (r *Reflection) flatten(obj interface{}, prefix string) {
 	case int64:
 		r.fields[prefix] = &object.Integer{Value: int64(obj)}
 	case float32:
-		// really an int?
+		// really an int?  JSON causes problems here.
 		if float32(int32(obj)) == obj {
 			r.fields[prefix] = &object.Integer{Value: int64(obj)}
 		} else {
@@ -135,7 +141,7 @@ func (r *Reflection) flatten(obj interface{}, prefix string) {
 	case time.Time:
 		r.fields[prefix] = &object.Integer{Value: interface{}(obj).(time.Time).Unix()}
 	case float64:
-		// really an int?
+		// really an int?  JSON causes problems here.
 		if float64(int64(obj)) == obj {
 			r.fields[prefix] = &object.Integer{Value: int64(obj)}
 		} else {
@@ -190,13 +196,12 @@ func (r *Reflection) flatten(obj interface{}, prefix string) {
 		sort.Strings(keys)
 		for _, k := range keys {
 			if len(prefix) > 0 {
-
 				r.flatten(obj[k], fmt.Sprintf("%s.%s", prefix, k))
 			} else {
-				r.flatten(obj[k], fmt.Sprintf("%s", k))
+				r.flatten(obj[k], k)
 			}
 		}
 	default:
-		fmt.Printf("%s = null\n", prefix)
+		fmt.Printf("Warning: unhandled value: %v\n", obj)
 	}
 }
