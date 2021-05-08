@@ -10,8 +10,10 @@ go get -u golang.org/x/lint/golint
 go get -u honnef.co/go/tools/cmd/staticcheck
 
 # Run the static-check tool
+#
+# Ignore ST1003 - "should not use underscores in Go names;
 t=$(mktemp)
-staticcheck -checks all ./... > $t
+staticcheck -checks all ./...  | grep -v ST1003 > $t
 if [ -s $t ]; then
     echo "Found errors via 'staticcheck'"
     cat $t
@@ -21,14 +23,20 @@ fi
 rm $t
 
 
+# Run the linter-tool
+echo "Launching linter .."
+golint ./... | grep -v underscores > $t
+if [ -s $t ]; then
+    echo "Found errors via 'staticcheck'"
+    cat $t
+    rm $t
+    exit 1
+fi
+echo "Completed linter .."
+
 
 # At this point failures cause aborts
 set -e
-
-# Run the linter-tool
-echo "Launching linter .."
-golint -set_exit_status ./...
-echo "Completed linter .."
 
 # Run the vet-tool
 echo "Running go vet .."

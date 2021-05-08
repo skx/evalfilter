@@ -1357,3 +1357,44 @@ func TestMutators(t *testing.T) {
 		}
 	}
 }
+
+// Test identifiers can have underscores.
+func TestUnderscore(t *testing.T) {
+
+	// Dummy structure to test field-access.
+	type Structure struct {
+		foo_bar int
+	}
+
+	// Instance of object
+	var object Structure
+	object.foo_bar = 3
+
+	type Test struct {
+		Input  string
+		Result bool
+	}
+
+	tests := []Test{
+		{Input: `if ( foo_bar == 3 ) { return true; } return false;`, Result: true},
+	}
+
+	for _, tst := range tests {
+
+		obj := New(tst.Input)
+
+		p := obj.Prepare([]byte{NoOptimize})
+		if p != nil {
+			t.Fatalf("Failed to compile")
+		}
+
+		ret, err := obj.Run(object)
+		if err != nil {
+			t.Fatalf("Found unexpected error running test '%s' - %s\n", tst.Input, err.Error())
+		}
+
+		if ret != tst.Result {
+			t.Fatalf("Found unexpected result running script")
+		}
+	}
+}
