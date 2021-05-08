@@ -915,6 +915,23 @@ func (vm *VM) inspectObject(obj interface{}) {
 			// Hack.
 			//
 			// Probably broken.
+			case reflect.Map:
+
+				hashedPairs := make(map[object.HashKey]object.HashPair)
+
+				for _, key := range field.MapKeys() {
+
+					k := &object.String{Value: fmt.Sprintf("%s", key)}
+
+					// The actual thing inside it
+					field := field.MapIndex(key).Elem()
+
+					v := &object.String{Value: fmt.Sprintf("%s", field)}
+
+					pair := object.HashPair{Key: k, Value: v}
+					hashedPairs[k.HashKey()] = pair
+				}
+				ret = &object.Hash{Pairs: hashedPairs}
 			case reflect.Slice:
 				ret = vm.createArrayFromSlice(field)
 			case reflect.Int, reflect.Int64:
