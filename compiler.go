@@ -219,6 +219,9 @@ func (e *Eval) compile(node ast.Node) error {
 		case "in":
 			e.emit(code.OpArrayIn)
 
+		case ".":
+			e.emit(code.OpIndex)
+
 			// misc
 		case "..":
 			e.emit(code.OpRange)
