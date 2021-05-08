@@ -916,22 +916,7 @@ func (vm *VM) inspectObject(obj interface{}) {
 			//
 			// Probably broken.
 			case reflect.Map:
-
-				hashedPairs := make(map[object.HashKey]object.HashPair)
-
-				for _, key := range field.MapKeys() {
-
-					k := &object.String{Value: fmt.Sprintf("%s", key)}
-
-					// The actual thing inside it
-					field := field.MapIndex(key).Elem()
-
-					v := &object.String{Value: fmt.Sprintf("%s", field)}
-
-					pair := object.HashPair{Key: k, Value: v}
-					hashedPairs[k.HashKey()] = pair
-				}
-				ret = &object.Hash{Pairs: hashedPairs}
+				ret = vm.createHash(field)
 			case reflect.Slice:
 				ret = vm.createArrayFromSlice(field)
 			case reflect.Int, reflect.Int64:
@@ -993,6 +978,70 @@ func (vm *VM) inspectObject(obj interface{}) {
 
 		vm.fields[name] = ret
 	}
+}
+
+func (vm *VM) createHash(field reflect.Value) object.Object {
+	hashedPairs := make(map[object.HashKey]object.HashPair)
+	timeKind := reflect.TypeOf(time.Time{}).Kind()
+
+	for _, key := range field.MapKeys() {
+
+		// hash key + value, as our internal types
+		var k object.Object
+		var v object.Object
+
+		// What is the type of the key?
+		switch key.Kind() {
+
+		case reflect.Int, reflect.Int64:
+			k = &object.Integer{Value: key.Int()}
+		case reflect.Float32, reflect.Float64:
+			k = &object.Float{Value: key.Float()}
+		case reflect.String:
+			k = &object.String{Value: key.String()}
+		case reflect.Bool:
+			k = &object.Boolean{Value: key.Bool()}
+		case timeKind:
+			time, ok := key.Interface().(time.Time)
+			if ok {
+				k = &object.Integer{Value: time.Unix()}
+			}
+		default:
+			fmt.Printf("Failed to reflect on %T\n", key.Interface())
+		}
+
+		// The actual thing inside it
+		field := field.MapIndex(key).Elem()
+
+		// What is the type of the key?
+		switch field.Kind() {
+
+		case reflect.Map:
+			v = vm.createHash(field)
+		case reflect.Slice:
+			v = vm.createArrayFromSlice(field)
+		case reflect.Int, reflect.Int64:
+			v = &object.Integer{Value: field.Int()}
+		case reflect.Float32, reflect.Float64:
+			v = &object.Float{Value: field.Float()}
+		case reflect.String:
+			v = &object.String{Value: field.String()}
+		case reflect.Bool:
+			v = &object.Boolean{Value: field.Bool()}
+		case timeKind:
+			time, ok := field.Interface().(time.Time)
+			if ok {
+				v = &object.Integer{Value: time.Unix()}
+			}
+		default:
+			fmt.Printf("Failed to reflect on %T\n", field.Interface())
+		}
+
+		pair := object.HashPair{Key: k, Value: v}
+		hashedPairs[k.(object.Hashable).HashKey()] = pair
+	}
+
+	return &object.Hash{Pairs: hashedPairs}
 }
 
 // createArrayFromSlice creates an object.Array value from the
