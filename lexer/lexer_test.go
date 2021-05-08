@@ -757,3 +757,21 @@ func TestIllegal(t *testing.T) {
 		}
 	}
 }
+
+// TestIdentifier is designed to show we can handle identifiers.
+func TestIdentifiers(t *testing.T) {
+
+	valid := []string{"foo_bar", "$foo", "bar_"}
+
+	for _, input := range valid {
+		l := New(input)
+
+		tok := l.NextToken()
+		if tok.Type != token.IDENT {
+			t.Fatalf("token is not an identifier")
+		}
+		if tok.Literal != input {
+			t.Fatalf("token didn't have a literal match")
+		}
+	}
+}
