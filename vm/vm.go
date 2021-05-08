@@ -13,14 +13,13 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
-	"reflect"
 	"strings"
-	"time"
 	"unicode/utf8"
 
 	"github.com/skx/evalfilter/v2/code"
 	"github.com/skx/evalfilter/v2/environment"
 	"github.com/skx/evalfilter/v2/object"
+	"github.com/skx/evalfilter/v2/reflection"
 	"github.com/skx/evalfilter/v2/stack"
 )
 
@@ -70,13 +69,8 @@ type VM struct {
 	// and functions to be get/set.
 	environment *environment.Environment
 
-	// fields contains the contents of all the fields in the object
-	// or map we're executing against.  We discover these via reflection
-	// at run-time.
-	//
-	// Reflection is slow so the map here is used as a cache, avoiding
-	// the need to reparse the same object multiple times.
-	fields map[string]object.Object
+	// reflect is a helper for getting reflection values.
+	reflect *reflection.Reflection
 
 	// functions that are defined in our scripting language
 	functions map[string]environment.UserFunction
@@ -186,9 +180,9 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 	}
 
 	//
-	// Make an empty map to store field/map contents.
+	// Setup our helper for accessing field values
 	//
-	vm.fields = make(map[string]object.Object)
+	vm.reflect = reflection.New(obj)
 
 	//
 	// When built-in functions are invoked their return value is stored
@@ -865,207 +859,6 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 	return Null, nil
 }
 
-// inspectObject discovers the names/values of all structure fields, or
-// map contents.
-//
-// This method is called the first time any reference is made to a field
-// value - which means we don't eat the cost unless we need it, and we
-// don't have to call reflection more than once.  (Reflection is s-l-o-w.)
-func (vm *VM) inspectObject(obj interface{}) {
-
-	//
-	// If the reference is nil we have nothing to walk.
-	//
-	if obj == nil {
-		return
-	}
-
-	//
-	// Time gets special handling
-	//
-	timeKind := reflect.TypeOf(time.Time{}).Kind()
-
-	//
-	// Get the value, be it a "thing", or a pointer to a thing.
-	//
-	val := reflect.Indirect(reflect.ValueOf(obj))
-
-	//
-	// Is this a map?
-	//
-	if val.Kind() == reflect.Map {
-
-		//
-		// Get all keys
-		//
-		for _, key := range val.MapKeys() {
-
-			// The name of the key.
-			name := key.Interface().(string)
-
-			// The actual thing inside it
-			field := val.MapIndex(key).Elem()
-
-			// Default
-			var ret object.Object
-			ret = &object.Null{}
-
-			switch field.Kind() {
-
-			// Hack.
-			//
-			// Probably broken.
-			case reflect.Slice:
-				ret = vm.createArrayFromSlice(field)
-			case reflect.Int, reflect.Int64:
-				ret = &object.Integer{Value: field.Int()}
-			case reflect.Float32, reflect.Float64:
-				ret = &object.Float{Value: field.Float()}
-			case reflect.String:
-				ret = &object.String{Value: field.String()}
-			case reflect.Bool:
-				ret = &object.Boolean{Value: field.Bool()}
-			case timeKind:
-				time, ok := field.Interface().(time.Time)
-				if ok {
-					ret = &object.Integer{Value: time.Unix()}
-				}
-			}
-
-			vm.fields[name] = ret
-		}
-		return
-	}
-
-	//
-	// OK this is an object
-	//
-	for i := 0; i < val.NumField(); i++ {
-
-		// Get the field
-		field := val.Field(i)
-
-		// Get the name
-		typeField := val.Type().Field(i)
-		name := typeField.Name
-
-		// Default
-		var ret object.Object
-		ret = &object.Null{}
-
-		switch field.Kind() {
-
-		case reflect.Slice:
-			ret = vm.createArrayFromSlice(field)
-		case reflect.Int, reflect.Int64:
-			ret = &object.Integer{Value: field.Int()}
-		case reflect.Float32, reflect.Float64:
-			ret = &object.Float{Value: field.Float()}
-		case reflect.String:
-			ret = &object.String{Value: field.String()}
-		case reflect.Bool:
-			ret = &object.Boolean{Value: field.Bool()}
-		case timeKind:
-			time, ok := field.Interface().(time.Time)
-			if ok {
-				ret = &object.Integer{Value: time.Unix()}
-			}
-		default:
-			fmt.Printf("Failed to reflect on %T\n", field.Interface())
-		}
-
-		vm.fields[name] = ret
-	}
-}
-
-// createArrayFromSlice creates an object.Array value from the
-// given object/map slice.  This uses reflection and is slow/horrid
-func (vm *VM) createArrayFromSlice(field reflect.Value) object.Object {
-
-	// Elements we've found
-	var el []object.Object
-
-	// Find the length of the slice
-	l := field.Len()
-
-	// For each entry
-	for i := 0; i < l; i++ {
-
-		// Cast the array-member to an interface
-		in := field.Index(i).Interface()
-
-		//
-		// Now we're in horrible-land
-		//
-		// We want to work out the type of the
-		// array-member.  Of course every member
-		// will have the same type, unless we're
-		// in the case of an array of interfaces.
-		//
-		// The following code will try to cast
-		// to all "reasonable" values, which will
-		// cover either case.
-		//
-		// It is still horrible though, and that
-		// should be noted.
-		//
-
-		// Is it a string?
-		s, ok := in.(string)
-		if ok {
-			el = append(el, &object.String{Value: s})
-			continue
-		}
-
-		// Is it a bool?
-		b, ok := in.(bool)
-		if ok {
-			el = append(el, &object.Boolean{Value: b})
-			continue
-		}
-
-		// is it a float?
-		f, ok := in.(float32)
-		if ok {
-			el = append(el, &object.Float{Value: float64(f)})
-			continue
-		}
-		ff, ok := in.(float64)
-		if ok {
-			el = append(el, &object.Float{Value: ff})
-			continue
-		}
-
-		// is it an integer?
-		d, ok := in.(int)
-		if ok {
-			el = append(el, &object.Integer{Value: int64(d)})
-			continue
-		}
-		dd, ok := in.(int32)
-		if ok {
-			el = append(el, &object.Integer{Value: int64(dd)})
-			continue
-		}
-		ddd, ok := in.(int64)
-		if ok {
-			el = append(el, &object.Integer{Value: ddd})
-			continue
-		}
-
-		// Is it a time value?
-		tm, ok := in.(time.Time)
-		if ok {
-			el = append(el, &object.Integer{Value: tm.Unix()})
-			continue
-		}
-
-		fmt.Printf("Failed to convert array-member to object")
-	}
-
-	return &object.Array{Elements: el}
-}
-
 // Execute an operation against two arguments, i.e "foo == bar", "2 + 3", etc.
 //
 // This is a crazy-big function, because we have to cope with different operand
@@ -1494,17 +1287,11 @@ func (vm *VM) lookup(obj interface{}, name string) object.Object {
 	// Now we assume this is a reference to a map-key, or
 	// object member.
 	//
-	// If we've not discovered them then do so now
+	// Access the value, via our helper.
 	//
-	if len(vm.fields) == 0 {
-		vm.inspectObject(obj)
-	}
-
-	//
-	// Now perform the lookup
-	//
-	if cached, found := vm.fields[name]; found {
-		return cached
+	ref, err := vm.reflect.Get(name)
+	if err == nil {
+		return ref
 	}
 
 	//
