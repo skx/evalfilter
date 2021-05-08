@@ -23,14 +23,20 @@ fi
 rm $t
 
 
+# Run the linter-tool
+echo "Launching linter .."
+golint ./... | grep -v underscores > $t
+if [ -s $t ]; then
+    echo "Found errors via 'staticcheck'"
+    cat $t
+    rm $t
+    exit 1
+fi
+echo "Completed linter .."
+
 
 # At this point failures cause aborts
 set -e
-
-# Run the linter-tool
-echo "Launching linter .."
-golint -set_exit_status ./...
-echo "Completed linter .."
 
 # Run the vet-tool
 echo "Running go vet .."
