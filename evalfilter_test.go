@@ -1363,12 +1363,12 @@ func TestUnderscore(t *testing.T) {
 
 	// Dummy structure to test field-access.
 	type Structure struct {
-		foo_bar int
+		Foo_Bar int
 	}
 
 	// Instance of object
 	var object Structure
-	object.foo_bar = 3
+	object.Foo_Bar = 3
 
 	type Test struct {
 		Input  string
@@ -1376,7 +1376,7 @@ func TestUnderscore(t *testing.T) {
 	}
 
 	tests := []Test{
-		{Input: `if ( foo_bar == 3 ) { return true; } return false;`, Result: true},
+		{Input: `if ( Foo_Bar == 3 ) { return true; } return false;`, Result: true},
 	}
 
 	for _, tst := range tests {
