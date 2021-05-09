@@ -102,6 +102,10 @@ You can also easily add new primitives to the engine, by defining a function in 
   * For arrays it returns the number of elements, as you'd expect.
 * `lower(field | value)`
   * Return the lower-case version of the given input.
+* `max(a, b)`
+  * Return the larger number of the two parameters.
+* `min(a, b)`
+  * Return the smaller number of the two parameters.
 * `print(field|value [, fieldN|valueN] )`
   * Print the given values.
 * `printf("Format string ..", arg1, arg2 .. argN);`
