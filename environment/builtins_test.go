@@ -795,6 +795,11 @@ func TestTime(t *testing.T) {
 	if out.Type() != object.NULL {
 		t.Errorf("no arguments returns a weird result")
 	}
+}
+
+func TestTimeKnown(t *testing.T) {
+
+	var args []object.Object
 
 	//
 	// Now create a known-time
