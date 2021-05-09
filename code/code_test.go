@@ -5,9 +5,7 @@ import (
 	"testing"
 )
 
-func TestOpcodes(t *testing.T) {
-
-	var i Opcode
+func TestOpcodeNames(t *testing.T) {
 
 	//
 	// For each OpCode byte-value and name
@@ -22,6 +20,19 @@ func TestOpcodes(t *testing.T) {
 		if x != v {
 			t.Fatalf("Stringifying didn't result in a good value: %s != %s", x, v)
 		}
+	}
+}
+
+func TestOpcodeLengths(t *testing.T) {
+
+	var i Opcode
+
+	//
+	// For each OpCode byte-value and name
+	//
+	for k := range OpCodeNames {
+
+		x := String(Opcode(k))
 
 		// Lengths here should only
 		l := Length(Opcode(k))
