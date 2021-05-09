@@ -64,6 +64,7 @@ func New() *Environment {
 	env := &Environment{global: global, functions: functions}
 
 	// Now register our default functions.
+	env.SetFunction("between", fnBetween)
 	env.SetFunction("float", fnFloat)
 	env.SetFunction("getenv", fnGetenv)
 	env.SetFunction("int", fnInt)

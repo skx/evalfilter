@@ -25,6 +25,46 @@ func init() {
 	regCache = make(map[string]*regexp.Regexp)
 }
 
+// fnBetween is the implementation of our between function.
+func fnBetween(args []object.Object) object.Object {
+
+	// We expect three items "the value", and the lower/upper bounds.
+	if len(args) != 3 {
+		return &object.Null{}
+	}
+
+	// All arguments must be numbers
+	for _, obj := range args {
+		if obj.Type() != object.FLOAT && obj.Type() != object.INTEGER {
+			return &object.Null{}
+		}
+	}
+
+	// Get the values
+	val := args[0]
+	min := args[1]
+	max := args[2]
+
+	// val < min?
+	lower := fnMin([]object.Object{val, min})
+	if lower == val {
+
+		if val.Inspect() != min.Inspect() {
+			return &object.Boolean{Value: false}
+		}
+	}
+
+	// val > max
+	upper := fnMax([]object.Object{val, max})
+	if upper == val {
+		if val.Inspect() != max.Inspect() {
+			return &object.Boolean{Value: false}
+		}
+	}
+
+	return &object.Boolean{Value: true}
+}
+
 // fnFloat is the implementation of the `float` function.
 //
 // It converts an object to a float, if it can.

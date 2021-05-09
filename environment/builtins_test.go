@@ -8,6 +8,143 @@ import (
 	"github.com/skx/evalfilter/v2/object"
 )
 
+// Test between functions
+func TestBetween(t *testing.T) {
+
+	type TestCase struct {
+		v   object.Object
+		min object.Object
+		max object.Object
+		res bool
+	}
+
+	tests := []TestCase{
+
+		// 0 in 0-10 -> OK
+		{
+			v:   &object.Integer{Value: 0},
+			min: &object.Integer{Value: 0},
+			max: &object.Integer{Value: 10},
+			res: true,
+		},
+
+		// -4 in 0-10 -> NO
+		{
+			v:   &object.Integer{Value: -5},
+			min: &object.Integer{Value: 0},
+			max: &object.Integer{Value: 10},
+			res: false,
+		},
+
+		// 1 in 0-10 -> OK
+		{
+			v:   &object.Integer{Value: 1},
+			min: &object.Integer{Value: 0},
+			max: &object.Integer{Value: 10},
+			res: true,
+		},
+
+		// 10 in 0-10 -> OK
+		{
+			v:   &object.Integer{Value: 10},
+			min: &object.Integer{Value: 0},
+			max: &object.Integer{Value: 10},
+			res: true,
+		},
+
+		// 11 in 0-10 -> False
+		{
+			v:   &object.Integer{Value: 11},
+			min: &object.Integer{Value: 0},
+			max: &object.Integer{Value: 10},
+			res: false,
+		},
+
+		// -10 in 0-10 -> NO
+		{
+			v:   &object.Float{Value: -10},
+			min: &object.Integer{Value: 0},
+			max: &object.Integer{Value: 10},
+			res: false,
+		},
+
+		// 0 in 0-10 -> OK
+		{
+			v:   &object.Integer{Value: 0},
+			min: &object.Float{Value: 0},
+			max: &object.Float{Value: 10},
+			res: true,
+		},
+
+		// 1 in 0-10 -> OK
+		{
+			v:   &object.Integer{Value: 1},
+			min: &object.Float{Value: 0},
+			max: &object.Float{Value: 10},
+			res: true,
+		},
+
+		// 10 in 0-10
+		{
+			v:   &object.Integer{Value: 10},
+			min: &object.Float{Value: 0},
+			max: &object.Float{Value: 10},
+			res: true,
+		},
+	}
+
+	// For each test
+	for _, test := range tests {
+
+		args := []object.Object{test.v, test.min, test.max}
+
+		ret := fnBetween(args)
+
+		if ret.(*object.Boolean).Value != test.res {
+
+			t.Errorf("Invalid result for between( %s, %s, %s) - got %s", test.v.Inspect(), test.min.Inspect(), test.max.Inspect(), ret.Inspect())
+		}
+	}
+
+	// Calling the function with no-arguments should return null
+	var args []object.Object
+	out := fnBetween(args)
+	if out.Type() != object.NULL {
+		t.Errorf("no arguments returns a weird result")
+	}
+
+	// one arg is bogus
+	args = []object.Object{&object.Integer{Value: 1}}
+	out = fnBetween(args)
+	if out.Type() != object.NULL {
+		t.Errorf("one argument returned a weird result")
+	}
+
+	// two args are bogus
+	args = []object.Object{&object.Integer{Value: 1}, &object.Integer{Value: 1}}
+	out = fnBetween(args)
+	if out.Type() != object.NULL {
+		t.Errorf("two arguments returned a weird result")
+	}
+
+	// three string args are bogus
+	args = []object.Object{&object.String{Value: "Moi!"},
+		&object.String{Value: "Moi!"},
+		&object.String{Value: "Moi!"},
+	}
+	out = fnBetween(args)
+	if out.Type() != object.NULL {
+		t.Errorf("bad type returned a weird result")
+	}
+
+	// four are too!
+	args = []object.Object{&object.Integer{Value: 1}, &object.Integer{Value: 1}, &object.Integer{Value: 1}, &object.Integer{Value: 1}}
+	out = fnBetween(args)
+	if out.Type() != object.NULL {
+		t.Errorf("four arguments returned a weird result")
+	}
+}
+
 // Test float-conversion.
 func TestFloat(t *testing.T) {
 
