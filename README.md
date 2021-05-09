@@ -87,6 +87,8 @@ These are the built-in functions which are always available, though your users c
 
 You can also easily add new primitives to the engine, by defining a function in your golang application and exporting it to the scripting-environment.   For example the `print` function to generate output from your script is just a simple function implemented in Golang and exported to the environment.  (This is true of all the built-in functions, which are registered by default.)
 
+* `between(value, min, max);`
+  * Return true if the specified value is between the specified range (inclusive, so `between(1, 1, 10);` will return `true`.)
 * `float(value)`
   * Tries to convert the value to a floating-point number, returns Null on failure.
   * e.g. `float("3.13")`.
