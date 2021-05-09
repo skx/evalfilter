@@ -764,15 +764,15 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 			}
 
 			// length
-			len := maxI - minI + 1
+			l := maxI - minI + 1
 
 			// holder for elements of the correct size
-			elements := make([]object.Object, len)
+			elements := make([]object.Object, l)
 
 			// Make the array
 			var i int64
 			i = 0
-			for i < len {
+			for i < l {
 				elements[i] = &object.Integer{Value: minI + i}
 				i++
 			}
@@ -1552,8 +1552,8 @@ func (vm *VM) executeIndexExpression(left, index object.Object) error {
 		str := left.(*object.String).Inspect()
 
 		// Count the characters
-		len := utf8.RuneCountInString(str)
-		if idx < 0 || int(idx) > len {
+		l := utf8.RuneCountInString(str)
+		if idx < 0 || int(idx) > l {
 			vm.stack.Push(Null)
 			return nil
 		}

@@ -135,38 +135,38 @@ func TestArrayIteration(t *testing.T) {
 // TestBoolean tests our Bool-object in a basic way.
 func TestBool(t *testing.T) {
 
-	true := &Boolean{Value: true}
-	false := &Boolean{Value: false}
+	tb := &Boolean{Value: true}
+	fb := &Boolean{Value: false}
 
 	// Inspect
-	if true.Inspect() != "true" {
+	if tb.Inspect() != "true" {
 		t.Fatalf("Invalid value!")
 	}
-	if false.Inspect() != "false" {
+	if fb.Inspect() != "false" {
 		t.Fatalf("Invalid value!")
 	}
 
 	// Type
-	if true.Type() != BOOLEAN {
+	if tb.Type() != BOOLEAN {
 		t.Fatalf("Wrong type")
 	}
-	if false.Type() != BOOLEAN {
+	if fb.Type() != BOOLEAN {
 		t.Fatalf("Wrong type")
 	}
 
 	// True
-	if !true.True() {
+	if !tb.True() {
 		t.Fatalf("Truth test on boolean failed")
 	}
-	if false.True() {
+	if fb.True() {
 		t.Fatalf("Truth test on boolean failed")
 	}
 
-	tX := true.ToInterface()
+	tX := tb.ToInterface()
 	if !tX.(bool) {
 		t.Fatalf("interface usage failed")
 	}
-	fX := false.ToInterface()
+	fX := fb.ToInterface()
 	if fX.(bool) {
 		t.Fatalf("interface usage failed")
 	}
