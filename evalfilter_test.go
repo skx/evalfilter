@@ -1363,6 +1363,7 @@ func TestUnderscore(t *testing.T) {
 
 	// Dummy structure to test field-access.
 	type Structure struct {
+		//lint:ignore ST1003 This is a test to ensure that underscores are permitted.
 		foo_bar int
 	}
 

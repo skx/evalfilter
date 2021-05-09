@@ -10,10 +10,8 @@ go get -u golang.org/x/lint/golint
 go get -u honnef.co/go/tools/cmd/staticcheck
 
 # Run the static-check tool
-#
-# Ignore ST1003 - "should not use underscores in Go names;
 t=$(mktemp)
-staticcheck -checks all ./...  | grep -v ST1003 > $t
+staticcheck -checks all ./... > $t
 if [ -s $t ]; then
     echo "Found errors via 'staticcheck'"
     cat $t
