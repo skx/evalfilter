@@ -64,6 +64,7 @@ func New() *Environment {
 	env := &Environment{global: global, functions: functions}
 
 	// Now register our default functions.
+	env.SetFunction("between", fnBetween)
 	env.SetFunction("float", fnFloat)
 	env.SetFunction("getenv", fnGetenv)
 	env.SetFunction("int", fnInt)
@@ -71,12 +72,14 @@ func New() *Environment {
 	env.SetFunction("len", fnLen)
 	env.SetFunction("lower", fnLower)
 	env.SetFunction("match", fnMatch)
+	env.SetFunction("max", fnMax)
+	env.SetFunction("min", fnMin)
 	env.SetFunction("now", fnNow)
 	env.SetFunction("print", fnPrint)
 	env.SetFunction("printf", fnPrintf)
+	env.SetFunction("reverse", fnReverse)
 	env.SetFunction("sort", fnSort)
 	env.SetFunction("split", fnSplit)
-	env.SetFunction("reverse", fnReverse)
 	env.SetFunction("sprintf", fnSprintf)
 	env.SetFunction("string", fnString)
 	env.SetFunction("time", fnNow)
