@@ -881,11 +881,6 @@ func (vm *VM) inspectObject(obj interface{}) {
 	}
 
 	//
-	// Time gets special handling
-	//
-	timeKind := reflect.TypeOf(time.Time{}).Kind()
-
-	//
 	// Get the value, be it a "thing", or a pointer to a thing.
 	//
 	val := reflect.Indirect(reflect.ValueOf(obj))
@@ -896,7 +891,7 @@ func (vm *VM) inspectObject(obj interface{}) {
 	if val.Kind() == reflect.Map {
 
 		//
-		// Get all keys
+		// Get all keys in the map.
 		//
 		for _, key := range val.MapKeys() {
 
@@ -906,41 +901,17 @@ func (vm *VM) inspectObject(obj interface{}) {
 			// The actual thing inside it
 			field := val.MapIndex(key).Elem()
 
-			// Default
-			var ret object.Object
-			ret = &object.Null{}
+			// Convert to an object
+			ret := vm.primitiveToObject(field)
 
-			switch field.Kind() {
-
-			// Hack.
-			//
-			// Probably broken.
-			case reflect.Map:
-				ret = vm.createHash(field)
-			case reflect.Slice:
-				ret = vm.createArrayFromSlice(field)
-			case reflect.Int, reflect.Int64:
-				ret = &object.Integer{Value: field.Int()}
-			case reflect.Float32, reflect.Float64:
-				ret = &object.Float{Value: field.Float()}
-			case reflect.String:
-				ret = &object.String{Value: field.String()}
-			case reflect.Bool:
-				ret = &object.Boolean{Value: field.Bool()}
-			case timeKind:
-				time, ok := field.Interface().(time.Time)
-				if ok {
-					ret = &object.Integer{Value: time.Unix()}
-				}
-			}
-
+			// Store it in our map
 			vm.fields[name] = ret
 		}
 		return
 	}
 
 	//
-	// OK this is an object
+	// OK this is an object, so we walk over the fields within it.
 	//
 	for i := 0; i < val.NumField(); i++ {
 
@@ -951,91 +922,68 @@ func (vm *VM) inspectObject(obj interface{}) {
 		typeField := val.Type().Field(i)
 		name := typeField.Name
 
-		// Default
-		var ret object.Object
-		ret = &object.Null{}
+		// Convert the value to one of our objects
+		ret := vm.primitiveToObject(field)
 
-		switch field.Kind() {
-
-		case reflect.Slice:
-			ret = vm.createArrayFromSlice(field)
-		case reflect.Int, reflect.Int64:
-			ret = &object.Integer{Value: field.Int()}
-		case reflect.Float32, reflect.Float64:
-			ret = &object.Float{Value: field.Float()}
-		case reflect.String:
-			ret = &object.String{Value: field.String()}
-		case reflect.Bool:
-			ret = &object.Boolean{Value: field.Bool()}
-		case timeKind:
-			time, ok := field.Interface().(time.Time)
-			if ok {
-				ret = &object.Integer{Value: time.Unix()}
-			}
-		default:
-			fmt.Printf("Failed to reflect on %T\n", field.Interface())
-		}
-
+		// Store it in our map
 		vm.fields[name] = ret
 	}
 }
 
+// convert a primitive into one of our internal objects.
+func (vm *VM) primitiveToObject(field reflect.Value) object.Object {
+
+	var ret object.Object
+
+	//
+	// Time gets special handling
+	//
+	timeKind := reflect.TypeOf(time.Time{}).Kind()
+
+	switch field.Kind() {
+
+	case reflect.Map:
+		ret = vm.createHash(field)
+	case reflect.Slice:
+		ret = vm.createArrayFromSlice(field)
+	case reflect.Int, reflect.Int64:
+		ret = &object.Integer{Value: field.Int()}
+	case reflect.Float32, reflect.Float64:
+		ret = &object.Float{Value: field.Float()}
+	case reflect.String:
+		ret = &object.String{Value: field.String()}
+	case reflect.Bool:
+		ret = &object.Boolean{Value: field.Bool()}
+	case timeKind:
+		time, ok := field.Interface().(time.Time)
+		if ok {
+			ret = &object.Integer{Value: time.Unix()}
+		}
+	default:
+		fmt.Printf("Failed to reflect on %T\n", field.Interface())
+	}
+
+	return ret
+}
+
+// create one of our internal hash-objects via reflection.
+//
+// This may well recurse.
 func (vm *VM) createHash(field reflect.Value) object.Object {
 	hashedPairs := make(map[object.HashKey]object.HashPair)
-	timeKind := reflect.TypeOf(time.Time{}).Kind()
 
 	for _, key := range field.MapKeys() {
 
-		// hash key + value, as our internal types
-		var k object.Object
-		var v object.Object
+		// Get the key value - note this supports way more
+		// than we allow here.  (As not all of our objects
+		// can be used as hash-keys.)
+		k := vm.primitiveToObject(key)
 
-		// What is the type of the key?
-		switch key.Kind() {
-
-		case reflect.Int, reflect.Int64:
-			k = &object.Integer{Value: key.Int()}
-		case reflect.Float32, reflect.Float64:
-			k = &object.Float{Value: key.Float()}
-		case reflect.String:
-			k = &object.String{Value: key.String()}
-		case reflect.Bool:
-			k = &object.Boolean{Value: key.Bool()}
-		case timeKind:
-			time, ok := key.Interface().(time.Time)
-			if ok {
-				k = &object.Integer{Value: time.Unix()}
-			}
-		default:
-			fmt.Printf("Failed to reflect on %T\n", key.Interface())
-		}
-
-		// The actual thing inside it
+		// The actual thing inside it.
 		field := field.MapIndex(key).Elem()
 
-		// What is the type of the key?
-		switch field.Kind() {
-
-		case reflect.Map:
-			v = vm.createHash(field)
-		case reflect.Slice:
-			v = vm.createArrayFromSlice(field)
-		case reflect.Int, reflect.Int64:
-			v = &object.Integer{Value: field.Int()}
-		case reflect.Float32, reflect.Float64:
-			v = &object.Float{Value: field.Float()}
-		case reflect.String:
-			v = &object.String{Value: field.String()}
-		case reflect.Bool:
-			v = &object.Boolean{Value: field.Bool()}
-		case timeKind:
-			time, ok := field.Interface().(time.Time)
-			if ok {
-				v = &object.Integer{Value: time.Unix()}
-			}
-		default:
-			fmt.Printf("Failed to reflect on %T\n", field.Interface())
-		}
+		// Get the value.
+		v := vm.primitiveToObject(field)
 
 		pair := object.HashPair{Key: k, Value: v}
 		hashedPairs[k.(object.Hashable).HashKey()] = pair
@@ -1045,7 +993,9 @@ func (vm *VM) createHash(field reflect.Value) object.Object {
 }
 
 // createArrayFromSlice creates an object.Array value from the
-// given object/map slice.  This uses reflection and is slow/horrid
+// given object/map slice
+//
+// This may well recurse.
 func (vm *VM) createArrayFromSlice(field reflect.Value) object.Object {
 
 	// Elements we've found
