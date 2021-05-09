@@ -72,6 +72,7 @@ var precedences = map[token.Type]int{
 	token.OR:             COND,
 	token.LPAREN:         CALL,
 	token.LSQUARE:        INDEX,
+	token.PERIOD:         INDEX,
 }
 
 // Parser is the object which maintains our parser state.
@@ -164,6 +165,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.IN, p.parseInfixExpression)
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 	p.registerInfix(token.LSQUARE, p.parseIndexExpression)
+	p.registerInfix(token.PERIOD, p.parseInfixExpression)
 	p.registerInfix(token.LT, p.parseInfixExpression)
 	p.registerInfix(token.LTEQUALS, p.parseInfixExpression)
 	p.registerInfix(token.MINUS, p.parseInfixExpression)
@@ -570,6 +572,12 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	precedence := p.curPrecedence()
 	p.nextToken()
 	expression.Right = p.parseExpression(precedence)
+
+	// hack
+	if expression.Operator == "." {
+		name := expression.Right.String()
+		expression.Right = &ast.StringLiteral{Token: token.Token{Type: token.STRING, Literal: name}, Value: name}
+	}
 
 	// If there was an error parsing the second operand
 	// then we must abort.

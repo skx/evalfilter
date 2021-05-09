@@ -1,0 +1,15 @@
+//
+// This is a script which is designed to demonstrate hash-access.
+//
+//     $ evalfilter run -json nested.json nested.script
+//
+// You'll notice that "Name.Forename" refers to a nested JSON object.
+//
+
+
+
+print( "Forename ", Name.Forename, "\n" );
+print( "Surname  ", Name.Surname,  "\n" );
+print( "Country  ", Name.Address.Country,  "\n" );
+
+return false;
