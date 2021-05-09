@@ -34,6 +34,17 @@ func TestArray(t *testing.T) {
 	if !arr.True() {
 		t.Fatalf("Non-empty array should be true!")
 	}
+}
+
+func TestArrayLength(t *testing.T) {
+
+	// Content of our array.
+	content := []Object{&String{Value: "foo"},
+		&String{Value: "bar"},
+		&String{Value: "baz"}}
+
+	// Create it
+	arr := &Array{Elements: content}
 
 	//
 	// We implement our foreach behaviour via an
@@ -55,6 +66,23 @@ func TestArray(t *testing.T) {
 			t.Fatalf("toInterface results not matched")
 		}
 	}
+}
+
+func TestArrayIteration(t *testing.T) {
+
+	// Content of our array.
+	content := []Object{&String{Value: "foo"},
+		&String{Value: "bar"},
+		&String{Value: "baz"}}
+
+	//
+	// We implement our foreach behaviour via an
+	// iteration interface.  Test that.
+	//
+	vals := []string{"foo", "bar", "baz"}
+
+	// Create it
+	arr := &Array{Elements: content}
 
 	//
 	// No harm in repeating this test a few times
@@ -421,13 +449,16 @@ func TestString(t *testing.T) {
 	if x.(string) != "Steve" {
 		t.Fatalf("interface usage failed")
 	}
+}
+
+func TestStringIteration(t *testing.T) {
 
 	//
 	// We implement our foreach behaviour via an
 	// iteration interface.  Test that.
 	//
 	txt := "Steve狐犬"
-	tmp = &String{Value: txt}
+	tmp := &String{Value: txt}
 
 	//
 	// No harm in repeating this test a few times
@@ -472,7 +503,9 @@ func TestString(t *testing.T) {
 			t.Fatalf("At the end of the iteration we got a weird object")
 		}
 	}
+}
 
+func TestStringHash(t *testing.T) {
 	// Hash checks - two identical values should hash
 	// in the same way
 	a := String{Value: "Steve"}
