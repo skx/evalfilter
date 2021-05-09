@@ -213,6 +213,54 @@ func fnMatch(args []object.Object) object.Object {
 	return &object.Boolean{Value: false}
 }
 
+// fnMax is the implementation of our `max` function.
+func fnMax(args []object.Object) object.Object {
+
+	// We expect two arguments
+	if len(args) != 2 {
+		return &object.Null{}
+	}
+
+	// Create an array.  Yeah.
+	elements := make([]object.Object, 2)
+	elements[0] = args[0]
+	elements[1] = args[1]
+
+	// Construct an actual array.
+	arr := &object.Array{Elements: elements}
+
+	// sort it
+	out := fnSort([]object.Object{arr})
+
+	// max
+	return (out.(*object.Array).Elements[1])
+
+}
+
+// fnMin is the implementation of our `min` function.
+func fnMin(args []object.Object) object.Object {
+
+	// We expect two arguments
+	if len(args) != 2 {
+		return &object.Null{}
+	}
+
+	// Create an array.  Yeah.
+	elements := make([]object.Object, 2)
+	elements[0] = args[0]
+	elements[1] = args[1]
+
+	// Construct an actual array.
+	arr := &object.Array{Elements: elements}
+
+	// sort it
+	out := fnSort([]object.Object{arr})
+
+	// max
+	return (out.(*object.Array).Elements[0])
+
+}
+
 // fnNow is the implementation of our `now` function.
 func fnNow(args []object.Object) object.Object {
 

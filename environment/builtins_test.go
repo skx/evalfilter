@@ -442,6 +442,65 @@ func TestMatch(t *testing.T) {
 
 }
 
+// Test minimum/maximum number
+func TestMinMax(t *testing.T) {
+
+	type TestCase struct {
+		a   object.Object
+		b   object.Object
+		op  string
+		res object.Object
+	}
+
+	tests := []TestCase{
+
+		// two ints
+		{a: &object.Integer{Value: 1}, b: &object.Integer{Value: 10}, res: &object.Integer{Value: 1}, op: "min"},
+		{a: &object.Integer{Value: 1}, b: &object.Integer{Value: 10}, res: &object.Integer{Value: 10}, op: "max"},
+
+		// Two floats
+		{a: &object.Float{Value: 1}, b: &object.Float{Value: 10}, res: &object.Float{Value: 1}, op: "min"},
+		{a: &object.Float{Value: 1}, b: &object.Float{Value: 10}, res: &object.Float{Value: 10}, op: "max"},
+
+		// int + float
+		{a: &object.Integer{Value: 1}, b: &object.Float{Value: 1.3}, res: &object.Integer{Value: 1}, op: "min"},
+		{a: &object.Integer{Value: 1}, b: &object.Float{Value: 1.3}, res: &object.Float{Value: 1.3}, op: "max"},
+
+		// float + int
+		{a: &object.Float{Value: 1.3}, b: &object.Integer{Value: 1}, res: &object.Float{Value: 1.3}, op: "max"},
+		{a: &object.Float{Value: -91.3}, b: &object.Integer{Value: 2}, res: &object.Integer{Value: 2}, op: "max"},
+	}
+	// For each test
+	for _, test := range tests {
+
+		args := []object.Object{test.a, test.b}
+		var ret object.Object
+
+		if test.op == "min" {
+			ret = fnMin(args)
+		}
+		if test.op == "max" {
+			ret = fnMax(args)
+		}
+
+		if ret.Inspect() != test.res.Inspect() {
+			t.Errorf("Invalid result for %s(%s, %s) (got %s wanted %s)", test.op, test.a.Inspect(), test.b.Inspect(), ret.Inspect(), test.res.Inspect())
+		}
+	}
+
+	// Calling the function with no-arguments should return null
+	var args []object.Object
+	out := fnMin(args)
+	if out.Type() != object.NULL {
+		t.Errorf("no arguments returns a weird result")
+	}
+	out = fnMax(args)
+	if out.Type() != object.NULL {
+		t.Errorf("no arguments returns a weird result")
+	}
+
+}
+
 // Test trimming strings
 func TestTrim(t *testing.T) {
 
