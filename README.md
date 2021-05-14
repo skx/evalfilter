@@ -108,6 +108,8 @@ You can also easily add new primitives to the engine, by defining a function in 
   * Return the larger number of the two parameters.
 * `min(a, b)`
   * Return the smaller number of the two parameters.
+* `panic()` / `panic("Your message here");`
+  * These will deliberately stop execution, and return a message to the caller.
 * `print(field|value [, fieldN|valueN] )`
   * Print the given values.
 * `printf("Format string ..", arg1, arg2 .. argN);`
