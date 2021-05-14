@@ -402,14 +402,14 @@ func fnType(args []object.Object) object.Object {
 }
 
 // fnPanic throws an error
-func fnPanic(args []object.Object) object.Object {
+func fnPanic(args []object.Object) (out object.Object) {
 
+	out = &object.Void{}
 	if len(args) == 1 {
 		panic(args[0].Inspect())
 	}
 
 	panic("panic!")
-	return &object.Void{}
 }
 
 // fnPrint is the implementation of our `print` function.

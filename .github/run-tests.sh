@@ -42,7 +42,7 @@ go vet ./...
 echo "Completed go vet .."
 
 # Run our golang tests
-go test ./...
+go test ./... -race
 
 # If that worked build our examples, to ensure they work
 # and that we've not broken compatibility
