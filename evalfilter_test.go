@@ -1470,17 +1470,19 @@ func TestRace(t *testing.T) {
 			jsonMap := make(map[string]interface{})
 			jsonErr := json.Unmarshal([]byte(line), &jsonMap)
 			if jsonErr != nil {
-				t.Fatalf("error decoding json")
+				t.Errorf("error decoding json")
 			}
 
 			_, err := obj.Run(jsonMap)
 			if err != nil {
-				t.Fatalf("Found unexpected error running test %s\n",
+				t.Errorf("Found unexpected error running test %s\n",
 					err.Error())
 			}
 
 			wg.Done()
+
 		}(input[i])
+
 	}
 
 	wg.Wait()
