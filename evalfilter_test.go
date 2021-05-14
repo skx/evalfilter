@@ -1487,3 +1487,34 @@ func TestRace(t *testing.T) {
 
 	wg.Wait()
 }
+
+// Test we can handle null values set in JSON objects
+func TestNullJsonField(t *testing.T) {
+	input := []string{
+		`{"event_count": null, "source": "************"}`,
+		`{"event_count": "332", "source": "************"}`,
+	}
+
+	obj := New(`if ( source == "************") { return true; } return false;`)
+
+	for _, line := range input {
+
+		err := obj.Prepare()
+		if err != nil {
+			t.Fatalf("error preparing")
+		}
+
+		// decode the line into JSON
+		jsonMap := make(map[string]interface{})
+		jsonErr := json.Unmarshal([]byte(line), &jsonMap)
+		if jsonErr != nil {
+			t.Errorf("error decoding json")
+		}
+
+		_, err = obj.Run(jsonMap)
+		if err != nil {
+			t.Errorf("Found unexpected error running test %s\n",
+				err.Error())
+		}
+	}
+}
