@@ -2,8 +2,10 @@ package evalfilter
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/skx/evalfilter/v2/object"
@@ -1435,4 +1437,51 @@ return true ;
 		fmt.Printf("Wrong value")
 	}
 
+}
+
+// Test access under different goroutines
+func TestRace(t *testing.T) {
+
+	input := []string{
+		`{"bob": "3", "seventee": 17}`,
+		`{"simon": "3", "name": "kissa"}`,
+		`{"chris": "3", "name": "pizza"}`,
+		`{"homer": "3", "name": "Yes"}`,
+		`{"daryl": "33", "name": "pizza"}`,
+		`{"alicia": "13", "name": "Yes"}`,
+		`{"susan": "443", "name": "pizza"}`,
+		`{"steve": "333", "name": "Yes"}`,
+	}
+
+	obj := New(`if ( name) { return true; } return false;`)
+
+	err := obj.Prepare()
+	if err != nil {
+		t.Fatalf("error preparing")
+	}
+
+	var wg sync.WaitGroup
+
+	for i := 0; i < len(input); i++ {
+		wg.Add(1)
+		go func(line string) {
+
+			// decode the line into JSON
+			jsonMap := make(map[string]interface{})
+			jsonErr := json.Unmarshal([]byte(line), &jsonMap)
+			if jsonErr != nil {
+				t.Fatalf("error decoding json")
+			}
+
+			_, err := obj.Run(jsonMap)
+			if err != nil {
+				t.Fatalf("Found unexpected error running test %s\n",
+					err.Error())
+			}
+
+			wg.Done()
+		}(input[i])
+	}
+
+	wg.Wait()
 }

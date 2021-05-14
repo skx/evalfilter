@@ -11,6 +11,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/skx/evalfilter/v2/code"
 	"github.com/skx/evalfilter/v2/environment"
@@ -48,6 +49,9 @@ type Eval struct {
 
 	// user-defined functions
 	functions map[string]environment.UserFunction
+
+	// Mutex to allow concurrent runs
+	mutex sync.Mutex
 }
 
 // New creates a new instance of the evaluator.
@@ -61,6 +65,7 @@ func New(script string) *Eval {
 		Script:      script,
 		context:     context.Background(),
 		functions:   make(map[string]environment.UserFunction),
+		mutex:       sync.Mutex{},
 	}
 
 	//
@@ -83,6 +88,9 @@ func (e *Eval) SetContext(ctx context.Context) {
 // Internally this compilation process walks through the usual steps,
 // lexing, parsing, and bytecode-compilation.
 func (e *Eval) Prepare(flags ...[]byte) error {
+
+	e.mutex.Lock()
+	defer e.mutex.Unlock()
 
 	//
 	// Default to optimizing the bytecode.
@@ -289,11 +297,15 @@ func (e *Eval) Execute(obj interface{}) (out object.Object, error error) {
 // the result of the script was "true" or not.
 func (e *Eval) Run(obj interface{}) (bool, error) {
 
+	e.mutex.Lock()
+
 	//
 	// Execute the script, getting the resulting error
 	// and return object.
 	//
 	out, err := e.Execute(obj)
+
+	e.mutex.Unlock()
 
 	//
 	// Error? Then return that.
