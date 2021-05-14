@@ -940,6 +940,13 @@ func (vm *VM) primitiveToObject(field reflect.Value) object.Object {
 	//
 	timeKind := reflect.TypeOf(time.Time{}).Kind()
 
+	//
+	// Invalid value?  Return null
+	//
+	if !field.IsValid() {
+		return &object.Null{}
+	}
+
 	switch field.Kind() {
 
 	case reflect.Map:
