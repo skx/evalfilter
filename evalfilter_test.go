@@ -1399,3 +1399,40 @@ func TestUnderscore(t *testing.T) {
 		}
 	}
 }
+
+func TestPanic(t *testing.T) {
+	input := `
+
+panic("I'm a fish");
+return true ;
+`
+
+	obj := New(input)
+	err := obj.Prepare()
+	if err != nil {
+		t.Fatalf("Failed to compile")
+	}
+
+	_, err = obj.Run(nil)
+	if err == nil {
+		t.Fatalf("expected error, got none")
+	}
+	if !strings.Contains(err.Error(), "panic in Run") {
+		fmt.Printf("Wrong value")
+	}
+	if !strings.Contains(err.Error(), "fish") {
+		fmt.Printf("Wrong value")
+	}
+
+	_, err = obj.Execute(nil)
+	if err == nil {
+		t.Fatalf("expected error, got none")
+	}
+	if !strings.Contains(err.Error(), "panic in Run") {
+		fmt.Printf("Wrong value")
+	}
+	if !strings.Contains(err.Error(), "fish") {
+		fmt.Printf("Wrong value")
+	}
+
+}
