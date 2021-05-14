@@ -251,7 +251,15 @@ func (e *Eval) Dump() error {
 //
 // Use of this method allows you to receive the `3` that a script
 // such as `return 1 + 2;` would return.
-func (e *Eval) Execute(obj interface{}) (object.Object, error) {
+func (e *Eval) Execute(obj interface{}) (out object.Object, error error) {
+
+	// Catch errors when we're executing.
+	defer func() {
+		if r := recover(); r != nil {
+			out = &object.Null{}
+			error = fmt.Errorf("error during Run: %s", r)
+		}
+	}()
 
 	//
 	// Launch the program in the VM.

@@ -75,6 +75,7 @@ func New() *Environment {
 	env.SetFunction("max", fnMax)
 	env.SetFunction("min", fnMin)
 	env.SetFunction("now", fnNow)
+	env.SetFunction("panic", fnPanic)
 	env.SetFunction("print", fnPrint)
 	env.SetFunction("printf", fnPrintf)
 	env.SetFunction("reverse", fnReverse)

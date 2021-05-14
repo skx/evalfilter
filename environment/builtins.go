@@ -401,6 +401,17 @@ func fnType(args []object.Object) object.Object {
 	return &object.String{Value: val}
 }
 
+// fnPanic throws an error
+func fnPanic(args []object.Object) object.Object {
+
+	if len(args) == 1 {
+		panic(args[0].Inspect())
+	}
+
+	panic("panic!")
+	return &object.Void{}
+}
+
 // fnPrint is the implementation of our `print` function.
 func fnPrint(args []object.Object) object.Object {
 	for _, e := range args {
