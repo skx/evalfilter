@@ -856,6 +856,9 @@ func TestFuzzerResults(t *testing.T) {
 		`0.{0:{{0:{:0}}:0}}`,
 		`0.{0:{{0:!!{|:0}}:0}}`,
 		`0.-0.{�:0}`,
+		`0.switch(0){case�{}}`,
+		`0(0.switch(0){case{}}`,
+		`(0.switch(0){case{}}`,
 	}
 
 	for _, input := range inputs {
