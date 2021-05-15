@@ -796,6 +796,7 @@ func TestFuzzerResults(t *testing.T) {
 		`0.!0.function((){`,
 		`0..0.function((){`,
 		`0.!!!function((){`,
+		`0.foreach 00in 0()=0`,
 	}
 
 	for _, input := range inputs {

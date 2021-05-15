@@ -53,6 +53,11 @@ func (p *Program) TokenLiteral() string {
 
 // String returns this object as a string.
 func (p *Program) String() string {
+
+	if p == nil {
+		return ""
+	}
+
 	var out bytes.Buffer
 	for _, stmt := range p.Statements {
 		out.WriteString(stmt.String())
@@ -76,6 +81,10 @@ func (i *Identifier) TokenLiteral() string { return i.Token.Literal }
 
 // String returns this object as a string.
 func (i *Identifier) String() string {
+	if i == nil {
+		return ""
+	}
+
 	return i.Value
 }
 
@@ -95,10 +104,14 @@ func (es *ExpressionStatement) TokenLiteral() string { return es.Token.Literal }
 
 // String returns this object as a string.
 func (es *ExpressionStatement) String() string {
-	if es.Expression != nil {
-		return es.Expression.String()
+	if es == nil {
+		return ""
 	}
-	return ""
+
+	if es.Expression == nil {
+		return ""
+	}
+	return es.Expression.String()
 }
 
 // PrefixExpression holds a prefix-based expression
@@ -120,6 +133,10 @@ func (pe *PrefixExpression) TokenLiteral() string { return pe.Token.Literal }
 
 // String returns this object as a string.
 func (pe *PrefixExpression) String() string {
+	if pe == nil {
+		return ""
+	}
+
 	var out bytes.Buffer
 	out.WriteString("(")
 	out.WriteString(pe.Operator)
@@ -150,6 +167,10 @@ func (ie *InfixExpression) TokenLiteral() string { return ie.Token.Literal }
 
 // String returns this object as a string.
 func (ie *InfixExpression) String() string {
+	if ie == nil {
+		return ""
+	}
+
 	var out bytes.Buffer
 	out.WriteString("(")
 	out.WriteString(ie.Left.String())
