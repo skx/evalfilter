@@ -30,7 +30,7 @@ func (hl *HashLiteral) String() string {
 	var out bytes.Buffer
 	pairs := make([]string, 0)
 	for key, value := range hl.Pairs {
-		if value != nil {
+		if key != nil && value != nil {
 			pairs = append(pairs, key.String()+":"+value.String())
 		}
 	}
