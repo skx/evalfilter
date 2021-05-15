@@ -33,6 +33,10 @@ func (fd *FunctionDefinition) TokenLiteral() string {
 
 // String returns this object as a string.
 func (fd *FunctionDefinition) String() string {
+	if fd == nil {
+		return ""
+	}
+
 	var out bytes.Buffer
 	params := make([]string, 0)
 	for _, p := range fd.Parameters {

@@ -17,4 +17,9 @@ func (fl *FloatLiteral) expressionNode() {}
 func (fl *FloatLiteral) TokenLiteral() string { return fl.Token.Literal }
 
 // String returns this object as a string.
-func (fl *FloatLiteral) String() string { return fl.Token.Literal }
+func (fl *FloatLiteral) String() string {
+	if fl == nil {
+		return ""
+	}
+	return fl.Token.Literal
+}

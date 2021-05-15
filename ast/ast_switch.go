@@ -29,6 +29,10 @@ func (ce *CaseExpression) TokenLiteral() string { return ce.Token.Literal }
 
 // String returns this object as a string.
 func (ce *CaseExpression) String() string {
+	if ce == nil {
+		return ""
+	}
+
 	var out bytes.Buffer
 
 	if ce.Default {
@@ -66,6 +70,10 @@ func (se *SwitchExpression) TokenLiteral() string { return se.Token.Literal }
 
 // String returns this object as a string.
 func (se *SwitchExpression) String() string {
+	if se == nil {
+		return ""
+	}
+
 	var out bytes.Buffer
 	out.WriteString("\nswitch (")
 	out.WriteString(se.Value.String())

@@ -22,6 +22,10 @@ func (lv *LocalVariable) TokenLiteral() string { return lv.Token.Literal }
 
 // String returns this object as a string.
 func (lv *LocalVariable) String() string {
+	if lv == nil {
+		return ""
+	}
+
 	var out bytes.Buffer
 	out.WriteString("local ")
 	out.WriteString(lv.Token.Literal)

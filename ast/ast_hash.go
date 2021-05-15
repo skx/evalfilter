@@ -23,10 +23,16 @@ func (hl *HashLiteral) TokenLiteral() string { return hl.Token.Literal }
 
 // String returns this object as a string.
 func (hl *HashLiteral) String() string {
+	if hl == nil {
+		return ""
+	}
+
 	var out bytes.Buffer
 	pairs := make([]string, 0)
 	for key, value := range hl.Pairs {
-		pairs = append(pairs, key.String()+":"+value.String())
+		if value != nil {
+			pairs = append(pairs, key.String()+":"+value.String())
+		}
 	}
 	out.WriteString("{")
 	out.WriteString(strings.Join(pairs, ", "))

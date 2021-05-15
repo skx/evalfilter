@@ -22,6 +22,9 @@ func (sl *StringLiteral) TokenLiteral() string { return sl.Token.Literal }
 
 // String returns this object as a string.
 func (sl *StringLiteral) String() string {
+	if sl == nil {
+		return ""
+	}
 	str := "\"" + sl.Token.Literal + "\""
 	str = strings.ReplaceAll(str, "\n", "\\n")
 	str = strings.ReplaceAll(str, "\r", "\\r")

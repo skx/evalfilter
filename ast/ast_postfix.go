@@ -21,6 +21,10 @@ func (pe *PostfixExpression) TokenLiteral() string { return pe.Token.Literal }
 
 // String returns this object as a string.
 func (pe *PostfixExpression) String() string {
+	if pe == nil {
+		return ""
+	}
+
 	var out bytes.Buffer
 	out.WriteString("(")
 	out.WriteString(pe.Token.Literal)

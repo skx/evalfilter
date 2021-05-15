@@ -22,6 +22,10 @@ func (rs *ReturnStatement) TokenLiteral() string { return rs.Token.Literal }
 
 // String returns this object as a string.
 func (rs *ReturnStatement) String() string {
+	if rs == nil {
+		return ""
+	}
+
 	var out bytes.Buffer
 	out.WriteString(rs.TokenLiteral() + " ")
 	if rs.ReturnValue != nil {

@@ -33,6 +33,10 @@ func (fes *ForeachStatement) TokenLiteral() string { return fes.Token.Literal }
 
 // String returns this object as a string.
 func (fes *ForeachStatement) String() string {
+	if fes == nil {
+		return ""
+	}
+
 	var out bytes.Buffer
 	out.WriteString("foreach ")
 	out.WriteString(fes.Ident)

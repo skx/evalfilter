@@ -27,6 +27,10 @@ func (ws *WhileStatement) TokenLiteral() string { return ws.Token.Literal }
 
 // String returns this object as a string.
 func (ws *WhileStatement) String() string {
+	if ws == nil {
+		return ""
+	}
+
 	var out bytes.Buffer
 	out.WriteString("while (")
 	out.WriteString(ws.Condition.String())

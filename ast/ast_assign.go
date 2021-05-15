@@ -20,6 +20,10 @@ func (as *AssignStatement) TokenLiteral() string { return as.Token.Literal }
 
 // String returns this object as a string.
 func (as *AssignStatement) String() string {
+	if as == nil {
+		return ""
+	}
+
 	var out bytes.Buffer
 	out.WriteString(as.Name.String())
 	out.WriteString("=")

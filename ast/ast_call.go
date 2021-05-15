@@ -26,6 +26,10 @@ func (ce *CallExpression) TokenLiteral() string { return ce.Token.Literal }
 
 // String returns this object as a string.
 func (ce *CallExpression) String() string {
+	if ce == nil {
+		return ""
+	}
+
 	var out bytes.Buffer
 	args := make([]string, 0)
 	for _, a := range ce.Arguments {

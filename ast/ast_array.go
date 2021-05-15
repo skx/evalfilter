@@ -23,6 +23,10 @@ func (al *ArrayLiteral) TokenLiteral() string { return al.Token.Literal }
 
 // String returns this object as a string.
 func (al *ArrayLiteral) String() string {
+	if al == nil {
+		return ""
+	}
+
 	var out bytes.Buffer
 	elements := make([]string, 0)
 	for _, el := range al.Elements {
@@ -53,6 +57,9 @@ func (ie *IndexExpression) TokenLiteral() string { return ie.Token.Literal }
 
 // String returns this object as a string.
 func (ie *IndexExpression) String() string {
+	if ie == nil {
+		return ""
+	}
 	var out bytes.Buffer
 	out.WriteString("(")
 	out.WriteString(ie.Left.String())

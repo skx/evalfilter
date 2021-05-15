@@ -25,6 +25,9 @@ func (rl *RegexpLiteral) TokenLiteral() string { return rl.Token.Literal }
 
 // String returns this object as a string.
 func (rl *RegexpLiteral) String() string {
+	if rl == nil {
+		return ""
+	}
 
 	return (fmt.Sprintf("/%s/%s", rl.Value, rl.Flags))
 }

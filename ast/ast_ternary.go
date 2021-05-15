@@ -29,6 +29,10 @@ func (te *TernaryExpression) TokenLiteral() string { return te.Token.Literal }
 
 // String returns this object as a string.
 func (te *TernaryExpression) String() string {
+	if te == nil {
+		return ""
+	}
+
 	var out bytes.Buffer
 
 	out.WriteString("(")

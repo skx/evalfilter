@@ -14,7 +14,17 @@ type IntegerLiteral struct {
 func (il *IntegerLiteral) expressionNode() {}
 
 // TokenLiteral returns the literal token.
-func (il *IntegerLiteral) TokenLiteral() string { return il.Token.Literal }
+func (il *IntegerLiteral) TokenLiteral() string {
+	if il == nil {
+		return ""
+	}
+	return il.Token.Literal
+}
 
 // String returns this object as a string.
-func (il *IntegerLiteral) String() string { return il.Token.Literal }
+func (il *IntegerLiteral) String() string {
+	if il == nil {
+		return ""
+	}
+	return il.Token.Literal
+}

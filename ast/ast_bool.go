@@ -17,4 +17,9 @@ func (bl *BooleanLiteral) expressionNode() {}
 func (bl *BooleanLiteral) TokenLiteral() string { return bl.Token.Literal }
 
 // String returns this object as a string.
-func (bl *BooleanLiteral) String() string { return bl.Token.Literal }
+func (bl *BooleanLiteral) String() string {
+	if bl == nil {
+		return ""
+	}
+	return bl.Token.Literal
+}
