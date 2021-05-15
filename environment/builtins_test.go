@@ -749,6 +749,32 @@ func TestUpper(t *testing.T) {
 	}
 }
 
+// NOP-Test
+func TestPanicEmpty(t *testing.T) {
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("Expected panic, got none")
+		}
+	}()
+
+	var args []object.Object
+	fnPanic(args)
+}
+
+func TestPanicArgument(t *testing.T) {
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("Expected panic, got none")
+		}
+	}()
+
+	var args []object.Object
+	args = append(args, &object.String{Value: "Saturday 15/May/2021"})
+	fnPanic(args)
+}
+
 // NOP-test
 func TestPrint(t *testing.T) {
 	var args []object.Object
