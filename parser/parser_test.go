@@ -777,3 +777,22 @@ func TestParseNumberLiteral(t *testing.T) {
 		t.Fatalf("error was different than expected: %s", out)
 	}
 }
+
+func TestFuzzEndOnPeriod(t *testing.T) {
+	input := `
+0.1.
+`
+	l := lexer.New(input)
+	p := New(l)
+	err := p.ParseProgram()
+
+	if err == nil {
+		t.Fatalf("expected error, got none")
+	}
+
+	out := strings.Join(p.errors, ",")
+	if !strings.Contains(out, "unexpected end of file") {
+		t.Fatalf("error was different than expected: %s", out)
+	}
+
+}

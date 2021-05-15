@@ -575,8 +575,10 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 
 	// hack
 	if expression.Operator == "." {
-		name := expression.Right.String()
-		expression.Right = &ast.StringLiteral{Token: token.Token{Type: token.STRING, Literal: name}, Value: name}
+		if expression.Right != nil && expression.Right.String() != "" {
+			name := expression.Right.String()
+			expression.Right = &ast.StringLiteral{Token: token.Token{Type: token.STRING, Literal: name}, Value: name}
+		}
 	}
 
 	// If there was an error parsing the second operand
