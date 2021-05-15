@@ -42,7 +42,9 @@ func (ce *CaseExpression) String() string {
 
 		tmp := []string{}
 		for _, exp := range ce.Expr {
-			tmp = append(tmp, exp.String())
+			if exp != nil {
+				tmp = append(tmp, exp.String())
+			}
 		}
 		out.WriteString(strings.Join(tmp, ","))
 	}
