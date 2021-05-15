@@ -778,21 +778,34 @@ func TestParseNumberLiteral(t *testing.T) {
 	}
 }
 
-func TestFuzzEndOnPeriod(t *testing.T) {
-	input := `
-0.1.
-`
-	l := lexer.New(input)
-	p := New(l)
-	err := p.ParseProgram()
+// This function tests some cases the fuzz-testing evolved.
+func TestFuzzerResults(t *testing.T) {
 
-	if err == nil {
-		t.Fatalf("expected error, got none")
+	inputs := []string{
+		`0.1.`,
+		`0=0.function((){`,
+		`0=0.!0.function((){`,
+		`{0.function((){`,
+		`0=0.!function((){`,
+		`0.function((){`,
+		`0.!function((){`,
+		`0=!0.function((){`,
+		`0.!!function((){`,
+		`{!0.function((){`,
+		`!0.function((){`,
+		`0.!0.function((){`,
+		`0..0.function((){`,
+		`0.!!!function((){`,
 	}
 
-	out := strings.Join(p.errors, ",")
-	if !strings.Contains(out, "unexpected end of file") {
-		t.Fatalf("error was different than expected: %s", out)
-	}
+	for _, input := range inputs {
 
+		l := lexer.New(input)
+		p := New(l)
+		err := p.ParseProgram()
+
+		if err == nil {
+			t.Fatalf("expected error, got none")
+		}
+	}
 }
