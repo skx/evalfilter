@@ -700,6 +700,24 @@ func (p *Parser) parseIfExpression() ast.Expression {
 	}
 	if p.peekTokenIs(token.ELSE) {
 		p.nextToken()
+
+		// else if
+		if p.peekTokenIs(token.IF) {
+
+			p.nextToken()
+
+			expression.Alternative = &ast.BlockStatement{
+				Statements: []ast.Statement{
+					&ast.ExpressionStatement{
+						Expression: p.parseIfExpression(),
+					},
+				},
+			}
+
+			return expression
+		}
+
+		// else { block }
 		if !p.expectPeek(token.LBRACE) {
 			msg := fmt.Sprintf("expected { but got %s around %s", p.curToken.Literal, p.curToken.Position())
 			p.errors = append(p.errors, msg)
