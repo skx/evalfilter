@@ -2,6 +2,7 @@ package object
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -548,4 +549,178 @@ func TestVoid(t *testing.T) {
 	if x != nil {
 		t.Fatalf("interface usage failed")
 	}
+}
+
+// Test converting numbers to JSON
+func TestNumberJSON(t *testing.T) {
+
+	a := &Integer{Value: 17}
+	b := &Float{Value: 3.14}
+
+	aj, aErr := a.JSON()
+	if aErr != nil {
+		t.Fatalf("unexpected error in JSON conversion")
+	}
+	if aj != "17" {
+		t.Fatalf("Invalid value for int->JSON, got %s", aj)
+	}
+
+	bj, bErr := b.JSON()
+	if bErr != nil {
+		t.Fatalf("unexpected error in JSON conversion")
+	}
+	if !strings.HasPrefix(bj, "3.14") {
+		t.Fatalf("Invalid value for float->JSON, got %s", bj)
+	}
+}
+
+// Test converting a string to JSON
+func TestStringJSON(t *testing.T) {
+
+	a := &String{Value: "Steve"}
+
+	aj, aErr := a.JSON()
+
+	if aErr != nil {
+		t.Fatalf("Unexpected error")
+	}
+
+	if aj != "\"Steve\"" {
+		t.Fatalf("Invalid value for string->JSON, got %s", aj)
+	}
+}
+
+// Test converting a hash to JSON
+func TestHashJSON(t *testing.T) {
+
+	tmp := &Hash{}
+
+	// Create some values for the hash
+	a := HashPair{Key: &String{Value: "Name"}, Value: &String{Value: "Steve"}}
+	aK := &String{Value: "Name"}
+
+	b := HashPair{Key: &String{Value: "Alive"}, Value: &Boolean{Value: true}}
+	bK := &String{Value: "Alive"}
+
+	c := HashPair{Key: &String{Value: "Age"}, Value: &Integer{Value: 18}}
+	cK := &Integer{Value: 18}
+
+	tmp.Pairs = make(map[HashKey]HashPair)
+	tmp.Pairs[aK.HashKey()] = a
+	tmp.Pairs[bK.HashKey()] = b
+	tmp.Pairs[cK.HashKey()] = c
+
+	// Now we have a hash with three values
+	//   name: Steve
+	//   alive: true
+	//   age: 18
+	//
+	// Convert to JSON
+
+	str, err := tmp.JSON()
+	if err != nil {
+		t.Fatalf("unexpected error")
+	}
+
+	exp := "{\"Age\": 18, \"Alive\": true, \"Name\": \"Steve\"}"
+	if str != exp {
+		t.Fatalf("wrong result for hash->JSON, got:\n%sexp:%s", str, exp)
+	}
+
+	//
+	// Now add a new key, of type Void
+	//
+	// This cannot be exported to JSON
+	//
+	d := HashPair{Key: &String{Value: "Void"}, Value: &Void{}}
+	dK := &String{Value: "Void"}
+	tmp.Pairs[dK.HashKey()] = d
+
+	str, err = tmp.JSON()
+	if err == nil {
+		t.Fatalf("Expected error - due to void - didn't get one")
+	}
+
+	//
+	// Final test, add something that cannot be exported as a value.
+	//
+	// In our case an array that contains a Void object.
+	//
+	tmp = &Hash{}
+
+	// Broken array
+	broken := []Object{&Null{}, &Void{}}
+	bad := &Array{Elements: broken}
+
+	// Create some values for the hash
+	a = HashPair{Key: &String{Value: "Values"}, Value: bad}
+	aK = &String{Value: "Values"}
+
+	tmp.Pairs = make(map[HashKey]HashPair)
+	tmp.Pairs[aK.HashKey()] = a
+
+	str, err = tmp.JSON()
+	if err == nil {
+		t.Fatalf("expected error, but got none")
+	}
+
+}
+
+func TestArrayJSON(t *testing.T) {
+
+	//
+	// Valid array
+	//
+
+	// Content of our array.
+	content := []Object{
+		&String{Value: "foo"},
+		&Integer{Value: 24},
+		&String{Value: "baz"},
+	}
+
+	// Create it
+	arr := &Array{Elements: content}
+
+	// Export it
+	json, err := arr.JSON()
+
+	if err != nil {
+		t.Fatalf("unexpected error")
+	}
+	if json != "[\"foo\", 24, \"baz\"]" {
+		t.Fatalf("unexpected result array->JSON, got:%s", json)
+	}
+
+	//
+	// Invalid array
+	//
+
+	// Content of our array.
+	broken := []Object{
+		&Null{},
+		&Void{},
+	}
+	bad := &Array{Elements: broken}
+
+	// Export it
+	json, err = bad.JSON()
+
+	if err == nil {
+		t.Fatalf("Expected error - due to void - didn't get one")
+	}
+
+	//
+	// Now embed the bad array inside the good one.
+	//
+	content = append(content, bad)
+	arr = &Array{Elements: content}
+
+	// Export it
+	json, err = arr.JSON()
+
+	if err == nil {
+		t.Fatalf("Expected error - due to void - didn't get one")
+	}
+
 }
