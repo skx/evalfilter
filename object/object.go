@@ -3,19 +3,21 @@
 //
 // Our scripting language supports several different object-types:
 //
-// * Array.
-// * Boolean value.
-// * Floating-point number.
-// * Integer number.
+// * Arrays.
+// * Boolean values.
+// * Floating-point numbers.
+// * Hashes.
+// * Integer numbers.
 // * Null
-// * String value.
+// * String values.
 // * Regular-expression objects.
 //
 // To allow these objects to be used interchanagably each kind of object
 // must implement the same simple interface.
 //
 // There are additional interfaces for adding support for more advanced
-// operations - such as iteration, incrementing, and decrementing.
+// operations - such as iteration, incrementing, decrementing, and JSON
+// export.
 package object
 
 // Type describes the type of an object.
@@ -80,6 +82,17 @@ type Decrement interface {
 	Decrease()
 }
 
+// JSONAble is an interface that some objects might wish to support.
+//
+// If this interface is implemented then it will be possible to export
+// the contents of a given object to JSON.
+type JSONAble interface {
+
+	// JSON will export this object to a JSON representation of
+	// the contents of the object.
+	JSON() (string, error)
+}
+
 // Iterable is an interface that some objects might wish to support.
 //
 // If this interface is implemented then it will be possible to
@@ -104,7 +117,10 @@ type Iterable interface {
 	Next() (Object, Object, bool)
 }
 
-// Hashable type can be hashed
+// Hashable type can be hashed.
+//
+// If an object-type implements this interface it can be used as
+// the key in one of our hash-objects.
 type Hashable interface {
 
 	// HashKey returns a hash key for the given object.

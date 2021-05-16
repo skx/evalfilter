@@ -32,3 +32,11 @@ func (b *Boolean) True() bool {
 func (b *Boolean) ToInterface() interface{} {
 	return b.Value
 }
+
+// JSON converts this object to a JSON string.
+func (b *Boolean) JSON() (string, error) {
+	return fmt.Sprintf("%t", b.Value), nil
+}
+
+// Ensure this object implements the expected interfaces.
+var _ JSONAble = &Integer{}

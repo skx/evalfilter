@@ -50,7 +50,13 @@ func (i *Integer) HashKey() HashKey {
 	return HashKey{Type: i.Type(), Value: uint64(i.Value)}
 }
 
+// JSON converts this object to a JSON string.
+func (i *Integer) JSON() (string, error) {
+	return fmt.Sprintf("%d", i.Value), nil
+}
+
 // Ensure this object implements the expected interfaces.
 var _ Decrement = &Integer{}
 var _ Hashable = &Integer{}
 var _ Increment = &Integer{}
+var _ JSONAble = &Integer{}
