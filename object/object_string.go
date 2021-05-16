@@ -2,6 +2,7 @@ package object
 
 import (
 	"hash/fnv"
+	"strconv"
 	"unicode/utf8"
 )
 
@@ -73,7 +74,7 @@ func (s *String) HashKey() HashKey {
 
 // JSON converts this object to a JSON string.
 func (s *String) JSON() (string, error) {
-	return "\"" + s.Value + "\"", nil
+	return strconv.Quote(s.Value), nil
 }
 
 // Ensure this object implements the expected interfaces

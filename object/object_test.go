@@ -588,6 +588,18 @@ func TestStringJSON(t *testing.T) {
 	if aj != "\"Steve\"" {
 		t.Fatalf("Invalid value for string->JSON, got %s", aj)
 	}
+
+	b := &String{Value: "Name: \"Steve\""}
+	bj, bErr := b.JSON()
+
+	if bErr != nil {
+		t.Fatalf("Unexpected error")
+	}
+
+	exp := "\"Name: \\\"Steve\\\"\""
+	if bj != exp {
+		t.Fatalf("Invalid value for string->JSON, exp:%s\ngot:'%s'\n", exp, bj)
+	}
 }
 
 // Test converting a hash to JSON
