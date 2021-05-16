@@ -148,6 +148,19 @@ func (r *runCmd) Run(file string) {
 	fmt.Printf("Script gave result type:%s value:%s - which is '%t'.\n",
 		ret.Type(), ret.Inspect(), ret.True())
 
+	// Now show as JSON, if we can.
+	helper, ok := ret.(object.JSONAble)
+	if ok {
+
+		j, err := helper.JSON()
+		if err != nil {
+			fmt.Printf("Error converting result to JSON\n")
+			return
+		}
+
+		fmt.Printf("JSON Result:\n\t%s\n", j)
+	}
+
 }
 
 // Execute is invoked if the user specifies `run` as the subcommand.
