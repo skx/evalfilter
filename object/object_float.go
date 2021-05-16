@@ -1,6 +1,7 @@
 package object
 
 import (
+	"fmt"
 	"hash/fnv"
 	"strconv"
 )
@@ -55,7 +56,13 @@ func (f *Float) HashKey() HashKey {
 	return HashKey{Type: f.Type(), Value: h.Sum64()}
 }
 
+// JSON converts this object to a JSON string.
+func (f *Float) JSON() (string, error) {
+	return fmt.Sprintf("%f", f.Value), nil
+}
+
 // Ensure this object implements the expected interfaces.
 var _ Decrement = &Float{}
 var _ Hashable = &Float{}
 var _ Increment = &Float{}
+var _ JSONAble = &Float{}

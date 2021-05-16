@@ -27,3 +27,11 @@ func (n *Null) True() bool {
 func (n *Null) ToInterface() interface{} {
 	return nil
 }
+
+// JSON converts this object to a JSON string.
+func (n *Null) JSON() (string, error) {
+	return "null", nil
+}
+
+// Ensure this object implements the expected interfaces.
+var _ JSONAble = &Integer{}

@@ -71,6 +71,12 @@ func (s *String) HashKey() HashKey {
 	return HashKey{Type: s.Type(), Value: h.Sum64()}
 }
 
+// JSON converts this object to a JSON string.
+func (s *String) JSON() (string, error) {
+	return "\"" + s.Value + "\"", nil
+}
+
 // Ensure this object implements the expected interfaces
 var _ Hashable = &String{}
 var _ Iterable = &String{}
+var _ JSONAble = &String{}
