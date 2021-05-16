@@ -34,4 +34,4 @@ func (n *Null) JSON() (string, error) {
 }
 
 // Ensure this object implements the expected interfaces.
-var _ JSONAble = &Integer{}
+var _ JSONAble = &Null{}

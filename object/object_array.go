@@ -2,6 +2,7 @@ package object
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 )
 
@@ -73,5 +74,32 @@ func (ao *Array) Next() (Object, Object, bool) {
 	return nil, &Integer{Value: 0}, false
 }
 
+// JSON converts this object to a JSON string
+func (ao *Array) JSON() (string, error) {
+	var out bytes.Buffer
+	elements := make([]string, 0)
+	for _, e := range ao.Elements {
+
+		// Cast the value to a JSONAble interface
+		helper, ok := e.(JSONAble)
+		if !ok {
+			return "", fmt.Errorf("object doesn't implement JSONAble %s", e.Inspect())
+		}
+
+		// OK we can cast it, get the value
+		tmp, err := helper.JSON()
+		if err != nil {
+			return "", err
+		}
+
+		elements = append(elements, tmp)
+	}
+	out.WriteString("[")
+	out.WriteString(strings.Join(elements, ", "))
+	out.WriteString("]")
+	return out.String(), nil
+}
+
 // Ensure this object implements the expected interfaces
-var _ Iterable = &String{}
+var _ Iterable = &Array{}
+var _ JSONAble = &String{}

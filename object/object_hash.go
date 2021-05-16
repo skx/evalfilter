@@ -129,5 +129,41 @@ func (h *Hash) ToInterface() interface{} {
 	return "<HASH>"
 }
 
+// JSON converts this object to a JSON string.
+func (h *Hash) JSON() (string, error) {
+
+	// Get the list of entries, sorted by key-name.
+	entries := h.Entries()
+
+	// Now output
+	var out bytes.Buffer
+
+	pairs := make([]string, 0)
+	for _, entry := range entries {
+
+		// Cast the value to a JSONAble interface
+		helper, ok := entry.Value.(JSONAble)
+		if !ok {
+			return "", fmt.Errorf("object doesn't implement JSONAble %s", entry.Value.Inspect())
+		}
+
+		// OK we can cast it, get the value
+		tmp, err := helper.JSON()
+		if err != nil {
+			return "", err
+		}
+
+		// Now build up the JSON
+		pairs = append(pairs, fmt.Sprintf("\"%s\": %s",
+			entry.Key.Inspect(), tmp))
+	}
+	out.WriteString("{")
+	out.WriteString(strings.Join(pairs, ", "))
+	out.WriteString("}")
+	return out.String(), nil
+
+}
+
 // Ensure this object implements the expected interfaces.
 var _ Iterable = &Hash{}
+var _ JSONAble = &Hash{}
