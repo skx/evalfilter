@@ -648,7 +648,7 @@ func TestHashJSON(t *testing.T) {
 	dK := &String{Value: "Void"}
 	tmp.Pairs[dK.HashKey()] = d
 
-	str, err = tmp.JSON()
+	_, err = tmp.JSON()
 	if err == nil {
 		t.Fatalf("Expected error - due to void - didn't get one")
 	}
@@ -671,7 +671,7 @@ func TestHashJSON(t *testing.T) {
 	tmp.Pairs = make(map[HashKey]HashPair)
 	tmp.Pairs[aK.HashKey()] = a
 
-	str, err = tmp.JSON()
+	_, err = tmp.JSON()
 	if err == nil {
 		t.Fatalf("expected error, but got none")
 	}
@@ -716,7 +716,7 @@ func TestArrayJSON(t *testing.T) {
 	bad := &Array{Elements: broken}
 
 	// Export it
-	json, err = bad.JSON()
+	_, err = bad.JSON()
 
 	if err == nil {
 		t.Fatalf("Expected error - due to void - didn't get one")
@@ -729,7 +729,7 @@ func TestArrayJSON(t *testing.T) {
 	arr = &Array{Elements: content}
 
 	// Export it
-	json, err = arr.JSON()
+	_, err = arr.JSON()
 
 	if err == nil {
 		t.Fatalf("Expected error - due to void - didn't get one")
