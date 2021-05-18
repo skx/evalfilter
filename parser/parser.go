@@ -423,22 +423,44 @@ func (p *Parser) parseFloatLiteral() ast.Expression {
 	return flo
 }
 
-// parseSwitchStatement handles a switch statement
-func (p *Parser) parseSwitchStatement() ast.Expression {
+// parseBracketExpression looks for an expression surrounded by "(" + ")".
+//
+// Used by parseSwitchStatement and parseIfExpression.
+func (p *Parser) parseBracketExpression() ast.Expression {
 
-	// switch
-	expression := &ast.SwitchExpression{Token: p.curToken}
-
-	// look for (xx)
+	// look for (
 	if !p.expectPeek(token.LPAREN) {
+		msg := fmt.Sprintf("expected ( but got %s around %s", p.curToken.Literal, p.curToken.Position())
+		p.errors = append(p.errors, msg)
 		return nil
 	}
 	p.nextToken()
-	expression.Value = p.parseExpression(LOWEST)
-	if expression.Value == nil {
+
+	// Look for the expression itself
+	tmp := p.parseExpression(LOWEST)
+	if tmp == nil {
 		return nil
 	}
+
+	// look for )
 	if !p.expectPeek(token.RPAREN) {
+		msg := fmt.Sprintf("expected ) but got %s around %s", p.curToken.Literal, p.curToken.Position())
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
+	return tmp
+}
+
+// parseSwitchStatement handles a switch statement
+func (p *Parser) parseSwitchStatement() ast.Expression {
+
+	// switch statement
+	expression := &ast.SwitchExpression{Token: p.curToken}
+
+	// look for the expression
+	expression.Value = p.parseBracketExpression()
+	if expression.Value == nil {
 		return nil
 	}
 
@@ -670,34 +692,29 @@ func (p *Parser) parseIfExpression() ast.Expression {
 		p.errors = append(p.errors, msg)
 		return nil
 	}
-	if !p.expectPeek(token.LPAREN) {
-		msg := fmt.Sprintf("expected ( but got %s around %s", p.curToken.Literal, p.curToken.Position())
-		p.errors = append(p.errors, msg)
-		return nil
-	}
-	p.nextToken()
-	expression.Condition = p.parseExpression(LOWEST)
+
+	// Look for the condition, surrounded by "(" + ")".
+	expression.Condition = p.parseBracketExpression()
 	if expression.Condition == nil {
-		msg := fmt.Sprintf("unexpected nil expression around %s", p.curToken.Position())
-		p.errors = append(p.errors, msg)
 		return nil
 	}
-	if !p.expectPeek(token.RPAREN) {
-		msg := fmt.Sprintf("expected ) but got %s around %s", p.curToken.Literal, p.curToken.Position())
-		p.errors = append(p.errors, msg)
-		return nil
-	}
+
+	// Now "{"
 	if !p.expectPeek(token.LBRACE) {
 		msg := fmt.Sprintf("expected { but got %s around %s", p.curToken.Literal, p.curToken.Position())
 		p.errors = append(p.errors, msg)
 		return nil
 	}
+
+	// The consequence
 	expression.Consequence = p.parseBlockStatement()
 	if expression.Consequence == nil {
 		msg := fmt.Sprintf("unexpected nil expression around %s", p.curToken.Position())
 		p.errors = append(p.errors, msg)
 		return nil
 	}
+
+	// Else?
 	if p.peekTokenIs(token.ELSE) {
 		p.nextToken()
 
