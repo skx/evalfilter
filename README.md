@@ -305,7 +305,7 @@ Then a simple script could then be executed against that object to decide whethe
     //
     // You can see that comments are prefixed with "//".
     //
-    // In my application a phone-call would be trigged if this
+    // In my application a phone-call would be triggered if this
     // script hit `return true;`.  If the return value was `false`
     // then nothing would happen.
     //
@@ -441,7 +441,7 @@ go get github.com/skx/evalfilter/v2/cmd/evalfilter
 
 This driver, contained within the repository at [cmd/evalfilter](cmd/evalfilter) has a number of sub-commands to allow you to experiment with the scripting environment:
 
-* Output a dissassembly of the [bytecode instructions](BYTECODE.md) the compiler generated when preparing your script.
+* Output a disassembly of the [bytecode instructions](BYTECODE.md) the compiler generated when preparing your script.
 * Run a script.
   * Optionally with a JSON object as input.
 * View the lexer and parser outputs.
