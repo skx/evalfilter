@@ -122,7 +122,7 @@ You can also easily add new primitives to the engine, by defining a function in 
   * Sorts the given array.
   * Add `true` as the second argument to ignore case.
 * `split("string", "value");`
-  * Splits a string into an array, by the given substring..
+  * Splits a string into an array, by the given substring.
 * `sprintf("Format string ..", arg1, arg2 .. argN);`
   * Format the given values, using the specified golang format string.
 * `string( )`
@@ -134,9 +134,9 @@ You can also easily add new primitives to the engine, by defining a function in 
     * For example `string`, `integer`, `float`, `array`, `boolean`, or `null`.
 * `upper(field | value)`
   * Return the upper-case version of the given input.
-* `hour(field|value)`, `minute(field:value)`, `seconds(field:value`
+* `hour(field|value)`, `minute(field|value)`, `seconds(field|value)`
   * Allow converting a time to HH:MM:SS.
-* `day(field|value)`, `month(field:value)`, `year(field:value`
+* `day(field|value)`, `month(field|value)`, `year(field|value)`
   * Allow converting a time to DD/MM/YYYY.
 * `weekday(field|value)`
   * Allow converting a time to "Saturday", "Sunday", etc.
@@ -287,7 +287,7 @@ The motivation for this project came from a problem encountered while working:
 
 * I wanted to implement a simple "on-call notifier".
    * When messages were posted to Slack channels I wanted to _sometimes_ trigger a phone-call to the on-call engineer.
-   * Of course not _all_ Slack-messages were worth waking up an engineer for..
+   * Of course not _all_ Slack-messages were worth waking up an engineer for.
 
 The expectation was that non-developers might want to change the matching of messages to update the messages which were deemed worthy of waking up the on-call engineer.  They shouldn't need to worry about rebuilding the on-call application, nor should they need to understand Go.  So the logic was moved into a script and this evaluation engine was born.
 
