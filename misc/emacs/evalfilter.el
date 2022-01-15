@@ -8,7 +8,7 @@
 
 ;;; Commentary:
 
-;; Provides support for editing monkey scripts with full support for
+;; Provides support for editing scripts with full support for
 ;; font-locking, but no special keybindings, or indentation handling.
 
 ;;;; Enabling:
