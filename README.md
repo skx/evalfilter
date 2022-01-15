@@ -404,8 +404,10 @@ The program will be terminated with an error after five seconds, which means tha
 
 ## Misc.
 
-You can find a syntax-highlighter for evalfilter code beneath [misc/](misc/).
+You can find syntax-highlighters for evalfilter code beneath [misc/](misc/).
 
+* A javascript syntax-highlighter for embedding scripts in web-pages.
+* An Emacs mode for working with evalfilter scripts.
 
 
 # Sample Usage
