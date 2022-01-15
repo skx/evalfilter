@@ -14,6 +14,7 @@
   * [Use Cases](#use-cases)
   * [Security](#security)
     * [Denial of service](#denial-of-service)
+  * [Misc](#misc)
 * [Sample Usage](#sample-usage)
   * [Additional Examples](#additional-examples)
 * [Standalone Use](#standalone-use)
@@ -398,6 +399,12 @@ if ( err != nil ) { // handle error }
 ```
 
 The program will be terminated with an error after five seconds, which means that your host application will continue to run rather than being blocked forever!
+
+
+
+## Misc.
+
+You can find a syntax-highlighter for evalfilter code beneath [misc/](misc/).
 
 
 

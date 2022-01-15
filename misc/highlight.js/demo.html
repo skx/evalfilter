@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>highlight.js - example</title>
+  <link rel="stylesheet" href="https://unpkg.com/@highlightjs/cdn-assets@11.4.0/styles/default.min.css">
+  <script src="https://unpkg.com/@highlightjs/cdn-assets@11.4.0/highlight.min.js"></script>
+  <!-- and it's easy to individually load additional languages -->
+  <script src="evalfilter.js"></script>
+  <script>
+   hljs.highlightAll();
+  </script>
+</head>
+<body>
+  <h1>evalfilter syntax highlighting</h1>
+  <p>The code below should have syntax highlighting.</p>
+  <pre>
+    <code class="evalfilter-html">
+//
+// This script is a very example of using `switch` and `case`.
+//
+// You can run this via the `evalfilter` command like so:
+//
+//    $ evalfilter run switch.script
+//
+// Once you do so you'll see the output, and the return-code displayed:
+//
+//    $ evalfilter run switch.script
+//    I know you Steve - expression-match!
+//    I know you Steven - literal-match!
+//    I know you steve - regexp-match!
+//    I don't know who you are steven
+//    I don't know who you are bob
+//    I don't know who you are test
+//    Script gave result type:NULL value:null - which is 'false'.
+//
+// NOTE:  Only the FIRST matching case statement will run.
+//
+
+function test( name ) {
+
+  switch( name ) {
+    case "Ste" + "ve" {
+	printf("I know you %s - expression-match!\n", name );
+    }
+    case "Steven" {
+	printf("I know you %s - literal-match!\n", name );
+    }
+    case /^steve$/ {
+        printf("I know you %s - regexp-match!\n", name );
+    }
+    default {
+	printf("I don't know who you are %s\n", name );
+    }
+  }
+}
+
+
+//
+// Now try a bunch of names
+//
+foreach name in [ "Steve", "Steven", "steve", "steven", "bob", "test" ] {
+  test( name );
+}
+
+    </code>
+  </pre>
+</body>
+</html>
