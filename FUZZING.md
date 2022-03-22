@@ -4,28 +4,15 @@ Fuzz-testing involves creating random input, and running the program to test wit
 
 The intention is that most of the random inputs will be invalid, so you'll be able to test your error-handling and see where you failed to consider specific input things.
 
+The 1.18 release of the golang compiler/toolset has integrated support for fuzz-testing.
+
 
 ## Usage
 
-The [fuzz/](fuzz/) directory contains a simple fuzz-handler which is designed to be used by [go-fuzz](https://github.com/dvyukov/go-fuzz).
-
-To use it you must first install the tools:
+If you're running golang 1.18beta1 or higher you can run the fuzz-testing against the evaluator like so:
 
 ```
-go get github.com/dvyukov/go-fuzz/go-fuzz
-go get github.com/dvyukov/go-fuzz/go-fuzz-build
-```
-
-Once you've got the tooling installed you can now build the fuzz-package:
-
-```
-go-fuzz-build github.com/skx/evalfilter/v2/fuzz
-```
-
-Finally you can now launch the fuzzer, like so:
-
-```
-go-fuzz -procs=1 -bin=fuzz-fuzz.zip -workdir=workdir
+go test -fuzztime=300s -parallel=1 -fuzz=FuzzEvaluator -v
 ```
 
 
@@ -36,24 +23,17 @@ As the fuzzer runs it will regularly output a status-line showing how long it ha
 Sample output might look like this:
 
 ```
-2019/12/24 12:59:27 workers: 2, corpus: 1425 (49m37s ago), crashers: 0, restarts: 1/10000, execs: 598384404 (11382/sec), cover: 1513, uptime: 14h36m
-2019/12/24 12:59:30 workers: 2, corpus: 1425 (49m40s ago), crashers: 0, restarts: 1/10000, execs: 598416850 (11381/sec), cover: 1513, uptime: 14h36m
-2019/12/24 12:59:33 workers: 2, corpus: 1425 (49m43s ago), crashers: 0, restarts: 1/10000, execs: 598449839 (11381/sec), cover: 1513, uptime: 14h36m
-2019/12/24 12:59:36 workers: 2, corpus: 1425 (49m46s ago), crashers: 0, restarts: 1/10000, execs: 598487533 (11382/sec), cover: 1513, uptime: 14h36m
+fuzz: elapsed: 0s, gathering baseline coverage: 0/5 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 5/5 completed, now fuzzing with 1 workers
+fuzz: elapsed: 3s, execs: 28632 (9541/sec), new interesting: 99 (total: 104)
+fuzz: elapsed: 6s, execs: 60575 (10651/sec), new interesting: 160 (total: 165)
+fuzz: elapsed: 9s, execs: 86143 (8522/sec), new interesting: 195 (total: 200)
 ```
 
 The last line shows us:
 
-* There are two workers running.
-* The fuzzer has been running for 14 hours and 36 minutes.
+* The fuzzer has been running for 9 seconds.
 * Zero crashing-cases have been found.
-  * If you see `crasers: 1`, or higher, then you have something to examine.
-* 598487533 executions have taken place
-* We're averaging the execution of a test-case 11382 times a sec.
-
-
-## Output
-
-You can kill (Ctrl-c) the fuzzer and restart it, and it will keep going from where it left off, because all state is stored in `./workdir`.
-
-If you find crashing-input please report a bug.  The cases that caused a crash will be found int `workdir/crashers`.
+* 86143 executions have taken place
+* We're averaging the execution of a test-case 8522 times a sec.
+* We've found/evolved 200 interesting test-cases
