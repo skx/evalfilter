@@ -15,6 +15,7 @@ func FuzzEvaluator(f *testing.F) {
 	f.Add([]byte(nil))
 	f.Add([]byte(""))
 	f.Add([]byte(`\n\r\t`))
+	f.Add([]byte("`/bin/ls`"))
 
 	// hash
 	f.Add([]byte(`
@@ -66,6 +67,7 @@ foreach index,entry in ["foo", "bar","baz"] {
 		"incomplete block",
 		"unterminated switch statement",
 		"expected case|default",
+		"unterminated function parameters",
 	}
 
 	// switch
