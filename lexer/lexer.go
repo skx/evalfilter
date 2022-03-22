@@ -318,7 +318,7 @@ func (l *Lexer) NextToken() token.Token {
 			return tok
 		}
 		tok.Type = token.ILLEGAL
-		tok.Literal = fmt.Sprintf("invalid character for indentifier '%c'", l.ch)
+		tok.Literal = fmt.Sprintf("invalid character for identifier '%c'", l.ch)
 		tok.Column = l.column
 		tok.Line = l.line
 		l.readChar()

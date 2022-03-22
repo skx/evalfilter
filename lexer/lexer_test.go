@@ -743,7 +743,7 @@ func TestIllegal(t *testing.T) {
 		expectedType    token.Type
 		expectedLiteral string
 	}{
-		{token.ILLEGAL, "invalid character for indentifier '#'"},
+		{token.ILLEGAL, "invalid character for identifier '#'"},
 		{token.EOF, ""},
 	}
 	l := New(input)
