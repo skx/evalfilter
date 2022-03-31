@@ -57,7 +57,7 @@ In terms of implementation the script to be executed is split into [tokens](toke
 
 Once the bytecode has been generated it can be executed multiple times, there is no state which needs to be maintained, which makes actually executing the script (i.e. running the bytecode) a fast process.
 
-At execution-time the bytecode which was generated is interpreted by a simple [virtual machine](vm/vm.go).  The virtual machine is fairly naive implementation of a [stack-based](stack/stack.go) virtual machine, with some runtime support to provide the [builtin-functions](environment/builtins.go), as well as supporting the addition of host-specific functions.
+At execution-time the bytecode which was generated is interpreted by a naive [stack-based](stack/stack.go) [virtual machine](vm/vm.go), with some runtime support to provide the [builtin-functions](environment/builtins.go), as well as supporting the addition of host-specific functions.
 
 The bytecode itself is documented briefly in [BYTECODE.md](BYTECODE.md), but it is not something you should need to understand to use the library, only if you're interested in debugging a misbehaving script.
 
@@ -444,8 +444,7 @@ Finally if you want to compile this library to webassembly, and use it in a web-
 If you wish to experiment with script-syntax, after looking at the [example scripts](_examples/scripts/) you can install the standalone driver:
 
 ```
-go get github.com/skx/evalfilter/v2/cmd/evalfilter
-
+go install github.com/skx/evalfilter/v2/cmd/evalfilter@latest
 ```
 
 This driver, contained within the repository at [cmd/evalfilter](cmd/evalfilter) has a number of sub-commands to allow you to experiment with the scripting environment:
@@ -493,7 +492,7 @@ One interesting thing that shows up clearly is that working with a `struct` is s
 
 Fuzz-testing is basically magic - you run your program with random input, which stress-tests it and frequently exposes corner-cases you've not considered.
 
-This project has been fuzz-tested repeatedly, and [FUZZING.md](FUZZING.md) contains notes on how you can carry out testing of your own.
+This project has been fuzz-tested repeatedly, and [FUZZING.md](FUZZING.md) contains notes on how you can carry out testing of your own with the integrated fuzz-testing available with the 1.18+ version of the golang release.
 
 
 ## API Stability
