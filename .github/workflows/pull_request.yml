@@ -1,8 +1,16 @@
 on: pull_request
 name: Pull Request
 jobs:
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v2
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
   test:
-    name: Run tests
+    name: Test
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
