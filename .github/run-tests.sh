@@ -5,42 +5,6 @@ if [ -d "wasm/" ]; then
     rm -rf wasm/
 fi
 
-# Install tools to test our code-quality.
-go get -u golang.org/x/lint/golint
-go get -u honnef.co/go/tools/cmd/staticcheck
-
-# Run the static-check tool
-t=$(mktemp)
-staticcheck -checks all ./... > $t
-if [ -s $t ]; then
-    echo "Found errors via 'staticcheck'"
-    cat $t
-    rm $t
-    exit 1
-fi
-rm $t
-
-
-# Run the linter-tool
-echo "Launching linter .."
-golint ./... | grep -v underscores > $t
-if [ -s $t ]; then
-    echo "Found errors via 'staticcheck'"
-    cat $t
-    rm $t
-    exit 1
-fi
-echo "Completed linter .."
-
-
-# At this point failures cause aborts
-set -e
-
-# Run the vet-tool
-echo "Running go vet .."
-go vet ./...
-echo "Completed go vet .."
-
 # Run our golang tests
 go test ./... -race
 

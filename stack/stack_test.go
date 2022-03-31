@@ -17,6 +17,30 @@ func TestStackStartsEmpty(t *testing.T) {
 	}
 }
 
+// Test we can clear a stack
+func TestClear(t *testing.T) {
+	s := New()
+
+	s.Push(&object.String{Value: "Steve Kemp"})
+	s.Push(&object.String{Value: "Hello, World"})
+	if s.Empty() {
+		t.Errorf("Stack should not be empty after adding item.")
+	}
+	if s.Size() != 2 {
+		t.Errorf("stack has a size-mismatch")
+	}
+
+	// Clear the stack
+	s.Clear()
+
+	if s.Size() != 0 {
+		t.Errorf("stack should be empty after Clear")
+	}
+	if !s.Empty() {
+		t.Errorf("stack should be empty after Clear")
+	}
+}
+
 // Test we can add/remove a value
 func TestStack(t *testing.T) {
 	s := New()

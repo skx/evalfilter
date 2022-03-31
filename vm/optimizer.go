@@ -104,7 +104,7 @@ func (vm *VM) optimizeMaths() (bool, error) {
 	//
 	// Walk over the bytecode
 	//
-	vm.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (bool, error) {
+	err := vm.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (bool, error) {
 
 		//
 		// Now we do the magic.
@@ -318,7 +318,9 @@ func (vm *VM) optimizeMaths() (bool, error) {
 		// no error, keep going
 		return true, nil
 	})
-
+	if err != nil {
+		return false, err
+	}
 	//
 	// If we get here we walked all the way over our bytecode
 	// and made zero changes.
@@ -361,7 +363,7 @@ func (vm *VM) optimizeJumps() bool {
 	//
 	// Walk the bytecode.
 	//
-	vm.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (bool, error) {
+	err := vm.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (bool, error) {
 
 		//
 		// Now we do the magic.
@@ -443,6 +445,10 @@ func (vm *VM) optimizeJumps() bool {
 		return true, nil
 	})
 
+	if err != nil {
+		fmt.Printf("optimizeJumps:%s\n", err)
+	}
+
 	//
 	// This function will be invoked until no changes
 	// are made to the bytecode.
@@ -469,7 +475,7 @@ func (vm *VM) removeNOPs() {
 	//
 	// Walk the bytecode.
 	//
-	vm.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (bool, error) {
+	err := vm.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (bool, error) {
 
 		//
 		// Now we do the magic.
@@ -521,6 +527,10 @@ func (vm *VM) removeNOPs() {
 		// No error, keep going
 		return true, nil
 	})
+
+	if err != nil {
+		fmt.Printf("removeNops:%s\n", err)
+	}
 
 	//
 	// We've walked over our code, writing a new jump-table
@@ -622,7 +632,7 @@ func (vm *VM) removeDeadCode() {
 	//
 	// Walk the bytecode.
 	//
-	vm.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (bool, error) {
+	err := vm.WalkBytecode(func(offset int, opCode code.Opcode, opArg interface{}) (bool, error) {
 
 		//
 		// Now we do the magic.
@@ -656,6 +666,10 @@ func (vm *VM) removeDeadCode() {
 		// keep walking
 		return true, nil
 	})
+
+	if err != nil {
+		fmt.Printf("removeDeadCode:%s\n", err)
+	}
 
 	//
 	// Replace the instructions, if we made a sane change
