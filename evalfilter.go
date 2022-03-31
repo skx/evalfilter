@@ -213,7 +213,10 @@ func (e *Eval) Dump() error {
 	fmt.Printf("Bytecode:\n")
 
 	// Use the walker to dump the bytecode.
-	e.machine.WalkBytecode(e.dumper)
+	err := e.machine.WalkBytecode(e.dumper)
+	if err != nil {
+		return err
+	}
 
 	// Show constants, if any are present.
 	consts := e.constants
@@ -238,7 +241,10 @@ func (e *Eval) Dump() error {
 		fmt.Printf(" function %s(%s)\n", name, strings.Join(obj.Arguments, ","))
 
 		// Then dump the body.
-		e.machine.WalkFunctionBytecode(name, e.dumper)
+		err := e.machine.WalkFunctionBytecode(name, e.dumper)
+		if err != nil {
+			return err
+		}
 
 		// Put a newline between functions.
 		if count < len(e.functions)-1 {

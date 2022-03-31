@@ -201,9 +201,12 @@ return( true );
 	}
 
 	// Dump
-	obj.Dump()
+	err := obj.Dump()
+	if err != nil {
+		t.Fatalf("error running Dump:%s\n", err)
+	}
 
-	_, err := obj.Run(nil)
+	_, err = obj.Run(nil)
 	if err != nil {
 		t.Fatalf("unexpected error running code")
 	}

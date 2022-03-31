@@ -30,6 +30,11 @@ func New() *Stack {
 	return &Stack{}
 }
 
+// Clear removes all data from the stack
+func (s *Stack) Clear() {
+	s.entries = []object.Object{}
+}
+
 // Empty returns true if the stack is empty.
 func (s *Stack) Empty() bool {
 	return (len(s.entries) == 0)

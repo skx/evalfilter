@@ -206,9 +206,7 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 	// via the addition of the &object.Void{} type.   However we
 	// cannot assume everybody remember to use that.)
 	//
-	for !vm.stack.Empty() {
-		vm.stack.Pop()
-	}
+	vm.stack.Clear()
 
 	//
 	// Instruction pointer and length of bytecode.
@@ -643,7 +641,10 @@ func (vm *VM) Run(obj interface{}) (object.Object, error) {
 
 			// Drop the scope which means function-arguments
 			// are dropped.
-			vm.environment.RemoveScope()
+			err = vm.environment.RemoveScope()
+			if err != nil {
+				return nil, err
+			}
 
 			// reset the state of an object which is to be iterated upon
 		case code.OpIterationReset:
@@ -987,10 +988,10 @@ func (vm *VM) createHash(field reflect.Value) object.Object {
 		k := vm.primitiveToObject(key)
 
 		// The actual thing inside it.
-		field := field.MapIndex(key).Elem()
+		val := field.MapIndex(key).Elem()
 
 		// Get the value.
-		v := vm.primitiveToObject(field)
+		v := vm.primitiveToObject(val)
 
 		pair := object.HashPair{Key: k, Value: v}
 		hashedPairs[k.(object.Hashable).HashKey()] = pair

@@ -302,7 +302,7 @@ func (l *Lexer) NextToken() token.Token {
 	default:
 		if isDigit(l.ch) {
 
-			tok := l.readDecimal()
+			tok = l.readDecimal()
 			l.prevToken = tok
 			tok.Column = l.column
 			tok.Line = l.line
