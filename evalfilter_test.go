@@ -1556,3 +1556,39 @@ return out ;
 		t.Fatalf("failed split/join test got %s not %s", out.Inspect(), nameOut)
 	}
 }
+
+
+func TestReplace(t *testing.T) {
+	input := `
+
+input = "XXX";
+out   = replace(input, /[ \\t]/, "_");
+
+return out ;
+`
+	name := "This is a test\tof 1 2 3";
+	// Replace the string in our template-program
+	input = strings.ReplaceAll(input, "XXX", name )
+
+	// The expected output will be name =~ s/ /_/g
+	nameOut := strings.ReplaceAll(name, " ", "_");
+	nameOut = strings.ReplaceAll(nameOut, "\t", "_");
+
+	// parse/prepare
+	obj := New(input)
+	err := obj.Prepare()
+	if err != nil {
+		t.Fatalf("Failed to compile: %s",err)
+	}
+
+	// execute
+	out, err2 := obj.Execute(nil)
+	if err2 != nil {
+		t.Fatalf("unexpected error:%s", err2)
+	}
+
+	// confirm
+	if out.Inspect() != nameOut {
+		t.Fatalf("failed split/join test got %s not %s", out.Inspect(), nameOut)
+	}
+}

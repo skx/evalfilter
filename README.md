@@ -118,6 +118,8 @@ You can also easily add new primitives to the engine, by defining a function in 
 * `printf("Format string ..", arg1, arg2 .. argN);`
   * Print the given values, with the specified golang format string
     * For example `printf("%s %d %t\n", "Steve", 9 / 3 , ! false );`
+* `replace(input, /regexp/, value)`
+  * Perform a replacement with value of the matches of the given regexp in the input-value.
 * `reverse(["Surname", "Forename"]);`
   * Sorts the given array in reverse.
   * Add `true` as the second argument to ignore case.
