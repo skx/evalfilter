@@ -1117,6 +1117,64 @@ func TestSort(t *testing.T) {
 	}
 }
 
+// Test regular-expression reverse
+func TestReplace(t *testing.T) {
+
+	// Calling the function with no-arguments should return null
+	var args []object.Object
+	out := fnReplace(args)
+	if out.Type() != object.NULL {
+		t.Errorf("no arguments returns a weird result")
+	}
+
+
+	// 1 argument is invalid
+	args = append(args, &object.String{Value:"one"})
+	out = fnReplace(args)
+	if out.Type() != object.NULL {
+		t.Errorf("one argument returns a weird result")
+	}
+
+	// 2 arguments is invalid
+	args = append(args, &object.String{Value:"one"})
+	out = fnReplace(args)
+	if out.Type() != object.NULL {
+		t.Errorf("two arguments returns a weird result")
+	}
+
+	// valid attempt: 1
+	args = []object.Object{
+		&object.String{Value:"my age is 46 years old in 2022"},
+		&object.String{Value:"\\d"},
+		&object.String{Value:"X"},
+	}
+	out = fnReplace(args)
+	if out.Type() != object.STRING {
+		t.Errorf("invalid return value for replace")
+	}
+
+	if out.Inspect() != "my age is XX years old in XXXX" {
+		t.Errorf("invalid replace result:%s", out.Inspect())
+	}
+
+
+	// valid attempt: 2
+	args = []object.Object{
+		&object.String{Value:"my age is 47 years old in 2023"},
+		&object.Regexp{Value:"\\d"},
+		&object.String{Value:"X"},
+	}
+	out = fnReplace(args)
+	if out.Type() != object.STRING {
+		t.Errorf("invalid return value for replace")
+	}
+
+	if out.Inspect() != "my age is XX years old in XXXX" {
+		t.Errorf("invalid replace result:%s", out.Inspect())
+	}
+
+}
+
 // Test sorting works in reverse
 func TestReverseSort(t *testing.T) {
 

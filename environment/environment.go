@@ -79,6 +79,7 @@ func New() *Environment {
 	env.SetFunction("panic", fnPanic)
 	env.SetFunction("print", fnPrint)
 	env.SetFunction("printf", fnPrintf)
+	env.SetFunction("replace", fnReplace)
 	env.SetFunction("reverse", fnReverse)
 	env.SetFunction("sort", fnSort)
 	env.SetFunction("split", fnSplit)

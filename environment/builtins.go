@@ -500,6 +500,41 @@ func fnSort(args []object.Object) object.Object {
 	return (sortHelper(args, lower, false))
 }
 
+// fnReplace replaces the contents of a regexp with a string
+func fnReplace(args []object.Object) object.Object {
+
+	// We expect two arguments
+	if len(args) != 3 {
+		return &object.Null{}
+	}
+
+	str := args[0].Inspect()
+	reg := args[1].Inspect()
+	replace := args[2].Inspect()
+
+
+	// Look for the compiled regular-expression object in our cache.
+	r, ok := regCache[reg]
+	if !ok {
+
+		// OK it wasn't found, so compile it.
+		var err error
+		r, err = regexp.Compile(reg)
+
+		// Ensure it compiled
+		if err != nil {
+			fmt.Printf("Invalid regular expression %s %s", reg, err.Error())
+			return &object.Boolean{Value: false}
+		}
+
+		// store in the cache for next time
+		regCache[reg] = r
+	}
+
+	out := r.ReplaceAll([]byte(str), []byte(replace))
+	return &object.String{Value: string(out)}
+}
+
 // fnReverse implements our `reverse` function
 func fnReverse(args []object.Object) object.Object {
 
