@@ -54,7 +54,7 @@ func (e *Eval) compile(node ast.Node) error {
 
 		// If this is an integer between 0 & 65535 we
 		// can push it naturally.
-		if v%1 == 0 && v >= 0 && v <= 65534 {
+		if v == int64(float64(v)) && v >= 0 && v <= 65534 {
 			e.emit(code.OpPush, int(v))
 		} else {
 
