@@ -133,7 +133,7 @@ func (vm *VM) optimizeMaths() (bool, error) {
 				// is the result as int & floating point equale.
 				// i.e. root(9) -> 3 which is fine.
 				// but root(2) is a float, which is not something we can replace
-				if (float64(result) == r) && result%1 == 0 && result >= 0 && result <= 65534 {
+				if (float64(result) == r) &&result >= 0 && result <= 65534 {
 
 					// Make a buffer for the argument
 					data := make([]byte, 2)
@@ -269,7 +269,7 @@ func (vm *VM) optimizeMaths() (bool, error) {
 					result = b.value / a.value
 				}
 
-				if result%1 == 0 && result >= 0 && result <= 65534 {
+				if result >= 0 && result <= 65534 {
 					// Make a buffer for the argument
 					data := make([]byte, 2)
 					binary.BigEndian.PutUint16(data, uint16(result))
