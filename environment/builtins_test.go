@@ -1185,3 +1185,61 @@ func TestReverseSort(t *testing.T) {
 	}
 
 }
+
+func TestJoin(t *testing.T) {
+
+	// Two arguments are required
+	var args []object.Object
+	out := fnJoin(args)
+	if out.Type() != object.NULL {
+		t.Errorf("no arguments returns a weird result")
+	}
+
+	// 1 arg
+	args = append(args, &object.Null{})
+	out = fnJoin(args)
+	if out.Type() != object.NULL {
+		t.Errorf("one argument returns a weird result")
+	}
+
+	// 2 args - but wrong types
+	args = append(args, &object.Null{})
+	out = fnJoin(args)
+	if out.Type() != object.NULL {
+		t.Errorf("one argument returns a weird result")
+	}
+
+	// 2 args - wrong types, again
+	args = []object.Object{
+		// Array
+		&object.Array{ Elements:
+			[]object.Object{
+				&object.String{Value: "Steve"},
+				&object.String{Value: "Kemp"},
+			},
+		},
+		&object.Boolean{Value: false}}
+	out = fnJoin(args)
+	if out.Type() != object.NULL {
+		t.Errorf("one argument returns a weird result")
+	}
+
+	// Valid
+	args = []object.Object{
+		// Array
+		&object.Array{ Elements:
+			[]object.Object{
+				&object.String{Value: "Steve"},
+				&object.String{Value: "Kemp"},
+			},
+		},
+		&object.String{Value: "-"}}
+
+	out = fnJoin(args)
+	if out.Type() != object.STRING {
+		t.Errorf("didn't get a string back with a valid join")
+	}
+	if out.Inspect() != "Steve-Kemp" {
+		t.Errorf("wrong result for join: %s != Steve-Kemp", out.Inspect())
+	}
+}

@@ -126,6 +126,37 @@ func fnInt(args []object.Object) object.Object {
 	return &object.Integer{Value: i}
 }
 
+
+// Join the given array with a string.
+func fnJoin(args []object.Object) object.Object {
+
+	// We expect two arguments
+	if len(args) != 2 {
+		return &object.Null{}
+	}
+
+	// The first argument must be an array
+	if args[0].Type() != object.ARRAY {
+		return &object.Null{}
+	}
+	if args[1].Type() != object.STRING {
+		return &object.Null{}
+	}
+
+	// Do the join
+	out := ""
+	len := len(args[0].(*object.Array).Elements)
+
+	for i, entry := range(args[0].(*object.Array).Elements) {
+		out += entry.Inspect()
+		if i != len-1 {
+			out += args[1].(*object.String).Value
+	        }
+	}
+
+	return &object.String{Value: out}
+}
+
 // Get the (sorted) keys from the specified hash.
 func fnKeys(args []object.Object) object.Object {
 
