@@ -1521,3 +1521,38 @@ func TestNullJsonField(t *testing.T) {
 		}
 	}
 }
+
+func TestSplitJoin(t *testing.T) {
+	input := `
+tmp = "XXX";
+out = join( split( tmp, " " ), "-" );
+
+return out ;
+`
+	// The value we'll search/replace on
+	name := "This is a file name with spaces / stuff.docx"
+
+	// Replace the string in our template-program
+	input = strings.ReplaceAll(input, "XXX", name )
+
+	// The expected output will be name =~ s/ /-/g
+	nameOut := strings.ReplaceAll(name, " ", "-");
+
+	// parse/prepare
+	obj := New(input)
+	err := obj.Prepare()
+	if err != nil {
+		t.Fatalf("Failed to compile: %s",err)
+	}
+
+	// execute
+	out, err2 := obj.Execute(nil)
+	if err2 != nil {
+		t.Fatalf("unexpected error:%s", err2)
+	}
+
+	// confirm
+	if out.Inspect() != nameOut {
+		t.Fatalf("failed split/join test got %s not %s", out.Inspect(), nameOut)
+	}
+}

@@ -687,11 +687,6 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 // parseIfCondition parses an if-expression.
 func (p *Parser) parseIfExpression() ast.Expression {
 	expression := &ast.IfExpression{Token: p.curToken}
-	if expression == nil {
-		msg := fmt.Sprintf("unexpected nil expression around %s", p.curToken.Position())
-		p.errors = append(p.errors, msg)
-		return nil
-	}
 
 	// Look for the condition, surrounded by "(" + ")".
 	expression.Condition = p.parseBracketExpression()
@@ -889,11 +884,7 @@ func (p *Parser) parseFunctionParameters() []*ast.Identifier {
 // parseWhileStatement parses a while-statement.
 func (p *Parser) parseWhileStatement() ast.Expression {
 	expression := &ast.WhileStatement{Token: p.curToken}
-	if expression == nil {
-		msg := fmt.Sprintf("unexpected nil expression around %s", p.curToken.Position())
-		p.errors = append(p.errors, msg)
-		return nil
-	}
+
 	if !p.expectPeek(token.LPAREN) {
 		msg := fmt.Sprintf("expected ( but got %s around %s", p.curToken.Literal, p.curToken.Position())
 		p.errors = append(p.errors, msg)

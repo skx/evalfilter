@@ -57,7 +57,7 @@ In terms of implementation the script to be executed is split into [tokens](toke
 
 Once the bytecode has been generated it can be executed multiple times, there is no state which needs to be maintained, which makes actually executing the script (i.e. running the bytecode) a fast process.
 
-At execution-time the bytecode which was generated is interpreted by a naive [stack-based](stack/stack.go) [virtual machine](vm/vm.go), with some runtime support to provide the [builtin-functions](environment/builtins.go), as well as supporting the addition of host-specific functions.
+At execution-time the bytecode which was generated is interpreted by a naive [stack-based](stack/stack.go) [virtual machine](vm/vm.go), with some runtime support to provide the [built-in functions](environment/builtins.go), as well as supporting the addition of host-specific functions.
 
 The bytecode itself is documented briefly in [BYTECODE.md](BYTECODE.md), but it is not something you should need to understand to use the library, only if you're interested in debugging a misbehaving script.
 
@@ -98,6 +98,8 @@ You can also easily add new primitives to the engine, by defining a function in 
 * `int(value)`
   * Tries to convert the value to an integer, returns Null on failure.
   * e.g. `int("3")`.
+* `join(array,deliminator)`
+  * Return a string consisting of the array elements joined by the given string.
 * `keys`
   * Returns the available keys in the specified hash, in sorted order.
 * `len(field | value)`
